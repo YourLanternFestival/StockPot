@@ -1617,30 +1617,42 @@ function handleLianhuaFileSelected(fileInput) {
     try {
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
+
+      // Find 询价 sheet
+      const sheetName = wb.SheetNames.find(name => name.includes('询价'));
+      if (!sheetName) {
+        showToast('未找到"询价"工作表', 'error');
+        return;
+      }
+
+      const ws = wb.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
       const items = [];
-      // Skip header row, parse data
-      for (let i = 1; i < rows.length; i++) {
+      // Data starts at row 2 (index 2), columns: 序号, 类别, 匹配名称, 名称(编码), 评估价格, 盛销折扣后价格, 优宏折扣后价格, 单位, 规格, 备注
+      for (let i = 2; i < rows.length; i++) {
         const row = rows[i];
-        if (!row[4]) continue; // Skip if no name
+        const category = String(row[1] || '').trim();
+        if (category !== '联华') continue; // Only import 联华 items
+
+        const name = String(row[2] || '').trim();
+        if (!name) continue;
 
         items.push({
           code: String(row[3] || '').trim(),
-          name: String(row[4] || '').trim(),
-          unit: String(row[5] || '件').trim(),
-          spec: String(row[6] || '').trim(),
-          price: parseFloat(row[7]) || 0,
-          split_qty: parseInt(row[10]) || 1,
-          remark: String(row[11] || '').trim()
+          name: name,
+          unit: String(row[7] || '包').trim(),
+          spec: String(row[8] || '').trim(),
+          price: parseFloat(row[5]) || 0, // 盛销折扣后价格
+          split_qty: 1, // Default 1, user can edit later
+          remark: String(row[9] || '').trim()
         });
       }
 
       pendingLianhuaData = items;
       document.getElementById('lianhua-import-preview').style.display = 'block';
       document.getElementById('lianhua-preview-stats').innerHTML =
-        `<span class="tag tag-success">共 ${items.length} 个商品</span>`;
+        `<span class="tag tag-success">共 ${items.length} 个联华商品</span>`;
       document.getElementById('btn-start-import-lianhua').disabled = false;
     } catch (err) {
       showToast('文件解析失败: ' + err.message, 'error');
@@ -1663,11 +1675,18 @@ async function startImportLianhua() {
   }
 }
 
-// Import lianhua items from inquiry sheet (单件价格)
+// Import lianhua items from inquiry database
 async function importLianhuaFromInquiry() {
   try {
-    // Get inquiry items with category "联华"
-    const items = await window.api.getInquiryItems(null, null);
+    // Get inquiry items with category "联华" from latest month
+    const months = await window.api.getInquiryMonths();
+    if (months.length === 0) {
+      showToast('请先导入询价数据', 'error');
+      return;
+    }
+
+    const latestMonth = months[0].month;
+    const items = await window.api.getInquiryItems(latestMonth, null);
     const lianhuaInquiry = items.filter(item => item.category === '联华');
 
     if (lianhuaInquiry.length === 0) {
