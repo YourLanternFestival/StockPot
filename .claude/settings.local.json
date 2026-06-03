@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python *)",
+      "Bash(py -c \"print\\('hello'\\)\")",
+      "Bash(npm -v)",
+      "Bash(dir C:\\\\Users\\\\98085\\\\Desktop\\\\In-Out *)",
+      "Bash(powershell.exe *)",
+      "Bash(ls /c/Python*)",
+      "Read(//c/Users/98085/AppData/Local/Programs/**)",
+      "Bash('/c/Program Files/nodejs/npm.cmd' init -y)",
+      "Bash('/c/Program Files/nodejs/npm.cmd' install xlsx)",
+      "Bash($NODE *)",
+      "Bash('/c/Program Files/nodejs/npm.cmd' install electron --save-dev)",
+      "Bash($NPM install *)",
+      "Bash(cmd.exe *)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" electron .)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install @electron/rebuild --save-dev)",
+      "Bash(\"/c/Program Files/nodejs/npx.cmd\" @electron/rebuild)",
+      "Bash(timeout 30)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" uninstall better-sqlite3)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install sql.js)",
+      "Bash(timeout 5)",
+      "Bash(taskkill //F //IM electron.exe)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(\"/c/Program Files/Git/bin/git.exe\" config --global credential.helper)",
+      "Read(//c/Users/98085/**)",
+      "Bash(/c/Program Files/Git/bin/git.exe *)",
+      "Bash(curl -s -X POST https://gitee.com/api/v5/user/repos -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(curl *)"
+    ]
+  }
+}

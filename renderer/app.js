@@ -1,0 +1,1068 @@
+// ===== State =====
+let PRODUCTS = [];
+let RECIPIENTS = [];
+let selectedProductIds = new Set();
+let trendChart = null;
+let pieChart = null;
+
+// ===== Navigation =====
+function navigateTo(page) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  const pageEl = document.getElementById(`page-${page}`);
+  if (navItem) navItem.classList.add('active');
+  if (pageEl) pageEl.classList.add('active');
+
+  // Load data for the page
+  switch (page) {
+    case 'dashboard': loadDashboard(); break;
+    case 'inventory': loadInventory(); break;
+    case 'ledger': loadLedger(); break;
+    case 'alerts': loadAlerts(); break;
+    case 'products': loadProducts(); break;
+  }
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.page));
+});
+
+// ===== Toast =====
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ===== Modal =====
+function openModal(title, bodyHtml, footerHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-footer').innerHTML = footerHtml || '';
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+document.getElementById('modal-overlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ===== Helpers =====
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  return dateStr.substring(0, 10);
+}
+
+function daysBetween(date1, date2) {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  return Math.ceil((d2 - d1) / 86400000);
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Excel serial number to YYYY-MM-DD
+function excelSerialToDate(serial) {
+  if (!serial || typeof serial !== 'number') return null;
+  const epoch = new Date(1899, 11, 30);
+  const d = new Date(epoch.getTime() + serial * 86400000);
+  return d.toISOString().split('T')[0];
+}
+
+// ===== Dashboard =====
+async function loadDashboard() {
+  try {
+    const stats = await window.api.getDashboardStats();
+
+    // Update stat cards
+    document.getElementById('stat-products').textContent = stats.productCount;
+    document.getElementById('stat-inbound').textContent = stats.totalIn.toLocaleString();
+    document.getElementById('stat-outbound').textContent = stats.totalOut.toLocaleString();
+
+    // Alert count
+    const alerts = await window.api.getAlerts(30);
+    document.getElementById('stat-alerts').textContent = alerts.length;
+    document.getElementById('alert-badge').textContent = alerts.length;
+    document.getElementById('alert-badge').style.display = alerts.length > 0 ? 'inline' : 'none';
+
+    // Trend chart
+    renderTrendChart(stats.days);
+
+    // Pie chart
+    renderPieChart(stats.top10);
+
+    // Recent alerts
+    renderDashboardAlerts(alerts.slice(0, 5));
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+  }
+}
+
+function renderTrendChart(days) {
+  const ctx = document.getElementById('trend-chart');
+  if (!ctx) return;
+  if (trendChart) trendChart.destroy();
+
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days.map(d => d.label),
+      datasets: [
+        {
+          label: '入库',
+          data: days.map(d => d.inQty),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16,185,129,0.1)',
+          fill: true, tension: 0.3, pointRadius: 2,
+        },
+        {
+          label: '出库',
+          data: days.map(d => d.outQty),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239,68,68,0.1)',
+          fill: true, tension: 0.3, pointRadius: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45, font: { size: 10 } } } }
+    }
+  });
+}
+
+function renderPieChart(top10) {
+  const ctx = document.getElementById('pie-chart');
+  if (!ctx) return;
+  if (pieChart) pieChart.destroy();
+
+  const data = top10.filter(x => x.stock > 0);
+  pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: data.map(x => x.name.length > 10 ? x.name.substring(0, 10) + '...' : x.name),
+      datasets: [{
+        data: data.map(x => x.stock),
+        backgroundColor: [
+          '#4f6ef7', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+          '#06b6d4', '#f97316', '#ec4899', '#14b8a6', '#6366f1'
+        ],
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } }
+    }
+  });
+}
+
+function renderDashboardAlerts(alerts) {
+  const tbody = document.getElementById('dashboard-alerts-body');
+  if (!alerts.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;">暂无预警</td></tr>';
+    return;
+  }
+  const today = todayStr();
+  tbody.innerHTML = alerts.map(a => {
+    const days = daysBetween(today, a.expiry_date);
+    const tagClass = days < 0 ? 'tag-danger' : 'tag-warning';
+    const statusText = days < 0 ? '已过期' : `${days}天后到期`;
+    return `<tr>
+      <td>${a.product_name}</td><td>${a.spec}</td><td>${a.quantity}${a.unit}</td>
+      <td>${formatDate(a.expiry_date)}</td><td><span class="tag ${tagClass}">${statusText}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== Inventory =====
+async function loadInventory(filter = '') {
+  try {
+    const inventory = await window.api.getInventory();
+    const tbody = document.getElementById('inventory-body');
+
+    const filtered = inventory.filter(p =>
+      p.name.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    tbody.innerHTML = filtered.map(p => {
+      const statusClass = p.stock === 0 ? 'stock-zero' : p.stock < 5 ? 'stock-low' : 'stock-ok';
+      const statusText = p.stock === 0 ? '缺货' : p.stock < 5 ? '偏低' : '正常';
+      const tagClass = p.stock === 0 ? 'tag-danger' : p.stock < 5 ? 'tag-warning' : 'tag-success';
+      return `<tr>
+        <td>${p.id}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td>
+        <td class="${statusClass}">${p.stock}</td><td>${p.total_in}</td><td>${p.total_out}</td>
+        <td><span class="tag ${tagClass}">${statusText}</span></td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    console.error('Inventory load error:', err);
+  }
+}
+
+document.getElementById('inv-search').addEventListener('input', (e) => {
+  loadInventory(e.target.value);
+});
+
+// ===== Products =====
+async function loadProducts(filter = '') {
+  try {
+    PRODUCTS = await window.api.getAllProducts();
+    renderProductTable(filter);
+  } catch (err) {
+    console.error('Products load error:', err);
+  }
+}
+
+function renderProductTable(filter = '') {
+  const tbody = document.getElementById('products-body');
+  const filtered = PRODUCTS.filter(p =>
+    p.name.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td><input type="checkbox" class="prod-cb" data-id="${p.id}" ${selectedProductIds.has(p.id) ? 'checked' : ''} onchange="toggleProductSelect(${p.id}, this.checked)"></td>
+      <td>${p.id}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td>
+      <td>${p.shelf_months}</td><td>${p.shelf_days}</td>
+      <td>
+        <button class="btn btn-sm" onclick="editProduct(${p.id})">编辑</button>
+        <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteProduct(${p.id})">删除</button>
+      </td>
+    </tr>
+  `).join('');
+
+  updateSelectAllCheckbox();
+  updateProductActionButtons();
+}
+
+function toggleProductSelect(id, checked) {
+  if (checked) selectedProductIds.add(id); else selectedProductIds.delete(id);
+  updateSelectAllCheckbox();
+  updateProductActionButtons();
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.prod-cb').forEach(cb => {
+    const id = parseInt(cb.dataset.id);
+    cb.checked = checked;
+    if (checked) selectedProductIds.add(id); else selectedProductIds.delete(id);
+  });
+  updateProductActionButtons();
+}
+
+function updateSelectAllCheckbox() {
+  const selectAll = document.getElementById('select-all-products');
+  if (!selectAll) return;
+  const cbs = document.querySelectorAll('.prod-cb');
+  const checked = document.querySelectorAll('.prod-cb:checked').length;
+  selectAll.checked = cbs.length > 0 && checked === cbs.length;
+  selectAll.indeterminate = checked > 0 && checked < cbs.length;
+}
+
+function updateProductActionButtons() {
+  const btn = document.getElementById('btn-batch-delete');
+  if (btn) {
+    btn.style.display = selectedProductIds.size > 0 ? 'inline-flex' : 'none';
+    btn.textContent = `🗑 删除选中 (${selectedProductIds.size})`;
+  }
+}
+
+document.getElementById('prod-search').addEventListener('input', (e) => {
+  renderProductTable(e.target.value);
+});
+
+function showAddProduct() {
+  openModal('新增产品', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group"><label>材料名称</label><input type="text" class="form-control" id="np-name" placeholder="请输入材料名称"></div>
+      <div class="form-group"><label>规格</label><input type="text" class="form-control" id="np-spec" placeholder="如: 500克/瓶"></div>
+      <div class="form-group"><label>单位</label><input type="text" class="form-control" id="np-unit" placeholder="如: 瓶、包、桶"></div>
+      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="np-months" min="0" value="0"></div>
+      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="np-days" min="0" value="0"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doAddProduct()">保存</button>
+  `);
+}
+
+async function doAddProduct() {
+  const name = document.getElementById('np-name').value.trim();
+  const unit = document.getElementById('np-unit').value.trim();
+  if (!name || !unit) { showToast('名称和单位必填', 'error'); return; }
+  await window.api.addProduct({
+    name, spec: document.getElementById('np-spec').value.trim(), unit,
+    shelf_months: parseInt(document.getElementById('np-months').value) || 0,
+    shelf_days: parseInt(document.getElementById('np-days').value) || 0,
+  });
+  closeModal();
+  showToast('产品已添加');
+  loadProducts();
+  refreshProductSelects();
+}
+
+function editProduct(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  openModal('编辑产品', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group"><label>材料名称</label><input type="text" class="form-control" id="ep-name" value="${p.name}"></div>
+      <div class="form-group"><label>规格</label><input type="text" class="form-control" id="ep-spec" value="${p.spec}"></div>
+      <div class="form-group"><label>单位</label><input type="text" class="form-control" id="ep-unit" value="${p.unit}"></div>
+      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="ep-months" value="${p.shelf_months}"></div>
+      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="ep-days" value="${p.shelf_days}"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doEditProduct(${id})">保存</button>
+  `);
+}
+
+async function doEditProduct(id) {
+  const name = document.getElementById('ep-name').value.trim();
+  const unit = document.getElementById('ep-unit').value.trim();
+  if (!name || !unit) { showToast('名称和单位必填', 'error'); return; }
+  await window.api.updateProduct(id, {
+    name, spec: document.getElementById('ep-spec').value.trim(), unit,
+    shelf_months: parseInt(document.getElementById('ep-months').value) || 0,
+    shelf_days: parseInt(document.getElementById('ep-days').value) || 0,
+  });
+  closeModal();
+  showToast('已保存');
+  loadProducts();
+  refreshProductSelects();
+}
+
+function deleteProduct(id) {
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  openModal('确认删除', `
+    <p>确定要删除 <strong>${p.name}</strong> 吗？</p>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:8px;">历史入出库记录仍会保留。</p>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doDeleteProduct(${id})">确认删除</button>
+  `);
+}
+
+async function doDeleteProduct(id) {
+  await window.api.deleteProduct(id);
+  selectedProductIds.delete(id);
+  closeModal();
+  showToast('产品已删除');
+  loadProducts();
+  refreshProductSelects();
+}
+
+function batchDeleteProducts() {
+  if (selectedProductIds.size === 0) return;
+  openModal('批量删除', `
+    <p>确定要删除选中的 <strong>${selectedProductIds.size}</strong> 个产品吗？</p>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:8px;">历史入出库记录仍会保留。</p>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doBatchDelete()">确认删除</button>
+  `);
+}
+
+async function doBatchDelete() {
+  const ids = Array.from(selectedProductIds);
+  await window.api.batchDeleteProducts(ids);
+  const count = ids.length;
+  selectedProductIds.clear();
+  closeModal();
+  showToast(`已删除 ${count} 个产品`);
+  loadProducts();
+  refreshProductSelects();
+}
+
+// ===== Product Select Helper =====
+async function refreshProductSelects() {
+  try {
+    PRODUCTS = await window.api.getProducts();
+    populateProductSelect('in-product');
+    populateProductSelect('out-product');
+  } catch (err) {
+    console.error('Refresh selects error:', err);
+  }
+}
+
+function populateProductSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = '<option value="">请选择材料...</option>' +
+    PRODUCTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// ===== Inbound Form =====
+document.getElementById('in-product').addEventListener('change', async function() {
+  const p = PRODUCTS.find(x => x.id === parseInt(this.value));
+  if (p) {
+    document.getElementById('in-spec').value = p.spec;
+    document.getElementById('in-unit').value = p.unit;
+    // Show case hint
+    const hint = document.getElementById('in-case-hint');
+    if (hint) {
+      const match = p.spec.match(/(\d+)[^/]*\/箱/);
+      hint.textContent = match ? `1箱 = ${match[1]}${p.unit}` : '';
+    }
+    calcInExpiry();
+  } else {
+    document.getElementById('in-spec').value = '';
+    document.getElementById('in-unit').value = '';
+    const hint = document.getElementById('in-case-hint');
+    if (hint) hint.textContent = '';
+  }
+});
+
+document.getElementById('in-prod-date').addEventListener('change', calcInExpiry);
+
+function calcInExpiry() {
+  const prodDate = document.getElementById('in-prod-date').value;
+  const productId = parseInt(document.getElementById('in-product').value);
+  if (!prodDate || !productId) return;
+  const p = PRODUCTS.find(x => x.id === productId);
+  if (!p || !p.shelf_days) return;
+  const d = new Date(prodDate);
+  d.setDate(d.getDate() + p.shelf_days);
+  document.getElementById('in-expiry').value = d.toISOString().split('T')[0];
+}
+
+async function submitInbound() {
+  const productId = parseInt(document.getElementById('in-product').value);
+  const qty = parseFloat(document.getElementById('in-qty').value);
+  const date = document.getElementById('in-date').value;
+
+  if (!productId || !qty || !date) {
+    showToast('请填写必填项', 'error');
+    return;
+  }
+
+  await window.api.addInbound({
+    product_id: productId,
+    date,
+    quantity: qty,
+    remark: document.getElementById('in-remark').value.trim(),
+    production_date: document.getElementById('in-prod-date').value || null,
+    expiry_date: document.getElementById('in-expiry').value || null,
+  });
+
+  showToast('入库登记成功！');
+  resetInboundForm();
+  loadRecentInbound();
+}
+
+function resetInboundForm() {
+  document.getElementById('in-product').value = '';
+  document.getElementById('in-spec').value = '';
+  document.getElementById('in-qty').value = '';
+  document.getElementById('in-unit').value = '';
+  document.getElementById('in-prod-date').value = '';
+  document.getElementById('in-expiry').value = '';
+  document.getElementById('in-remark').value = '';
+  const hint = document.getElementById('in-case-hint');
+  if (hint) hint.textContent = '';
+}
+
+async function loadRecentInbound() {
+  try {
+    const records = await window.api.getInbound({});
+    const tbody = document.getElementById('recent-inbound');
+    tbody.innerHTML = records.slice(0, 20).map(r => `
+      <tr>
+        <td>${formatDate(r.date)}</td><td>${r.product_name}</td>
+        <td>${r.quantity}</td><td>${r.unit}</td>
+        <td>${formatDate(r.production_date)}</td><td>${formatDate(r.expiry_date)}</td>
+        <td>
+          <button class="btn btn-sm" onclick='editInbound(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
+          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInbound(${r.id})">删除</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Load recent inbound error:', err);
+  }
+}
+
+function editInbound(r) {
+  openModal('编辑入库记录', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group"><label>材料</label><input type="text" class="form-control" value="${r.product_name}" readonly></div>
+      <div class="form-group"><label>数量</label><input type="number" class="form-control" id="ei-qty" value="${r.quantity}"></div>
+      <div class="form-group"><label>入库日期</label><input type="date" class="form-control" id="ei-date" value="${formatDate(r.date)}"></div>
+      <div class="form-group"><label>生产日期</label><input type="date" class="form-control" id="ei-prod" value="${formatDate(r.production_date)}"></div>
+      <div class="form-group"><label>到期日</label><input type="date" class="form-control" id="ei-expiry" value="${formatDate(r.expiry_date)}"></div>
+      <div class="form-group"><label>备注</label><input type="text" class="form-control" id="ei-remark" value="${r.remark || ''}"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doEditInbound(${r.id})">保存</button>
+  `);
+}
+
+async function doEditInbound(id) {
+  await window.api.updateInbound(id, {
+    date: document.getElementById('ei-date').value,
+    quantity: parseFloat(document.getElementById('ei-qty').value),
+    remark: document.getElementById('ei-remark').value.trim(),
+    production_date: document.getElementById('ei-prod').value || null,
+    expiry_date: document.getElementById('ei-expiry').value || null,
+  });
+  closeModal();
+  showToast('已更新');
+  loadRecentInbound();
+}
+
+async function deleteInbound(id) {
+  openModal('确认删除', '<p>确定要删除这条入库记录吗？</p>', `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doDeleteInbound(${id})">确认删除</button>
+  `);
+}
+
+async function doDeleteInbound(id) {
+  await window.api.deleteInbound(id);
+  closeModal();
+  showToast('已删除');
+  loadRecentInbound();
+}
+
+// ===== Outbound Form =====
+document.getElementById('out-product').addEventListener('change', async function() {
+  const p = PRODUCTS.find(x => x.id === parseInt(this.value));
+  if (p) {
+    document.getElementById('out-spec').value = p.spec;
+    const inv = (await window.api.getInventory()).find(x => x.id === p.id);
+    document.getElementById('out-stock').value = (inv ? inv.stock : 0) + ' ' + p.unit;
+  } else {
+    document.getElementById('out-spec').value = '';
+    document.getElementById('out-stock').value = '';
+  }
+});
+
+async function submitOutbound() {
+  const productId = parseInt(document.getElementById('out-product').value);
+  const qty = parseFloat(document.getElementById('out-qty').value);
+  const date = document.getElementById('out-date').value;
+  const recipient = document.getElementById('out-recipient').value;
+
+  if (!productId || !qty || !date || !recipient) {
+    showToast('请填写必填项', 'error');
+    return;
+  }
+
+  // Check stock
+  const inv = (await window.api.getInventory()).find(x => x.id === productId);
+  if (inv && qty > inv.stock) {
+    showToast(`库存不足！当前库存: ${inv.stock}`, 'error');
+    return;
+  }
+
+  await window.api.addOutbound({
+    product_id: productId,
+    date,
+    quantity: qty,
+    recipient,
+  });
+
+  showToast('出库登记成功！');
+  resetOutboundForm();
+  loadRecentOutbound();
+}
+
+function resetOutboundForm() {
+  document.getElementById('out-product').value = '';
+  document.getElementById('out-spec').value = '';
+  document.getElementById('out-qty').value = '';
+  document.getElementById('out-stock').value = '';
+  document.getElementById('out-recipient').value = '';
+}
+
+async function loadRecentOutbound() {
+  try {
+    const records = await window.api.getOutbound({});
+    const tbody = document.getElementById('recent-outbound');
+    tbody.innerHTML = records.slice(0, 20).map(r => `
+      <tr>
+        <td>${formatDate(r.date)}</td><td>${r.product_name}</td>
+        <td>${r.quantity}</td><td>${r.unit}</td><td>${r.recipient}</td>
+        <td>
+          <button class="btn btn-sm" onclick='editOutbound(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
+          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteOutbound(${r.id})">删除</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Load recent outbound error:', err);
+  }
+}
+
+function editOutbound(r) {
+  openModal('编辑出库记录', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group"><label>材料</label><input type="text" class="form-control" value="${r.product_name}" readonly></div>
+      <div class="form-group"><label>数量</label><input type="number" class="form-control" id="eo-qty" value="${r.quantity}"></div>
+      <div class="form-group"><label>出库日期</label><input type="date" class="form-control" id="eo-date" value="${formatDate(r.date)}"></div>
+      <div class="form-group"><label>领取人</label><input type="text" class="form-control" id="eo-recipient" value="${r.recipient}"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doEditOutbound(${r.id})">保存</button>
+  `);
+}
+
+async function doEditOutbound(id) {
+  await window.api.updateOutbound(id, {
+    date: document.getElementById('eo-date').value,
+    quantity: parseFloat(document.getElementById('eo-qty').value),
+    recipient: document.getElementById('eo-recipient').value.trim(),
+  });
+  closeModal();
+  showToast('已更新');
+  loadRecentOutbound();
+}
+
+async function deleteOutbound(id) {
+  openModal('确认删除', '<p>确定要删除这条出库记录吗？</p>', `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doDeleteOutbound(${id})">确认删除</button>
+  `);
+}
+
+async function doDeleteOutbound(id) {
+  await window.api.deleteOutbound(id);
+  closeModal();
+  showToast('已删除');
+  loadRecentOutbound();
+}
+
+async function addRecipient() {
+  openModal('新增领取人', `
+    <div class="form-group"><label>领取人名称</label><input type="text" class="form-control" id="new-recipient-name" placeholder="请输入名称"></div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doAddRecipient()">添加</button>
+  `);
+}
+
+async function doAddRecipient() {
+  const name = document.getElementById('new-recipient-name').value.trim();
+  if (!name) return;
+  await window.api.addRecipient(name);
+  const sel = document.getElementById('out-recipient');
+  const opt = document.createElement('option');
+  opt.value = name; opt.textContent = name;
+  sel.appendChild(opt); sel.value = name;
+  closeModal();
+  showToast(`已添加: ${name}`);
+}
+
+async function loadRecipientSelect() {
+  try {
+    RECIPIENTS = await window.api.getRecipients();
+    const sel = document.getElementById('out-recipient');
+    sel.innerHTML = '<option value="">请选择...</option>' +
+      RECIPIENTS.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+  } catch (err) {
+    console.error('Load recipients error:', err);
+  }
+}
+
+// ===== Ledger =====
+async function loadLedger() {
+  try {
+    const year = parseInt(document.getElementById('ledger-year').value);
+    const month = parseInt(document.getElementById('ledger-month').value);
+    const data = await window.api.getInventoryByMonth(year, month);
+
+    const tbody = document.getElementById('ledger-body');
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Filter: only show products with activity or stock
+    const active = data.filter(p => p.hasActivity);
+
+    if (active.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="${7 + daysInMonth}" style="text-align:center;padding:40px;color:var(--text-muted);">本月无活跃产品数据</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = active.map((p, idx) => {
+      const dayCells = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayData = p.daily[d] || { in: 0, out: 0 };
+        const inHtml = dayData.in > 0 ? `<span class="in-val">${dayData.in}</span>` : '';
+        const outHtml = dayData.out > 0 ? `<span class="out-val">${dayData.out}</span>` : '';
+        const sep = dayData.in > 0 && dayData.out > 0 ? '<span class="sep">/</span>' : '';
+        dayCells.push(`<td class="ledger-day-cell">${inHtml}${sep}${outHtml}</td>`);
+      }
+
+      return `
+        <tr class="ledger-row-expandable" onclick="toggleLedgerDetail(${idx})">
+          <td class="sticky-col col-idx">${idx + 1}</td>
+          <td class="sticky-col col-name">${p.name}</td>
+          <td class="sticky-col col-unit">${p.unit}</td>
+          <td>${p.prevStock}</td>
+          <td>${p.monthIn}</td>
+          <td>${p.monthOut}</td>
+          <td><strong>${p.currentStock}</strong></td>
+          ${dayCells.join('')}
+        </tr>
+        <tr class="ledger-detail-row" id="ledger-detail-${idx}">
+          <td colspan="${7 + daysInMonth}" class="ledger-detail-cell">
+            <div style="padding:10px;">
+              <strong>${p.name}</strong> - ${year}年${month}月明细
+              <div style="margin-top:8px;font-size:13px;color:#64748b;">
+                上月结存: ${p.prevStock} | 本月入库: ${p.monthIn} | 本月出库: ${p.monthOut} | 当前库存: ${p.currentStock}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Ledger load error:', err);
+  }
+}
+
+function toggleLedgerDetail(idx) {
+  const row = document.getElementById(`ledger-detail-${idx}`);
+  if (row) row.classList.toggle('show');
+}
+
+document.getElementById('ledger-year').addEventListener('change', loadLedger);
+document.getElementById('ledger-month').addEventListener('change', loadLedger);
+
+// ===== Alerts =====
+async function loadAlerts() {
+  try {
+    const alerts = await window.api.getAlerts(60);
+    const today = todayStr();
+    const tbody = document.getElementById('alerts-body');
+
+    let expired = 0, soon = 0, upcoming = 0;
+    alerts.forEach(a => {
+      const days = daysBetween(today, a.expiry_date);
+      if (days < 0) expired++;
+      else if (days <= 30) soon++;
+      else upcoming++;
+    });
+
+    document.getElementById('alert-expired-count').textContent = expired;
+    document.getElementById('alert-soon-count').textContent = soon;
+    document.getElementById('alert-upcoming-count').textContent = upcoming;
+
+    const filter = document.getElementById('alert-filter').value;
+    const filtered = alerts.filter(a => {
+      const days = daysBetween(today, a.expiry_date);
+      if (filter === 'expired') return days < 0;
+      if (filter === 'soon') return days >= 0 && days <= 30;
+      return true;
+    });
+
+    tbody.innerHTML = filtered.map(a => {
+      const days = daysBetween(today, a.expiry_date);
+      const tagClass = days < 0 ? 'tag-danger' : days <= 30 ? 'tag-warning' : 'tag-info';
+      const statusText = days < 0 ? '已过期' : days <= 30 ? '即将到期' : '临期';
+      return `<tr>
+        <td>${a.product_name}</td><td>${a.spec}</td><td>${a.quantity}${a.unit}</td>
+        <td>${formatDate(a.production_date)}</td><td>${formatDate(a.expiry_date)}</td>
+        <td>${days < 0 ? days + '天' : days + '天'}</td>
+        <td><span class="tag ${tagClass}">${statusText}</span></td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    console.error('Alerts load error:', err);
+  }
+}
+
+document.getElementById('alert-filter').addEventListener('change', loadAlerts);
+
+// ===== Import =====
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileSelected(file);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length > 0) handleFileSelected(fileInput.files[0]);
+});
+
+let pendingImportData = null;
+
+function handleFileSelected(file) {
+  try {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+
+      pendingImportData = { products: [], inbound: [], outbound: [], openingStock: {} };
+
+      // Parse 产品数据
+      if (wb.SheetNames.includes('产品数据')) {
+        const ws = wb.Sheets['产品数据'];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row[1]) continue; // skip empty
+          pendingImportData.products.push({
+            name: String(row[1] || '').trim(),
+            spec: String(row[2] || '').trim(),
+            unit: String(row[3] || '').trim(),
+            shelfMonths: parseInt(row[4]) || 0,
+            shelfDays: parseInt(row[5]) || 0,
+          });
+        }
+      }
+
+      // Parse 台账表 → 提取「上月结存」作为初始库存
+      // 台账表格式: 序号, 品名, 单位, 上月结存, 入库, 出库, 当前库存, 1日入, 1日出, ...
+      for (const sheetName of wb.SheetNames) {
+        if (sheetName.includes('台账')) {
+          const ws = wb.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          // Data starts at row 5 (index 4), columns: 0=序号, 1=品名, 2=单位, 3=上月结存
+          for (let i = 4; i < rows.length; i++) {
+            const row = rows[i];
+            const name = String(row[1] || '').trim();
+            const openingStock = parseFloat(row[3]) || 0;
+            if (name && openingStock > 0) {
+              // Only set if not already set (first ledger found wins)
+              if (!pendingImportData.openingStock[name]) {
+                pendingImportData.openingStock[name] = openingStock;
+              }
+            }
+          }
+          break; // Use first ledger sheet found
+        }
+      }
+
+      // Parse 入库流水账
+      if (wb.SheetNames.includes('入库流水账') && document.getElementById('import-inbound').checked) {
+        const ws = wb.Sheets['入库流水账'];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row[2]) continue;
+          pendingImportData.inbound.push({
+            name: String(row[2] || '').trim(),
+            date: excelSerialToDate(row[1]),
+            quantity: parseFloat(row[4]) || 0,
+            remark: String(row[6] || '').trim(),
+            productionDate: excelSerialToDate(row[7]),
+            expiryDate: excelSerialToDate(row[8]),
+          });
+        }
+      }
+
+      // Parse 出库流水账
+      if (wb.SheetNames.includes('出库流水账') && document.getElementById('import-outbound').checked) {
+        const ws = wb.Sheets['出库流水账'];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row[2]) continue;
+          pendingImportData.outbound.push({
+            name: String(row[2] || '').trim(),
+            date: excelSerialToDate(row[1]),
+            quantity: parseFloat(row[4]) || 0,
+            recipient: String(row[6] || '').trim(),
+          });
+        }
+      }
+
+      // Show preview
+      const openingCount = Object.keys(pendingImportData.openingStock).length;
+      document.getElementById('import-preview').style.display = 'block';
+      document.getElementById('import-preview-stats').innerHTML =
+        `<span class="tag">产品: ${pendingImportData.products.length}条</span>` +
+        `<span class="tag">入库: ${pendingImportData.inbound.length}条</span>` +
+        `<span class="tag">出库: ${pendingImportData.outbound.length}条</span>` +
+        (openingCount > 0 ? `<span class="tag tag-success">初始库存: ${openingCount}条</span>` : '');
+      showToast(`文件已识别: ${file.name}`, 'info');
+    };
+    reader.readAsArrayBuffer(file);
+  } catch (err) {
+    showToast('文件解析失败: ' + err.message, 'error');
+  }
+}
+
+async function startImport() {
+  if (!pendingImportData) return;
+
+  showToast('正在导入数据...', 'info');
+
+  try {
+    const pResult = await window.api.importProducts(pendingImportData.products);
+    let msg = `产品: 导入${pResult.imported}条, 跳过${pResult.skipped}条`;
+
+    // Import opening stock from ledger
+    if (Object.keys(pendingImportData.openingStock).length > 0) {
+      await window.api.importOpeningStock(pendingImportData.openingStock);
+      msg += ` | 初始库存: 已设置`;
+    }
+
+    if (pendingImportData.inbound.length > 0) {
+      const iResult = await window.api.importInbound(pendingImportData.inbound);
+      msg += ` | 入库: 导入${iResult.imported}条, 跳过${iResult.skipped}条`;
+    }
+
+    if (pendingImportData.outbound.length > 0) {
+      const oResult = await window.api.importOutbound(pendingImportData.outbound);
+      msg += ` | 出库: 导入${oResult.imported}条, 跳过${oResult.skipped}条`;
+    }
+
+    showToast('导入完成！' + msg);
+    pendingImportData = null;
+    document.getElementById('import-preview').style.display = 'none';
+
+    // Refresh data
+    await refreshProductSelects();
+  } catch (err) {
+    showToast('导入失败: ' + err.message, 'error');
+  }
+}
+
+async function clearAndReimport() {
+  openModal('确认清空', `
+    <p style="color:var(--danger);font-weight:600;">⚠️ 此操作将清空所有产品、入库、出库数据！</p>
+    <p style="margin-top:8px;">清空后可重新导入 xlsx 数据。此操作不可撤销。</p>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doClearAll()">确认清空</button>
+  `);
+}
+
+async function doClearAll() {
+  await window.api.clearAllData();
+  closeModal();
+  showToast('数据已清空，请重新导入');
+  await refreshProductSelects();
+}
+
+// ===== Export =====
+async function exportInventory() {
+  try {
+    const filePath = await window.api.saveFile('库存数据.xlsx');
+    if (!filePath) return;
+
+    const inventory = await window.api.getInventory();
+    const wsData = [['序号', '材料名称', '规格', '单位', '当前库存', '累计入库', '累计出库']];
+    inventory.forEach((p, i) => {
+      wsData.push([i + 1, p.name, p.spec, p.unit, p.stock, p.total_in, p.total_out]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, '库存数据');
+    XLSX.writeFile(wb, filePath);
+    showToast('导出成功！');
+  } catch (err) {
+    showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
+async function exportLedger() {
+  try {
+    const year = parseInt(document.getElementById('ledger-year').value);
+    const month = parseInt(document.getElementById('ledger-month').value);
+    const filePath = await window.api.saveFile(`${year}年${month}月台账表.xlsx`);
+    if (!filePath) return;
+
+    const data = await window.api.getInventoryByMonth(year, month);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const active = data.filter(p => p.hasActivity);
+
+    // Header
+    const header = ['序号', '品名', '单位', '上月结存', '本月入库', '本月出库', '当前库存'];
+    for (let d = 1; d <= daysInMonth; d++) header.push(`${d}日入库`, `${d}日出库`);
+
+    const wsData = [header];
+    active.forEach((p, i) => {
+      const row = [i + 1, p.name, p.unit, p.prevStock, p.monthIn, p.monthOut, p.currentStock];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dayData = p.daily[d] || { in: 0, out: 0 };
+        row.push(dayData.in || '', dayData.out || '');
+      }
+      wsData.push(row);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, `${year}年${month}月台账`);
+    XLSX.writeFile(wb, filePath);
+    showToast('导出成功！');
+  } catch (err) {
+    showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
+async function exportAll() {
+  try {
+    const filePath = await window.api.saveFile('全部数据导出.xlsx');
+    if (!filePath) return;
+
+    const products = await window.api.getAllProducts();
+    const inbound = await window.api.getInbound({});
+    const outbound = await window.api.getOutbound({});
+
+    const wb = XLSX.utils.book_new();
+
+    // Products sheet
+    const pData = [['序号', '材料名称', '规格', '单位', '保质期(月)', '保质期(日)']];
+    products.forEach((p, i) => pData.push([i + 1, p.name, p.spec, p.unit, p.shelf_months, p.shelf_days]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pData), '产品数据');
+
+    // Inbound sheet
+    const iData = [['序号', '入库时间', '材料名称', '规格', '数量', '单位', '备注', '生产日期', '到期日']];
+    inbound.forEach((r, i) => iData.push([i + 1, r.date, r.product_name, r.spec, r.quantity, r.unit, r.remark, r.production_date, r.expiry_date]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(iData), '入库流水账');
+
+    // Outbound sheet
+    const oData = [['序号', '出库时间', '名称', '规格', '数量', '单位', '领取人']];
+    outbound.forEach((r, i) => oData.push([i + 1, r.date, r.product_name, r.spec, r.quantity, r.unit, r.recipient]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(oData), '出库流水账');
+
+    XLSX.writeFile(wb, filePath);
+    showToast('导出成功！');
+  } catch (err) {
+    showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', async () => {
+  // Set today's date on date inputs
+  const today = todayStr();
+  document.querySelectorAll('input[type="date"]').forEach(input => {
+    if (!input.value) input.value = today;
+  });
+
+  // Set current month on ledger selector
+  const now = new Date();
+  document.getElementById('ledger-year').value = now.getFullYear();
+  document.getElementById('ledger-month').value = now.getMonth() + 1;
+
+  // Load initial data
+  await refreshProductSelects();
+  await loadRecipientSelect();
+  loadDashboard();
+  loadRecentInbound();
+  loadRecentOutbound();
+});

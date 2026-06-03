@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>洋安出入库管理系统</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h1>📦 洋安出入库</h1>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">总览</span>
+        </li>
+        <li class="nav-item" data-page="inventory">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">库存查询</span>
+        </li>
+        <li class="nav-item" data-page="inbound">
+          <span class="nav-icon">📥</span>
+          <span class="nav-text">入库登记</span>
+        </li>
+        <li class="nav-item" data-page="outbound">
+          <span class="nav-icon">📤</span>
+          <span class="nav-text">出库登记</span>
+        </li>
+        <li class="nav-item" data-page="ledger">
+          <span class="nav-icon">📅</span>
+          <span class="nav-text">月度台账</span>
+        </li>
+        <li class="nav-item" data-page="alerts">
+          <span class="nav-icon">⚠️</span>
+          <span class="nav-text">过期预警</span>
+          <span class="badge" id="alert-badge">3</span>
+        </li>
+        <li class="nav-item" data-page="products">
+          <span class="nav-icon">🏷️</span>
+          <span class="nav-text">产品管理</span>
+        </li>
+        <li class="nav-item" data-page="import">
+          <span class="nav-icon">📥</span>
+          <span class="nav-text">数据导入</span>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Dashboard -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <h2>总览</h2>
+          <span class="date-display">2026年6月3日</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-products">0</div>
+              <div class="stat-label">在库品种</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📥</div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-inbound">0</div>
+              <div class="stat-label">累计入库笔数</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📤</div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-outbound">0</div>
+              <div class="stat-label">累计出库笔数</div>
+            </div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-info">
+              <div class="stat-value" id="stat-alerts">0</div>
+              <div class="stat-label">临期/过期预警</div>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3>📊 近30天入出库趋势</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="trend-chart" height="250"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>🥧 库存分布 (Top 10)</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="pie-chart" height="250"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>⚠️ 临期预警</h3>
+            <button class="btn btn-sm" onclick="navigateTo('alerts')">查看全部</button>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr><th>材料名称</th><th>规格</th><th>数量</th><th>到期日</th><th>状态</th></tr>
+              </thead>
+              <tbody id="dashboard-alerts-body">
+                <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory -->
+      <div class="page" id="page-inventory">
+        <div class="page-header">
+          <h2>库存查询</h2>
+          <div class="header-actions">
+            <input type="text" class="search-input" placeholder="🔍 搜索材料名称..." id="inv-search">
+            <button class="btn btn-primary" onclick="exportInventory()">📥 导出 xlsx</button>
+          </div>
+        </div>
+        <div class="card">
+          <table class="table" id="inventory-table">
+            <thead>
+              <tr>
+                <th>序号</th><th>材料名称</th><th>规格</th><th>单位</th>
+                <th>当前库存</th><th>本月入库</th><th>本月出库</th><th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Inbound -->
+      <div class="page" id="page-inbound">
+        <div class="page-header">
+          <h2>入库登记</h2>
+        </div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>材料名称 <span class="required">*</span></label>
+              <select id="in-product" class="form-control">
+                <option value="">请选择材料...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>规格</label>
+              <input type="text" id="in-spec" class="form-control" readonly>
+              <small id="in-case-hint" style="color:var(--primary);font-size:12px;"></small>
+            </div>
+            <div class="form-group">
+              <label>数量 <span class="required">*</span></label>
+              <input type="number" id="in-qty" class="form-control" min="1" placeholder="请输入数量">
+              <small style="color:var(--text-muted);font-size:12px;">按最小单位填写（瓶/包/桶等）</small>
+            </div>
+            <div class="form-group">
+              <label>单位</label>
+              <input type="text" id="in-unit" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+              <label>入库日期 <span class="required">*</span></label>
+              <input type="date" id="in-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>生产日期</label>
+              <input type="date" id="in-prod-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>到期日（自动推算）</label>
+              <input type="date" id="in-expiry" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+              <label>备注</label>
+              <input type="text" id="in-remark" class="form-control" placeholder="可选">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary btn-lg" onclick="submitInbound()">✓ 确认入库</button>
+            <button class="btn btn-lg" onclick="resetInboundForm()">清空</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <h3>最近入库记录</h3>
+          </div>
+          <table class="table">
+            <thead>
+              <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>生产日期</th><th>到期日</th><th>操作</th></tr>
+            </thead>
+            <tbody id="recent-inbound">
+              <tr><td>2026-06-02</td><td>鲁花压榨特香玉米胚芽油</td><td>20</td><td>桶</td><td>2026-05-15</td><td>2026-11-11</td></tr>
+              <tr><td>2026-06-01</td><td>太太乐味精</td><td>25</td><td>包</td><td>2026-04-20</td><td>2026-10-17</td></tr>
+              <tr><td>2026-05-30</td><td>秋然香米10千克/袋</td><td>20</td><td>袋</td><td>2026-05-10</td><td>2027-05-06</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Outbound -->
+      <div class="page" id="page-outbound">
+        <div class="page-header">
+          <h2>出库登记</h2>
+        </div>
+        <div class="form-card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>材料名称 <span class="required">*</span></label>
+              <select id="out-product" class="form-control">
+                <option value="">请选择材料...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>规格</label>
+              <input type="text" id="out-spec" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+              <label>数量 <span class="required">*</span></label>
+              <input type="number" id="out-qty" class="form-control" min="1" placeholder="请输入数量">
+            </div>
+            <div class="form-group">
+              <label>当前库存</label>
+              <input type="text" id="out-stock" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+              <label>出库日期 <span class="required">*</span></label>
+              <input type="date" id="out-date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>领取人 <span class="required">*</span></label>
+              <div class="input-with-btn">
+                <select id="out-recipient" class="form-control">
+                  <option value="">请选择...</option>
+                  <option value="厨房">厨房</option>
+                  <option value="小食堂">小食堂</option>
+                  <option value="面点房">面点房</option>
+                  <option value="烧饭">烧饭</option>
+                  <option value="明档">明档</option>
+                </select>
+                <button class="btn btn-sm" onclick="addRecipient()">+ 新增</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary btn-lg" onclick="submitOutbound()">✓ 确认出库</button>
+            <button class="btn btn-lg" onclick="resetOutboundForm()">清空</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <h3>最近出库记录</h3>
+          </div>
+          <table class="table">
+            <thead>
+              <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>领取人</th><th>操作</th></tr>
+            </thead>
+            <tbody id="recent-outbound">
+              <tr><td>2026-06-02</td><td>鲁花压榨特香玉米胚芽油</td><td>3</td><td>桶</td><td>厨房</td></tr>
+              <tr><td>2026-06-02</td><td>太太乐味精</td><td>2</td><td>包</td><td>小食堂</td></tr>
+              <tr><td>2026-06-01</td><td>秋然香米10千克/袋</td><td>2</td><td>袋</td><td>烧饭</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ledger -->
+      <div class="page" id="page-ledger">
+        <div class="page-header">
+          <h2>月度台账</h2>
+          <div class="header-actions">
+            <select id="ledger-year" class="form-control" style="width:100px;">
+              <option value="2026">2026年</option>
+            </select>
+            <select id="ledger-month" class="form-control" style="width:80px;">
+              <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+              <option value="4">4月</option><option value="5">5月</option><option value="6" selected>6月</option>
+              <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+              <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+            </select>
+            <button class="btn btn-primary" onclick="exportLedger()">📥 导出 xlsx</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrapper">
+            <table class="table table-ledger" id="ledger-table">
+              <thead>
+                <tr>
+                  <th class="sticky-col col-idx">序号</th>
+                  <th class="sticky-col col-name">品名</th>
+                  <th class="sticky-col col-unit">单位</th>
+                  <th>上月结存</th>
+                  <th>本月入库</th>
+                  <th>本月出库</th>
+                  <th>当前库存</th>
+                  <th class="day-header" data-day="1">1日</th>
+                  <th class="day-header" data-day="2">2日</th>
+                  <th class="day-header" data-day="3">3日</th>
+                  <th class="day-header" data-day="4">4日</th>
+                  <th class="day-header" data-day="5">5日</th>
+                  <th class="day-header" data-day="6">6日</th>
+                  <th class="day-header" data-day="7">7日</th>
+                  <th class="day-header" data-day="8">8日</th>
+                  <th class="day-header" data-day="9">9日</th>
+                  <th class="day-header" data-day="10">10日</th>
+                  <th class="day-header" data-day="11">11日</th>
+                  <th class="day-header" data-day="12">12日</th>
+                  <th class="day-header" data-day="13">13日</th>
+                  <th class="day-header" data-day="14">14日</th>
+                  <th class="day-header" data-day="15">15日</th>
+                  <th class="day-header" data-day="16">16日</th>
+                  <th class="day-header" data-day="17">17日</th>
+                  <th class="day-header" data-day="18">18日</th>
+                  <th class="day-header" data-day="19">19日</th>
+                  <th class="day-header" data-day="20">20日</th>
+                  <th class="day-header" data-day="21">21日</th>
+                  <th class="day-header" data-day="22">22日</th>
+                  <th class="day-header" data-day="23">23日</th>
+                  <th class="day-header" data-day="24">24日</th>
+                  <th class="day-header" data-day="25">25日</th>
+                  <th class="day-header" data-day="26">26日</th>
+                  <th class="day-header" data-day="27">27日</th>
+                  <th class="day-header" data-day="28">28日</th>
+                  <th class="day-header" data-day="29">29日</th>
+                  <th class="day-header" data-day="30">30日</th>
+                </tr>
+              </thead>
+              <tbody id="ledger-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="page" id="page-alerts">
+        <div class="page-header">
+          <h2>过期预警</h2>
+          <div class="header-actions">
+            <select id="alert-filter" class="form-control" style="width:120px;">
+              <option value="all">全部</option>
+              <option value="expired">已过期</option>
+              <option value="soon">即将到期</option>
+            </select>
+          </div>
+        </div>
+        <div class="alert-summary">
+          <div class="alert-card alert-danger">
+            <div class="alert-count" id="alert-expired-count">0</div>
+            <div class="alert-label">已过期</div>
+          </div>
+          <div class="alert-card alert-warning">
+            <div class="alert-count" id="alert-soon-count">0</div>
+            <div class="alert-label">30天内到期</div>
+          </div>
+          <div class="alert-card alert-info">
+            <div class="alert-count" id="alert-upcoming-count">0</div>
+            <div class="alert-label">60天内到期</div>
+          </div>
+        </div>
+        <div class="card">
+          <table class="table">
+            <thead>
+              <tr><th>材料名称</th><th>规格</th><th>数量</th><th>生产日期</th><th>到期日</th><th>剩余天数</th><th>状态</th></tr>
+            </thead>
+            <tbody id="alerts-body">
+              <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Products -->
+      <div class="page" id="page-products">
+        <div class="page-header">
+          <h2>产品管理</h2>
+          <div class="header-actions">
+            <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()">🗑 删除选中</button>
+            <input type="text" class="search-input" placeholder="🔍 搜索产品..." id="prod-search">
+            <button class="btn btn-primary" onclick="showAddProduct()">+ 新增产品</button>
+          </div>
+        </div>
+        <div class="card">
+          <table class="table" id="products-table">
+            <thead>
+              <tr>
+                <th style="width:40px;"><input type="checkbox" id="select-all-products" onchange="toggleSelectAll(this.checked)"></th>
+                <th>序号</th><th>材料名称</th><th>规格</th><th>单位</th><th>保质期(月)</th><th>保质期(日)</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="products-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Import -->
+      <div class="page" id="page-import">
+        <div class="page-header">
+          <h2>数据导入</h2>
+        </div>
+        <div class="import-container">
+          <div class="card">
+            <div class="card-header">
+              <h3>📥 从 xlsx 文件导入</h3>
+            </div>
+            <div class="card-body">
+              <div class="import-dropzone" id="dropzone">
+                <div class="dropzone-content">
+                  <div class="dropzone-icon">📄</div>
+                  <p>将 xlsx 文件拖拽到此处</p>
+                  <p class="text-muted">或点击选择文件</p>
+                  <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;">
+                  <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">选择文件</button>
+                </div>
+              </div>
+              <div class="import-options" style="margin-top: 20px;">
+                <h4>导入内容</h4>
+                <label class="checkbox-label">
+                  <input type="checkbox" checked disabled> 产品数据（材料清单）
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" checked id="import-inbound"> 入库流水账
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" checked id="import-outbound"> 出库流水账
+                </label>
+              </div>
+              <div class="import-preview" id="import-preview" style="display:none;">
+                <h4>预览导入数据</h4>
+                <div class="import-stats" id="import-preview-stats"></div>
+                <div style="margin-top:15px;display:flex;gap:10px;">
+                  <button class="btn btn-primary btn-lg" onclick="startImport()">开始导入</button>
+                  <button class="btn btn-lg" style="color:var(--danger);border-color:var(--danger);" onclick="clearAndReimport()">清空后重新导入</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+              <h3>📤 数据导出</h3>
+            </div>
+            <div class="card-body">
+              <div class="export-grid">
+                <button class="btn btn-lg" onclick="exportInventory()">📊 导出当前库存</button>
+                <button class="btn btn-lg" onclick="exportLedger()">📅 导出月度台账</button>
+                <button class="btn btn-lg" onclick="exportAll()">📦 导出全部数据</button>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 20px; border-left: 4px solid var(--danger);">
+            <div class="card-header">
+              <h3>⚠️ 危险操作</h3>
+            </div>
+            <div class="card-body">
+              <p style="margin-bottom: 12px; color: var(--text-secondary);">清空所有数据（产品、入库、出库记录），用于重新导入。此操作不可撤销。</p>
+              <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="clearAndReimport()">🗑 清空所有数据</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">标题</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="../node_modules/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
