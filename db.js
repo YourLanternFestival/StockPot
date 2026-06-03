@@ -94,6 +94,28 @@ async function init() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS lianhua_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT,
+      name TEXT NOT NULL,
+      unit TEXT DEFAULT '件',
+      spec TEXT DEFAULT '',
+      price REAL DEFAULT 0,
+      split_qty INTEGER DEFAULT 1,
+      remark TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS lianhua_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id INTEGER,
+      order_date TEXT NOT NULL,
+      quantity INTEGER DEFAULT 0,
+      amount REAL DEFAULT 0,
+      remark TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    );
   `);
 
   // Create indexes
@@ -576,6 +598,88 @@ function getAllSettings() {
   return settings;
 }
 
+// ===== Lianhua Items =====
+function getLianhuaItems() {
+  return queryAll('SELECT * FROM lianhua_items ORDER BY id');
+}
+
+function addLianhuaItem(data) {
+  run(`INSERT INTO lianhua_items (code, name, unit, spec, price, split_qty, remark)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [data.code || '', data.name, data.unit || '件', data.spec || '', data.price || 0, data.split_qty || 1, data.remark || '']);
+  save();
+}
+
+function updateLianhuaItem(id, data) {
+  run(`UPDATE lianhua_items SET code=?, name=?, unit=?, spec=?, price=?, split_qty=?, remark=?
+    WHERE id=?`,
+    [data.code, data.name, data.unit, data.spec, data.price, data.split_qty, data.remark, id]);
+  save();
+}
+
+function deleteLianhuaItem(id) {
+  run('DELETE FROM lianhua_items WHERE id = ?', [id]);
+  save();
+}
+
+function importLianhuaItems(items) {
+  // Clear existing and import
+  run('DELETE FROM lianhua_items');
+  let imported = 0;
+  for (const item of items) {
+    run(`INSERT INTO lianhua_items (code, name, unit, spec, price, split_qty, remark)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [item.code || '', item.name, item.unit || '件', item.spec || '', item.price || 0, item.split_qty || 1, item.remark || '']);
+    imported++;
+  }
+  save();
+  return { imported };
+}
+
+// ===== Lianhua Orders =====
+function getLianhuaOrders(orderDate) {
+  let sql = `
+    SELECT o.*, i.name, i.code, i.unit, i.spec, i.price, i.split_qty
+    FROM lianhua_orders o
+    JOIN lianhua_items i ON o.item_id = i.id
+    WHERE 1=1
+  `;
+  const params = [];
+  if (orderDate) {
+    sql += ' AND o.order_date = ?';
+    params.push(orderDate);
+  }
+  sql += ' ORDER BY o.id';
+  return queryAll(sql, params);
+}
+
+function addLianhuaOrder(data) {
+  run(`INSERT INTO lianhua_orders (item_id, order_date, quantity, amount, remark)
+    VALUES (?, ?, ?, ?, ?)`,
+    [data.item_id, data.order_date, data.quantity || 0, data.amount || 0, data.remark || '']);
+  save();
+}
+
+function updateLianhuaOrder(id, data) {
+  run(`UPDATE lianhua_orders SET quantity=?, amount=?, remark=? WHERE id=?`,
+    [data.quantity, data.amount, data.remark, id]);
+  save();
+}
+
+function deleteLianhuaOrder(id) {
+  run('DELETE FROM lianhua_orders WHERE id = ?', [id]);
+  save();
+}
+
+function clearLianhuaOrders(orderDate) {
+  if (orderDate) {
+    run('DELETE FROM lianhua_orders WHERE order_date = ?', [orderDate]);
+  } else {
+    run('DELETE FROM lianhua_orders');
+  }
+  save();
+}
+
 module.exports = {
   init, save, getDb: () => db,
   getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts,
@@ -592,4 +696,7 @@ module.exports = {
   getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths,
   // Settings
   getSetting, setSetting, getAllSettings,
+  // Lianhua
+  getLianhuaItems, addLianhuaItem, updateLianhuaItem, deleteLianhuaItem, importLianhuaItems,
+  getLianhuaOrders, addLianhuaOrder, updateLianhuaOrder, deleteLianhuaOrder, clearLianhuaOrders,
 };

@@ -56,6 +56,20 @@ contextBridge.exposeInMainWorld('api', {
   importInquiryItems: (month, items) => ipcRenderer.invoke('inquiry:import', { month, items }),
   getInquiryMonths: () => ipcRenderer.invoke('inquiry:months'),
 
+  // Lianhua Items
+  getLianhuaItems: () => ipcRenderer.invoke('lianhua:items:get'),
+  addLianhuaItem: (data) => ipcRenderer.invoke('lianhua:items:add', data),
+  updateLianhuaItem: (id, data) => ipcRenderer.invoke('lianhua:items:update', id, data),
+  deleteLianhuaItem: (id) => ipcRenderer.invoke('lianhua:items:delete', id),
+  importLianhuaItems: (items) => ipcRenderer.invoke('lianhua:items:import', items),
+
+  // Lianhua Orders
+  getLianhuaOrders: (orderDate) => ipcRenderer.invoke('lianhua:orders:get', orderDate),
+  addLianhuaOrder: (data) => ipcRenderer.invoke('lianhua:orders:add', data),
+  updateLianhuaOrder: (id, data) => ipcRenderer.invoke('lianhua:orders:update', id, data),
+  deleteLianhuaOrder: (id) => ipcRenderer.invoke('lianhua:orders:delete', id),
+  clearLianhuaOrders: (orderDate) => ipcRenderer.invoke('lianhua:orders:clear', orderDate),
+
   // Settings
   getSetting: (key) => ipcRenderer.invoke('settings:get', key),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),

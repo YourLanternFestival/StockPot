@@ -81,6 +81,20 @@ ipcMain.handle('inquiry:add', (e, data) => db.addInquiryItem(data));
 ipcMain.handle('inquiry:import', (e, { month, items }) => db.importInquiryItems(month, items));
 ipcMain.handle('inquiry:months', () => db.getInquiryMonths());
 
+// Lianhua Items
+ipcMain.handle('lianhua:items:get', () => db.getLianhuaItems());
+ipcMain.handle('lianhua:items:add', (e, data) => db.addLianhuaItem(data));
+ipcMain.handle('lianhua:items:update', (e, id, data) => db.updateLianhuaItem(id, data));
+ipcMain.handle('lianhua:items:delete', (e, id) => db.deleteLianhuaItem(id));
+ipcMain.handle('lianhua:items:import', (e, items) => db.importLianhuaItems(items));
+
+// Lianhua Orders
+ipcMain.handle('lianhua:orders:get', (e, orderDate) => db.getLianhuaOrders(orderDate));
+ipcMain.handle('lianhua:orders:add', (e, data) => db.addLianhuaOrder(data));
+ipcMain.handle('lianhua:orders:update', (e, id, data) => db.updateLianhuaOrder(id, data));
+ipcMain.handle('lianhua:orders:delete', (e, id) => db.deleteLianhuaOrder(id));
+ipcMain.handle('lianhua:orders:clear', (e, orderDate) => db.clearLianhuaOrders(orderDate));
+
 // Settings
 ipcMain.handle('settings:get', (e, key) => db.getSetting(key));
 ipcMain.handle('settings:set', (e, key, value) => db.setSetting(key, value));

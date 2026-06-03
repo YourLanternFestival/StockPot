@@ -419,10 +419,27 @@
         <div class="page-header">
           <h2>采购单</h2>
           <div class="header-actions">
+            <button class="btn" onclick="exportLianhuaOrder()">📤 导出联华订单</button>
+            <button class="btn" onclick="showImportLianhuaDialog()">📥 导入联华商品</button>
             <button class="btn btn-primary" onclick="saveAllPurchaseOrders()">💾 保存所有</button>
           </div>
         </div>
         <div class="purchase-container" id="purchase-container">
+          <!-- 联华 分组 -->
+          <div class="purchase-group" data-source="联华">
+            <div class="group-header" onclick="toggleGroup(this)">
+              <span class="group-toggle">▶</span>
+              <h3>联华超市</h3>
+              <div class="group-actions">
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate()">+ 添加日期</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()">管理商品</button>
+              </div>
+            </div>
+            <div class="group-content" style="display:none;">
+              <!-- 联华日期分组会动态添加到这里 -->
+            </div>
+          </div>
+
           <!-- 洋安食堂厨房 分组 -->
           <div class="purchase-group" data-source="洋安食堂厨房">
             <div class="group-header" onclick="toggleGroup(this)">
