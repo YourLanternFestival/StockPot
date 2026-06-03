@@ -529,7 +529,7 @@ function searchInquiryItems(keyword, month) {
     sql += ' AND month = ?';
     params.push(month);
   }
-  sql += ' ORDER BY category, name LIMIT 20';
+  sql += ' ORDER BY category, name, spec LIMIT 100';
   return queryAll(sql, params);
 }
 

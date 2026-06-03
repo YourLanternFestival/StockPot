@@ -1410,7 +1410,15 @@ async function handleProductAutocomplete(input) {
   if (!dropdown) return;
 
   try {
-    const results = await window.api.searchInquiryItems(keyword);
+    // Get current month from inquiry page or use latest
+    let currentMonth = document.getElementById('inquiry-month')?.value;
+    if (!currentMonth) {
+      // Try to get latest month from database
+      const months = await window.api.getInquiryMonths();
+      currentMonth = months.length > 0 ? months[0].month : null;
+    }
+
+    const results = await window.api.searchInquiryItems(keyword, currentMonth);
     if (results.length === 0) {
       hideAutocomplete();
       return;
@@ -1611,13 +1619,15 @@ async function loadInquiryItems() {
   try {
     inquiryData = await window.api.getInquiryItems(month, category);
 
-    // Load previous month data for comparison
+    // Load previous month data for comparison (key: name + spec)
     const prevMonth = getPreviousMonth(month);
     if (prevMonth) {
       const prevItems = await window.api.getInquiryItems(prevMonth);
       prevMonthData = {};
       prevItems.forEach(item => {
-        prevMonthData[item.name] = item.price;
+        // Use name + spec as key for comparison
+        const key = `${item.name}|${item.spec || ''}`;
+        prevMonthData[key] = item.price;
       });
     } else {
       prevMonthData = {};
@@ -1654,8 +1664,9 @@ function renderInquiryTable(items) {
     const priceSX = item.price ? Math.round(item.price * discountSX * 10) / 10 : null;
     const priceYH = item.price ? Math.round(item.price * discountYH * 10) / 10 : null;
 
-    // Calculate price change
-    const prevPrice = prevMonthData[item.name];
+    // Calculate price change using name + spec as key
+    const key = `${item.name}|${item.spec || ''}`;
+    const prevPrice = prevMonthData[key];
     let changeHtml = '';
     if (prevPrice && item.price) {
       const diff = Math.round((item.price - prevPrice) * 10) / 10;
