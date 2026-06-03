@@ -47,6 +47,10 @@
           <span class="nav-icon">📝</span>
           <span class="nav-text">采购单</span>
         </li>
+        <li class="nav-item" data-page="inquiry">
+          <span class="nav-icon">💰</span>
+          <span class="nav-text">询价管理</span>
+        </li>
         <li class="nav-item" data-page="import">
           <span class="nav-icon">📥</span>
           <span class="nav-text">数据导入</span>
@@ -445,6 +449,80 @@
             <div class="group-content" style="display:none;">
               <!-- 日期分组会动态添加到这里 -->
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inquiry Management -->
+      <div class="page" id="page-inquiry">
+        <div class="page-header">
+          <h2>询价管理</h2>
+          <div class="header-actions">
+            <button class="btn" onclick="showImportInquiryDialog()">📥 导入鉴证表</button>
+            <button class="btn btn-primary" onclick="showAddInquiryItem()">+ 新增单品</button>
+          </div>
+        </div>
+
+        <!-- 月份和分类筛选 -->
+        <div class="inquiry-filters">
+          <div class="filter-group">
+            <label>月份：</label>
+            <select id="inquiry-month" class="form-control" onchange="loadInquiryItems()">
+              <option value="">请选择月份</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>分类：</label>
+            <select id="inquiry-category" class="form-control" onchange="loadInquiryItems()">
+              <option value="">全部分类</option>
+              <option value="米面粮油类">米面粮油类</option>
+              <option value="肉禽蛋类">肉禽蛋类</option>
+              <option value="水果蔬菜及豆制品类">水果蔬菜及豆制品类</option>
+              <option value="速冻食品类">速冻食品类</option>
+              <option value="乳品饮料类">乳品饮料类</option>
+              <option value="海鲜水产类">海鲜水产类</option>
+              <option value="干货调料及腌制品类">干货调料及腌制品类</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>搜索：</label>
+            <input type="text" id="inquiry-search" class="form-control" placeholder="🔍 搜索品名..." oninput="searchInquiry()">
+          </div>
+          <div class="filter-group">
+            <label>盛销折扣率：</label>
+            <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" onchange="saveDiscount()">
+          </div>
+          <div class="filter-group">
+            <label>优宏折扣率：</label>
+            <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" onchange="saveDiscount()">
+          </div>
+        </div>
+
+        <!-- 询价数据表格 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>询价数据 <span id="inquiry-count" class="tag tag-info">0 条</span></h3>
+          </div>
+          <div class="inquiry-table-wrapper">
+            <table class="table table-inquiry" id="inquiry-table">
+              <thead>
+                <tr>
+                  <th style="width:40px;">序号</th>
+                  <th style="width:120px;">分类</th>
+                  <th style="width:200px;">品名</th>
+                  <th style="width:80px;">评估价</th>
+                  <th style="width:80px;">盛销价</th>
+                  <th style="width:80px;">优宏价</th>
+                  <th style="width:60px;">单位</th>
+                  <th style="width:100px;">规格</th>
+                  <th style="width:80px;">涨跌</th>
+                  <th style="width:100px;">备注</th>
+                </tr>
+              </thead>
+              <tbody id="inquiry-body">
+                <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">请先导入鉴证表数据</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

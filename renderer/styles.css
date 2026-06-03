@@ -726,6 +726,84 @@ body {
   max-height: 400px;
 }
 
+/* ===== Inquiry Management ===== */
+.inquiry-filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  background: var(--card-bg);
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.filter-group .form-control {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.inquiry-table-wrapper {
+  overflow: auto;
+  max-height: calc(100vh - 300px);
+}
+
+.table-inquiry {
+  font-size: 13px;
+}
+
+.table-inquiry th,
+.table-inquiry td {
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.table-inquiry th {
+  background: #f0f3f6;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table-inquiry tbody tr:hover {
+  background: var(--primary-light);
+}
+
+/* Price change indicators */
+.price-up {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.price-down {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.price-same {
+  color: var(--text-muted);
+}
+
+.price-na {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .table-purchase {
   border-collapse: collapse;
   font-size: 13px;

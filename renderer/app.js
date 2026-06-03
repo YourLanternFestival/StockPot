@@ -22,6 +22,7 @@ function navigateTo(page) {
     case 'alerts': loadAlerts(); break;
     case 'products': loadProducts(); break;
     case 'purchase': initPurchasePage(); break;
+    case 'inquiry': initInquiryPage(); break;
   }
 }
 
@@ -1560,4 +1561,373 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadDashboard();
   loadRecentInbound();
   loadRecentOutbound();
+
+  // Load discount settings
+  loadDiscountSettings();
 });
+
+// ===== Inquiry Management =====
+let inquiryData = [];
+let prevMonthData = {};
+
+async function initInquiryPage() {
+  await loadInquiryMonths();
+  await loadInquiryItems();
+}
+
+async function loadInquiryMonths() {
+  try {
+    const months = await window.api.getInquiryMonths();
+    const select = document.getElementById('inquiry-month');
+    select.innerHTML = '<option value="">请选择月份</option>';
+
+    months.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.month;
+      opt.textContent = m.month;
+      select.appendChild(opt);
+    });
+
+    // Select the latest month
+    if (months.length > 0) {
+      select.value = months[0].month;
+    }
+  } catch (err) {
+    console.error('Load inquiry months error:', err);
+  }
+}
+
+async function loadInquiryItems() {
+  const month = document.getElementById('inquiry-month').value;
+  const category = document.getElementById('inquiry-category').value;
+
+  if (!month) {
+    document.getElementById('inquiry-body').innerHTML =
+      '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">请先导入鉴证表数据</td></tr>';
+    document.getElementById('inquiry-count').textContent = '0 条';
+    return;
+  }
+
+  try {
+    inquiryData = await window.api.getInquiryItems(month, category);
+
+    // Load previous month data for comparison
+    const prevMonth = getPreviousMonth(month);
+    if (prevMonth) {
+      const prevItems = await window.api.getInquiryItems(prevMonth);
+      prevMonthData = {};
+      prevItems.forEach(item => {
+        prevMonthData[item.name] = item.price;
+      });
+    } else {
+      prevMonthData = {};
+    }
+
+    renderInquiryTable(inquiryData);
+  } catch (err) {
+    console.error('Load inquiry items error:', err);
+  }
+}
+
+function getPreviousMonth(month) {
+  // month format: "2026-06"
+  const [year, mon] = month.split('-').map(Number);
+  if (mon === 1) {
+    return `${year - 1}-12`;
+  }
+  return `${year}-${String(mon - 1).padStart(2, '0')}`;
+}
+
+function renderInquiryTable(items) {
+  const tbody = document.getElementById('inquiry-body');
+  const discountSX = parseFloat(document.getElementById('discount-shengxiao').value) || 0.9008;
+  const discountYH = parseFloat(document.getElementById('discount-youhong').value) || 0.9058;
+
+  document.getElementById('inquiry-count').textContent = `${items.length} 条`;
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">暂无数据</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map((item, idx) => {
+    const priceSX = item.price ? Math.round(item.price * discountSX * 10) / 10 : null;
+    const priceYH = item.price ? Math.round(item.price * discountYH * 10) / 10 : null;
+
+    // Calculate price change
+    const prevPrice = prevMonthData[item.name];
+    let changeHtml = '';
+    if (prevPrice && item.price) {
+      const diff = Math.round((item.price - prevPrice) * 10) / 10;
+      if (diff > 0) {
+        changeHtml = `<span class="price-up">↑${diff}</span>`;
+      } else if (diff < 0) {
+        changeHtml = `<span class="price-down">↓${Math.abs(diff)}</span>`;
+      } else {
+        changeHtml = '<span class="price-same">-</span>';
+      }
+    } else if (!prevPrice && item.price) {
+      changeHtml = '<span class="price-na">新增</span>';
+    } else {
+      changeHtml = '<span class="price-na">-</span>';
+    }
+
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${item.category}</td>
+        <td style="text-align:left;">${item.name}</td>
+        <td>${item.price || '-'}</td>
+        <td>${priceSX || '-'}</td>
+        <td>${priceYH || '-'}</td>
+        <td>${item.unit || ''}</td>
+        <td>${item.spec || ''}</td>
+        <td>${changeHtml}</td>
+        <td>${item.remark || ''}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function searchInquiry() {
+  const keyword = document.getElementById('inquiry-search').value.trim();
+  const month = document.getElementById('inquiry-month').value;
+
+  if (!keyword) {
+    renderInquiryTable(inquiryData);
+    return;
+  }
+
+  // Filter from current data
+  const filtered = inquiryData.filter(item =>
+    item.name.toLowerCase().includes(keyword.toLowerCase())
+  );
+  renderInquiryTable(filtered);
+}
+
+// Show import inquiry dialog
+function showImportInquiryDialog() {
+  openModal('导入鉴证表', `
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>选择月份</label>
+      <select class="form-control" id="import-month">
+        <option value="2026-06">2026年6月</option>
+        <option value="2026-05">2026年5月</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>选择文件</label>
+      <div class="import-dropzone" id="inquiry-dropzone" style="padding:20px;">
+        <p>点击选择鉴证表文件（.xlsx）</p>
+        <input type="file" id="inquiry-file-input" accept=".xlsx" style="display:none;" onchange="handleInquiryFileSelected(this)">
+        <button class="btn btn-primary" onclick="document.getElementById('inquiry-file-input').click()">选择文件</button>
+      </div>
+      <div id="inquiry-file-name" style="margin-top:8px;color:var(--text-muted);font-size:13px;"></div>
+    </div>
+    <div id="inquiry-import-preview" style="display:none;">
+      <h4 style="margin-bottom:8px;">预览导入数据</h4>
+      <div id="inquiry-preview-stats"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" id="btn-start-import-inquiry" onclick="startImportInquiry()" disabled>开始导入</button>
+  `);
+}
+
+let pendingInquiryData = null;
+
+function handleInquiryFileSelected(fileInput) {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  document.getElementById('inquiry-file-name').textContent = `已选择: ${file.name}`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+
+      const items = [];
+      const categories = {
+        '米面粮油类': '米面粮油类',
+        '肉禽蛋类': '肉禽蛋类',
+        '水果蔬菜及豆制品类': '水果蔬菜及豆制品类',
+        '速冻食品类': '速冻食品类',
+        '乳品饮料类': '乳品饮料类',
+        '海鲜水产类': '海鲜水产类',
+        '干货调料及腌制品类': '干货调料及腌制品类'
+      };
+
+      // Parse each sheet
+      wb.SheetNames.forEach(sheetName => {
+        const category = categories[sheetName];
+        if (!category) return;
+
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        // Data starts at row 4 (index 3), columns: 序号, 名称, 评估价格, 单位, 规格, 备注
+        for (let i = 3; i < rows.length; i++) {
+          const row = rows[i];
+          const name = String(row[1] || '').trim();
+          if (!name) continue;
+
+          items.push({
+            category: category,
+            name: name,
+            price: parseFloat(row[2]) || null,
+            unit: String(row[3] || '').trim(),
+            spec: String(row[4] || '').trim(),
+            remark: String(row[5] || '').trim()
+          });
+        }
+      });
+
+      pendingInquiryData = items;
+
+      // Show preview
+      document.getElementById('inquiry-import-preview').style.display = 'block';
+      document.getElementById('inquiry-preview-stats').innerHTML =
+        `<span class="tag tag-success">共 ${items.length} 条数据</span>`;
+      document.getElementById('btn-start-import-inquiry').disabled = false;
+
+    } catch (err) {
+      showToast('文件解析失败: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function startImportInquiry() {
+  if (!pendingInquiryData) return;
+
+  const month = document.getElementById('import-month').value;
+
+  try {
+    const result = await window.api.importInquiryItems(month, pendingInquiryData);
+    showToast(`导入成功！共 ${result.imported} 条数据`);
+    closeModal();
+    pendingInquiryData = null;
+
+    // Refresh
+    await loadInquiryMonths();
+    document.getElementById('inquiry-month').value = month;
+    await loadInquiryItems();
+  } catch (err) {
+    showToast('导入失败: ' + err.message, 'error');
+  }
+}
+
+// Show add inquiry item dialog
+function showAddInquiryItem() {
+  const month = document.getElementById('inquiry-month').value;
+  if (!month) {
+    showToast('请先选择月份', 'error');
+    return;
+  }
+
+  openModal('新增询价单品', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group">
+        <label>月份</label>
+        <input type="text" class="form-control" value="${month}" readonly>
+      </div>
+      <div class="form-group">
+        <label>分类</label>
+        <select class="form-control" id="new-inquiry-category">
+          <option value="米面粮油类">米面粮油类</option>
+          <option value="肉禽蛋类">肉禽蛋类</option>
+          <option value="水果蔬菜及豆制品类">水果蔬菜及豆制品类</option>
+          <option value="速冻食品类">速冻食品类</option>
+          <option value="乳品饮料类">乳品饮料类</option>
+          <option value="海鲜水产类">海鲜水产类</option>
+          <option value="干货调料及腌制品类">干货调料及腌制品类</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>品名 <span class="required">*</span></label>
+        <input type="text" class="form-control" id="new-inquiry-name" placeholder="请输入品名">
+      </div>
+      <div class="form-group">
+        <label>评估价格</label>
+        <input type="number" class="form-control" id="new-inquiry-price" placeholder="可选" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>单位</label>
+        <input type="text" class="form-control" id="new-inquiry-unit" placeholder="如: 斤、个、箱">
+      </div>
+      <div class="form-group">
+        <label>规格</label>
+        <input type="text" class="form-control" id="new-inquiry-spec" placeholder="如: 10千克/袋">
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label>备注</label>
+        <input type="text" class="form-control" id="new-inquiry-remark" placeholder="可选">
+      </div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doAddInquiryItem('${month}')">保存</button>
+  `);
+}
+
+async function doAddInquiryItem(month) {
+  const name = document.getElementById('new-inquiry-name').value.trim();
+  if (!name) {
+    showToast('请输入品名', 'error');
+    return;
+  }
+
+  const data = {
+    month: month,
+    category: document.getElementById('new-inquiry-category').value,
+    name: name,
+    price: parseFloat(document.getElementById('new-inquiry-price').value) || null,
+    unit: document.getElementById('new-inquiry-unit').value.trim(),
+    spec: document.getElementById('new-inquiry-spec').value.trim(),
+    remark: document.getElementById('new-inquiry-remark').value.trim()
+  };
+
+  try {
+    await window.api.addInquiryItem(data);
+    closeModal();
+    showToast('已添加');
+    await loadInquiryItems();
+  } catch (err) {
+    showToast('添加失败: ' + err.message, 'error');
+  }
+}
+
+// Load and save discount settings
+async function loadDiscountSettings() {
+  try {
+    const settings = await window.api.getAllSettings();
+    if (settings.discount_shengxiao) {
+      document.getElementById('discount-shengxiao').value = settings.discount_shengxiao;
+    }
+    if (settings.discount_youhong) {
+      document.getElementById('discount-youhong').value = settings.discount_youhong;
+    }
+  } catch (err) {
+    console.error('Load discount settings error:', err);
+  }
+}
+
+async function saveDiscount() {
+  const sx = document.getElementById('discount-shengxiao').value;
+  const yh = document.getElementById('discount-youhong').value;
+
+  try {
+    await window.api.setSetting('discount_shengxiao', sx);
+    await window.api.setSetting('discount_youhong', yh);
+    showToast('折扣率已保存');
+
+    // Refresh table if data exists
+    if (inquiryData.length > 0) {
+      renderInquiryTable(inquiryData);
+    }
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+  }
+}
