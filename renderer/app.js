@@ -1410,16 +1410,34 @@ async function handleProductAutocomplete(input) {
   const dropdown = td.querySelector('.autocomplete-dropdown');
   if (!dropdown) return;
 
+  // Check if this is in 联华 group
+  const dateGroup = input.closest('.date-group');
+  const purchaseGroup = input.closest('.purchase-group');
+  const isLianhua = purchaseGroup && purchaseGroup.dataset.source === '联华';
+
   try {
-    // Get current month from inquiry page or use latest
-    let currentMonth = document.getElementById('inquiry-month')?.value;
-    if (!currentMonth) {
-      // Try to get latest month from database
-      const months = await window.api.getInquiryMonths();
-      currentMonth = months.length > 0 ? months[0].month : null;
+    let results = [];
+
+    if (isLianhua) {
+      // Search from lianhua items
+      results = lianhuaItems.filter(item =>
+        item.name.toLowerCase().includes(keyword.toLowerCase())
+      ).map(item => ({
+        name: item.name,
+        spec: item.spec,
+        price: item.price,
+        unit: item.unit
+      }));
+    } else {
+      // Search from inquiry items
+      let currentMonth = document.getElementById('inquiry-month')?.value;
+      if (!currentMonth) {
+        const months = await window.api.getInquiryMonths();
+        currentMonth = months.length > 0 ? months[0].month : null;
+      }
+      results = await window.api.searchInquiryItems(keyword, currentMonth);
     }
 
-    const results = await window.api.searchInquiryItems(keyword, currentMonth);
     if (results.length === 0) {
       hideAutocomplete();
       return;
@@ -1505,21 +1523,23 @@ function hideAutocomplete() {
   autocompleteIndex = -1;
 }
 
-// Save all purchase orders
+// Save all purchase orders (including 联华)
 async function saveAllPurchaseOrders() {
   const allOrders = [];
   const dateGroups = document.querySelectorAll('.date-group');
 
   dateGroups.forEach(dateGroup => {
-    const source = dateGroup.closest('.purchase-group').dataset.source;
+    const purchaseGroup = dateGroup.closest('.purchase-group');
+    const source = purchaseGroup.dataset.source;
     const dateLabel = dateGroup.querySelector('.date-label').textContent;
-    const receiveDate = dateLabel.replace(' 收货', '').trim();
+    // Handle both "收货" and "发货" suffix
+    const receiveDate = dateLabel.replace(' 收货', '').replace(' 发货', '').trim();
     const rows = dateGroup.querySelectorAll('tbody tr');
 
     rows.forEach((tr, idx) => {
       const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
       const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
-      const amount = parseFloat(amountText) || 0;
+      const amount = parseFloat(amountText.replace('¥', '')) || 0;
 
       const productName = getData('product_name').trim();
       if (!productName) return; // Skip empty rows
@@ -1824,7 +1844,7 @@ function doAddLianhuaDate() {
   addLianhuaDateGroup(date);
 }
 
-// Add lianhua date group
+// Add lianhua date group - same format as other groups
 function addLianhuaDateGroup(date) {
   const groupContent = document.querySelector('.purchase-group[data-source="联华"] .group-content');
   if (!groupContent) return;
@@ -1839,6 +1859,7 @@ function addLianhuaDateGroup(date) {
   dateGroup.className = 'date-group';
   dateGroup.id = dateId;
   dateGroup.dataset.date = date;
+  dateGroup.dataset.source = '联华';
 
   dateGroup.innerHTML = `
     <div class="date-header expanded" onclick="toggleDateGroup(this)">
@@ -1846,7 +1867,7 @@ function addLianhuaDateGroup(date) {
       <span class="date-label">${date} 发货</span>
       <span class="date-summary">0 项 | 合计 ¥0</span>
       <div class="date-actions">
-        <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaOrder('${date}')">+ 添加商品</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加行</button>
         <button class="btn btn-sm" onclick="event.stopPropagation(); exportLianhuaOrderByDate('${date}')">📤 导出</button>
         <button class="btn-delete-date" onclick="event.stopPropagation(); deleteLianhuaDateGroup(this)">🗑</button>
       </div>
@@ -1857,15 +1878,13 @@ function addLianhuaDateGroup(date) {
           <thead>
             <tr>
               <th style="width:40px;">序号</th>
-              <th style="width:80px;">编码</th>
               <th style="width:200px;">品名</th>
+              <th style="width:120px;">规格</th>
+              <th style="width:80px;">单价</th>
+              <th style="width:80px;">数量</th>
               <th style="width:60px;">单位</th>
-              <th style="width:100px;">规格</th>
-              <th style="width:80px;">整件单价</th>
-              <th style="width:60px;">数量</th>
               <th style="width:80px;">金额</th>
-              <th style="width:60px;">拆分</th>
-              <th style="width:100px;">备注</th>
+              <th style="width:150px;">备注</th>
               <th style="width:50px;">操作</th>
             </tr>
           </thead>
@@ -1882,134 +1901,58 @@ function addLianhuaDateGroup(date) {
   if (!groupHeader.classList.contains('expanded')) {
     toggleGroup(groupHeader);
   }
+
+  // Add 5 empty rows (联华 default)
+  const tbody = dateGroup.querySelector('tbody');
+  for (let i = 0; i < 5; i++) {
+    appendPurchaseRow(tbody, i);
+  }
 }
 
 function deleteLianhuaDateGroup(btn) {
   const dateGroup = btn.closest('.date-group');
-  const date = dateGroup.dataset.date;
   if (confirm('确定删除此日期分组？')) {
-    window.api.clearLianhuaOrders(date);
     dateGroup.remove();
   }
 }
 
-// Show add lianhua order dialog
-function showAddLianhuaOrder(date) {
-  const itemsOptions = lianhuaItems.map(item =>
-    `<option value="${item.id}" data-price="${item.price}" data-split="${item.split_qty}">${item.name} (${item.spec}) - ¥${item.price}/${item.unit}</option>`
-  ).join('');
-
-  openModal('添加联华商品', `
-    <div class="form-group">
-      <label>选择商品</label>
-      <select class="form-control" id="lianhua-item-select">
-        <option value="">请选择...</option>
-        ${itemsOptions}
-      </select>
-    </div>
-    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-      <div class="form-group"><label>数量（件）</label><input type="number" class="form-control" id="lianhua-qty" min="1" value="1"></div>
-      <div class="form-group"><label>金额</label><input type="text" class="form-control" id="lianhua-amount" readonly></div>
-      <div class="form-group"><label>备注</label><input type="text" class="form-control" id="lianhua-order-remark"></div>
-    </div>
-  `, `
-    <button class="btn" onclick="closeModal()">取消</button>
-    <button class="btn btn-primary" onclick="doAddLianhuaOrder('${date}')">添加</button>
-  `);
-
-  // Auto calc amount
-  const select = document.getElementById('lianhua-item-select');
-  const qtyInput = document.getElementById('lianhua-qty');
-  const amountInput = document.getElementById('lianhua-amount');
-
-  const calcAmount = () => {
-    const opt = select.options[select.selectedIndex];
-    if (!opt || !opt.value) { amountInput.value = ''; return; }
-    const price = parseFloat(opt.dataset.price) || 0;
-    const qty = parseInt(qtyInput.value) || 0;
-    amountInput.value = (price * qty).toFixed(1);
-  };
-
-  select.addEventListener('change', calcAmount);
-  qtyInput.addEventListener('input', calcAmount);
-}
-
-async function doAddLianhuaOrder(date) {
-  const select = document.getElementById('lianhua-item-select');
-  const itemId = parseInt(select.value);
-  if (!itemId) { showToast('请选择商品', 'error'); return; }
-
-  const opt = select.options[select.selectedIndex];
-  const price = parseFloat(opt.dataset.price) || 0;
-  const qty = parseInt(document.getElementById('lianhua-qty').value) || 0;
-
-  await window.api.addLianhuaOrder({
-    item_id: itemId,
-    order_date: date,
-    quantity: qty,
-    amount: price * qty,
-    remark: document.getElementById('lianhua-order-remark').value.trim()
-  });
-
-  closeModal();
-  await loadLianhuaOrdersByDate(date);
-}
-
-// Load lianhua orders by date
-async function loadLianhuaOrdersByDate(date) {
-  const dateGroup = document.getElementById(`lianhua-date-${date}`);
-  if (!dateGroup) return;
-
-  try {
-    const orders = await window.api.getLianhuaOrders(date);
-    const tbody = dateGroup.querySelector('tbody');
-
-    tbody.innerHTML = orders.map((order, idx) => `
-      <tr data-order-id="${order.id}">
-        <td>${idx + 1}</td>
-        <td>${order.code || ''}</td>
-        <td style="text-align:left;">${order.name}</td>
-        <td>${order.unit}</td>
-        <td>${order.spec}</td>
-        <td>¥${order.price}</td>
-        <td><input type="number" class="cell-input cell-editable" value="${order.quantity}" min="0" onchange="updateLianhuaOrderQty(this, ${order.id}, ${order.price}, '${date}')"></td>
-        <td class="amount-cell">¥${order.amount.toFixed(1)}</td>
-        <td>${order.split_qty}</td>
-        <td><input type="text" class="cell-input cell-editable" value="${order.remark || ''}" onchange="updateLianhuaOrderRemark(this, ${order.id}, '${date}')"></td>
-        <td><button class="btn-delete-row" onclick="deleteLianhuaOrder(${order.id}, '${date}')">✕</button></td>
-      </tr>
-    `).join('');
-
-    // Update summary
-    const totalAmount = orders.reduce((sum, o) => sum + o.amount, 0);
-    const summary = dateGroup.querySelector('.date-summary');
-    summary.textContent = `${orders.length} 项 | 合计 ¥${totalAmount.toFixed(1)}`;
-  } catch (err) {
-    console.error('Load lianhua orders error:', err);
-  }
-}
-
-async function updateLianhuaOrderQty(input, orderId, price, date) {
-  const qty = parseInt(input.value) || 0;
-  const amount = price * qty;
-  await window.api.updateLianhuaOrder(orderId, { quantity: qty, amount: amount, remark: '' });
-  await loadLianhuaOrdersByDate(date);
-}
-
-async function updateLianhuaOrderRemark(input, orderId, date) {
-  await window.api.updateLianhuaOrder(orderId, { quantity: 0, amount: 0, remark: input.value });
-  await loadLianhuaOrdersByDate(date);
-}
-
-async function deleteLianhuaOrder(orderId, date) {
-  await window.api.deleteLianhuaOrder(orderId);
-  await loadLianhuaOrdersByDate(date);
-}
-
-// Export lianhua order by date
+// Export lianhua order by date - sheet name is the date
 async function exportLianhuaOrderByDate(date) {
   try {
-    const orders = await window.api.getLianhuaOrders(date);
+    const dateGroup = document.getElementById(`lianhua-date-${date}`);
+    if (!dateGroup) {
+      showToast('未找到日期分组', 'error');
+      return;
+    }
+
+    const rows = dateGroup.querySelectorAll('tbody tr');
+    const orders = [];
+
+    rows.forEach((tr, idx) => {
+      const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+      const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
+      const amount = parseFloat(amountText.replace('¥', '')) || 0;
+
+      const productName = getData('product_name').trim();
+      if (!productName) return; // Skip empty rows
+
+      // Find matching lianhua item to get code and split_qty
+      const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
+
+      orders.push({
+        index: orders.length + 1,
+        code: item ? item.code : '',
+        name: productName,
+        unit: getData('unit') || (item ? item.unit : '件'),
+        spec: getData('spec') || (item ? item.spec : ''),
+        price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
+        quantity: parseFloat(getData('quantity')) || 0,
+        amount: amount,
+        split_qty: item ? item.split_qty : 1,
+        remark: getData('remark')
+      });
+    });
+
     if (orders.length === 0) {
       showToast('没有订单数据', 'error');
       return;
@@ -2022,12 +1965,12 @@ async function exportLianhuaOrderByDate(date) {
       ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注']
     ];
 
-    orders.forEach((order, idx) => {
+    orders.forEach(order => {
       wsData.push([
-        idx + 1,
+        order.index,
         '洋安',
         date.replace(/-/g, '.'),
-        order.code || '',
+        order.code,
         order.name,
         order.unit,
         order.spec,
@@ -2035,13 +1978,14 @@ async function exportLianhuaOrderByDate(date) {
         order.quantity,
         order.amount,
         order.split_qty,
-        order.remark || ''
+        order.remark
       ]);
     });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, '申购单（翁）发采购');
+    // Sheet name is the date
+    XLSX.utils.book_append_sheet(wb, ws, date);
     XLSX.writeFile(wb, filePath);
 
     showToast('导出成功！');
