@@ -572,3 +572,314 @@ body {
   .form-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Purchase Order ===== */
+.purchase-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Group styles */
+.purchase-group {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  background: #f0f3f6;
+  cursor: pointer;
+  user-select: none;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-header:hover {
+  background: #e8ecf0;
+}
+
+.group-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.group-toggle {
+  font-size: 12px;
+  transition: transform 0.2s;
+  color: var(--text-muted);
+}
+
+.group-header.expanded .group-toggle {
+  transform: rotate(90deg);
+}
+
+.group-content {
+  padding: 0;
+}
+
+.group-actions {
+  margin-left: auto;
+}
+
+/* Date group styles */
+.date-group {
+  border-bottom: 1px solid var(--border);
+}
+
+.date-group:last-child {
+  border-bottom: none;
+}
+
+.date-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px 10px 32px;
+  background: #f8fafc;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.date-header:hover {
+  background: #f0f3f6;
+}
+
+.date-header .date-toggle {
+  font-size: 10px;
+  transition: transform 0.2s;
+  color: var(--text-muted);
+}
+
+.date-header.expanded .date-toggle {
+  transform: rotate(90deg);
+}
+
+.date-header .date-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.date-header .date-input {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.date-header .date-input:hover {
+  border-color: var(--border);
+  background: #fff;
+}
+
+.date-header .date-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+}
+
+.date-header .date-summary {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.date-actions {
+  margin-left: 8px;
+}
+
+.btn-delete-date {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.btn-delete-date:hover {
+  opacity: 1;
+}
+
+/* Date content (table) */
+.date-content {
+  padding: 0;
+  display: none;
+}
+
+.date-content.expanded {
+  display: block;
+}
+
+.purchase-table-wrapper {
+  overflow: auto;
+  max-height: 400px;
+}
+
+.table-purchase {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table-purchase th,
+.table-purchase td {
+  padding: 0;
+  border: 1px solid #d0d7de;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.table-purchase th {
+  background: #f0f3f6;
+  font-weight: 600;
+  padding: 8px 6px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table-purchase tbody tr:hover {
+  background: #e8f4fd;
+}
+
+.table-purchase td.editing {
+  background: #fffbe6;
+  box-shadow: inset 0 0 0 2px #4f6ef7;
+}
+
+/* Editable cell input */
+.cell-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 13px;
+  padding: 8px 4px;
+  outline: none;
+  font-family: inherit;
+}
+
+.cell-input:focus {
+  background: #fffbe6;
+}
+
+/* Editable vs readonly cells */
+.cell-editable {
+  background: #fff;
+  cursor: text;
+}
+
+.cell-editable:focus {
+  background: #fffbe6;
+  box-shadow: inset 0 0 0 2px #4f6ef7;
+}
+
+.cell-readonly {
+  background: #f6f8fa;
+  color: #656d76;
+  cursor: default;
+}
+
+.amount-cell.cell-readonly {
+  background: #f6f8fa;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.cell-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.cell-input[type="number"]::-webkit-inner-spin-button,
+.cell-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Row actions */
+.btn-delete-row {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.btn-delete-row:hover {
+  opacity: 1;
+}
+
+/* Autocomplete dropdown */
+.autocomplete-dropdown {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 250px;
+}
+
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.autocomplete-item .item-name {
+  font-weight: 500;
+}
+
+.autocomplete-item .item-spec {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Amount column highlight */
+.amount-cell {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* Date input in cell */
+.cell-date {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 13px;
+  padding: 8px 4px;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.cell-date:focus {
+  background: #fffbe6;
+}

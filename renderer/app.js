@@ -21,6 +21,7 @@ function navigateTo(page) {
     case 'ledger': loadLedger(); break;
     case 'alerts': loadAlerts(); break;
     case 'products': loadProducts(); break;
+    case 'purchase': initPurchasePage(); break;
   }
 }
 
@@ -1043,6 +1044,500 @@ async function exportAll() {
     showToast('导出成功！');
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
+// ===== Purchase Orders =====
+let autocompleteDropdown = null;
+let autocompleteIndex = -1;
+
+// Initialize purchase page
+async function initPurchasePage() {
+  // 页面为空，用户点击"+ 添加日期"来创建
+}
+
+function getTomorrowStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+// Toggle group expand/collapse
+function toggleGroup(header) {
+  const content = header.nextElementSibling;
+  const isExpanded = header.classList.contains('expanded');
+
+  if (isExpanded) {
+    header.classList.remove('expanded');
+    content.style.display = 'none';
+  } else {
+    header.classList.add('expanded');
+    content.style.display = 'block';
+  }
+}
+
+// Toggle date group expand/collapse
+function toggleDateGroup(header) {
+  const content = header.nextElementSibling;
+  const isExpanded = header.classList.contains('expanded');
+
+  if (isExpanded) {
+    header.classList.remove('expanded');
+    content.classList.remove('expanded');
+  } else {
+    header.classList.add('expanded');
+    content.classList.add('expanded');
+  }
+}
+
+// Show dialog to add date group
+function showAddDateDialog(source) {
+  const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
+  if (!groupContent) return;
+
+  // Check max 3 dates
+  const existingDates = groupContent.querySelectorAll('.date-group');
+  if (existingDates.length >= 3) {
+    showToast('最多支持3个日期', 'error');
+    return;
+  }
+
+  const tomorrow = getTomorrowStr();
+
+  openModal('选择到货日期', `
+    <div class="form-group">
+      <label>到货日期</label>
+      <input type="date" class="form-control" id="new-date-input" value="${tomorrow}">
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doAddDateGroup('${source}')">确定</button>
+  `);
+}
+
+// Actually add date group
+function doAddDateGroup(source) {
+  const dateInput = document.getElementById('new-date-input');
+  const date = dateInput.value;
+
+  if (!date) {
+    showToast('请选择日期', 'error');
+    return;
+  }
+
+  closeModal();
+  addDateGroup(source, date);
+}
+
+// Add a date group under a source
+function addDateGroup(source, date) {
+  const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
+  if (!groupContent) return;
+
+  const dateId = `date-${source}-${date}`.replace(/[\s:]/g, '-');
+
+  // Check if date already exists
+  if (document.getElementById(dateId)) {
+    showToast('该日期已存在', 'error');
+    return;
+  }
+
+  const dateGroup = document.createElement('div');
+  dateGroup.className = 'date-group';
+  dateGroup.id = dateId;
+
+  dateGroup.innerHTML = `
+    <div class="date-header expanded" onclick="toggleDateGroup(this)">
+      <span class="date-toggle">▶</span>
+      <span class="date-label">${date} 收货</span>
+      <span class="date-summary">0 项</span>
+      <div class="date-actions">
+        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加10行</button>
+        <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
+      </div>
+    </div>
+    <div class="date-content expanded">
+      <div class="purchase-table-wrapper">
+        <table class="table table-purchase">
+          <thead>
+            <tr>
+              <th style="width:40px;">序号</th>
+              <th style="width:200px;">品名</th>
+              <th style="width:120px;">规格</th>
+              <th style="width:80px;">单价</th>
+              <th style="width:80px;">数量</th>
+              <th style="width:60px;">单位</th>
+              <th style="width:80px;">金额</th>
+              <th style="width:150px;">备注</th>
+              <th style="width:50px;">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  groupContent.appendChild(dateGroup);
+
+  // Expand parent group if not expanded
+  const groupHeader = groupContent.previousElementSibling;
+  if (!groupHeader.classList.contains('expanded')) {
+    toggleGroup(groupHeader);
+  }
+
+  // Add 10 empty rows
+  const tbody = dateGroup.querySelector('tbody');
+  for (let i = 0; i < 10; i++) {
+    appendPurchaseRow(tbody, i);
+  }
+}
+
+function deleteDateGroup(btn) {
+  const dateGroup = btn.closest('.date-group');
+  if (confirm('确定删除此日期分组？')) {
+    dateGroup.remove();
+  }
+}
+
+// Add rows to a specific date group
+function addPurchaseRows(btn) {
+  const dateGroup = btn.closest('.date-group');
+  const tbody = dateGroup.querySelector('tbody');
+  const currentCount = tbody.querySelectorAll('tr').length;
+
+  for (let i = 0; i < 10; i++) {
+    appendPurchaseRow(tbody, currentCount + i);
+  }
+}
+
+function appendPurchaseRow(tbody, idx) {
+  const tr = document.createElement('tr');
+
+  tr.innerHTML = `
+    <td>${idx + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="quantity" placeholder="数量"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
+    <td class="amount-cell cell-readonly"></td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
+    <td><button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+  `;
+
+  tbody.appendChild(tr);
+  attachCellEvents(tr, tbody);
+}
+
+function deletePurchaseRow(btn) {
+  const tr = btn.closest('tr');
+  const tbody = tr.closest('tbody');
+  const id = tr.dataset.id;
+  if (id) {
+    window.api.deletePurchaseOrder(parseInt(id));
+  }
+  tr.remove();
+  reindexPurchaseRows(tbody);
+}
+
+function reindexPurchaseRows(tbody) {
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach((tr, idx) => {
+    tr.querySelector('td:first-child').textContent = idx + 1;
+  });
+  // Update summary
+  const dateGroup = tbody.closest('.date-group');
+  if (dateGroup) {
+    const summary = dateGroup.querySelector('.date-summary');
+    summary.textContent = `${rows.length} 项`;
+  }
+}
+
+function attachCellEvents(tr, tbody) {
+  // Only attach events to editable cells
+  const inputs = tr.querySelectorAll('.cell-editable');
+  inputs.forEach(input => {
+    // Handle Enter key - move to next row same column
+    input.addEventListener('keydown', (e) => {
+      handleCellKeydown(e, input, tbody);
+    });
+
+    // Handle value change - calculate amount
+    input.addEventListener('change', () => {
+      recalcRowAmount(tr);
+    });
+
+    // Handle autocomplete for product_name
+    if (input.dataset.field === 'product_name') {
+      input.addEventListener('input', (e) => {
+        handleProductAutocomplete(e.target);
+      });
+      input.addEventListener('focus', (e) => {
+        handleProductAutocomplete(e.target);
+      });
+      input.addEventListener('blur', () => {
+        setTimeout(() => hideAutocomplete(), 200);
+      });
+    }
+
+    // Handle quantity input - recalculate on input
+    if (input.dataset.field === 'quantity') {
+      input.addEventListener('input', () => {
+        recalcRowAmount(tr);
+      });
+    }
+  });
+}
+
+function handleCellKeydown(e, input, tbody) {
+  const tr = input.closest('tr');
+  const td = input.closest('td');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const editableCols = Array.from(tr.querySelectorAll('.cell-editable'));
+  const colIdx = editableCols.indexOf(input);
+  const rowIdx = rows.indexOf(tr);
+
+  switch (e.key) {
+    case 'Enter':
+      e.preventDefault();
+      // Move to next row, same editable column position
+      if (rowIdx < rows.length - 1) {
+        const nextRow = rows[rowIdx + 1];
+        const nextEditableCols = nextRow.querySelectorAll('.cell-editable');
+        const nextInput = nextEditableCols[colIdx];
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      } else {
+        // Add new row if at last row
+        appendPurchaseRow(tbody, rows.length);
+
+        setTimeout(() => {
+          const newRows = Array.from(tbody.querySelectorAll('tr'));
+          const nextRow = newRows[newRows.length - 1];
+          const nextEditableCols = nextRow.querySelectorAll('.cell-editable');
+          const nextInput = nextEditableCols[colIdx];
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+          }
+        }, 50);
+      }
+      break;
+
+    case 'ArrowDown':
+      e.preventDefault();
+      if (rowIdx < rows.length - 1) {
+        const nextRow = rows[rowIdx + 1];
+        const nextEditableCols = nextRow.querySelectorAll('.cell-editable');
+        const nextInput = nextEditableCols[colIdx];
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+      break;
+
+    case 'ArrowUp':
+      e.preventDefault();
+      if (rowIdx > 0) {
+        const prevRow = rows[rowIdx - 1];
+        const prevEditableCols = prevRow.querySelectorAll('.cell-editable');
+        const prevInput = prevEditableCols[colIdx];
+        if (prevInput) {
+          prevInput.focus();
+          prevInput.select();
+        }
+      }
+      break;
+
+    case 'Tab':
+      // Navigate between editable cells only
+      if (!e.shiftKey && colIdx === editableCols.length - 1 && rowIdx < rows.length - 1) {
+        e.preventDefault();
+        const nextRow = rows[rowIdx + 1];
+        const nextInput = nextRow.querySelector('.cell-editable');
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+      break;
+
+    case 'Escape':
+      input.blur();
+      break;
+  }
+}
+
+function recalcRowAmount(tr) {
+  const priceInput = tr.querySelector('[data-field="unit_price"]');
+  const qtyInput = tr.querySelector('[data-field="quantity"]');
+  const amountCell = tr.querySelector('.amount-cell');
+
+  const price = parseFloat(priceInput.value) || 0;
+  const qtyStr = qtyInput.value.trim();
+
+  // Check if quantity is a number
+  const qtyNum = parseFloat(qtyStr);
+
+  if (qtyStr && !isNaN(qtyNum) && String(qtyNum) === qtyStr) {
+    // Pure number - calculate amount
+    const amount = Math.round(price * qtyNum * 10) / 10; // Round to 1 decimal
+    amountCell.textContent = amount.toFixed(1);
+  } else {
+    // Contains text (like "60片") - amount is 0
+    amountCell.textContent = '0.0';
+  }
+}
+
+// ===== Product Autocomplete =====
+async function handleProductAutocomplete(input) {
+  const keyword = input.value.trim();
+  if (keyword.length < 1) {
+    hideAutocomplete();
+    return;
+  }
+
+  const td = input.closest('td');
+  const dropdown = td.querySelector('.autocomplete-dropdown');
+  if (!dropdown) return;
+
+  try {
+    const results = await window.api.searchInquiryItems(keyword);
+    if (results.length === 0) {
+      hideAutocomplete();
+      return;
+    }
+
+    dropdown.innerHTML = results.map((item, idx) => `
+      <div class="autocomplete-item" data-index="${idx}" data-name="${item.name}" data-spec="${item.spec || ''}" data-price="${item.price || 0}" data-unit="${item.unit || ''}">
+        <span class="item-name">${item.name}</span>
+        <span class="item-spec">${item.spec || ''} | ¥${item.price || 0}</span>
+      </div>
+    `).join('');
+
+    dropdown.style.display = 'block';
+    autocompleteIndex = -1;
+
+    // Click to select
+    dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectAutocompleteItem(input, item);
+      });
+    });
+
+    // Keyboard navigation in dropdown
+    input.onkeydown = (e) => {
+      const items = dropdown.querySelectorAll('.autocomplete-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+        updateAutocompleteHighlight(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+        updateAutocompleteHighlight(items);
+      } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+        e.preventDefault();
+        selectAutocompleteItem(input, items[autocompleteIndex]);
+      } else if (e.key === 'Escape') {
+        hideAutocomplete();
+      }
+    };
+  } catch (err) {
+    console.error('Autocomplete error:', err);
+  }
+}
+
+function selectAutocompleteItem(input, item) {
+  const tr = input.closest('tr');
+  const name = item.dataset.name;
+  const spec = item.dataset.spec;
+  const price = item.dataset.price;
+  const unit = item.dataset.unit;
+
+  input.value = name;
+  tr.querySelector('[data-field="spec"]').value = spec;
+  tr.querySelector('[data-field="unit_price"]').value = price;
+  tr.querySelector('[data-field="unit"]').value = unit;
+
+  hideAutocomplete();
+  recalcRowAmount(tr);
+
+  // Move focus to quantity field
+  const qtyInput = tr.querySelector('[data-field="quantity"]');
+  if (qtyInput) {
+    qtyInput.focus();
+    qtyInput.select();
+  }
+}
+
+function updateAutocompleteHighlight(items) {
+  items.forEach((item, idx) => {
+    item.classList.toggle('active', idx === autocompleteIndex);
+  });
+  if (autocompleteIndex >= 0 && items[autocompleteIndex]) {
+    items[autocompleteIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function hideAutocomplete() {
+  document.querySelectorAll('.autocomplete-dropdown').forEach(d => {
+    d.style.display = 'none';
+  });
+  autocompleteIndex = -1;
+}
+
+// Save all purchase orders
+async function saveAllPurchaseOrders() {
+  const allOrders = [];
+  const dateGroups = document.querySelectorAll('.date-group');
+
+  dateGroups.forEach(dateGroup => {
+    const source = dateGroup.closest('.purchase-group').dataset.source;
+    const dateLabel = dateGroup.querySelector('.date-label').textContent;
+    const receiveDate = dateLabel.replace(' 收货', '').trim();
+    const rows = dateGroup.querySelectorAll('tbody tr');
+
+    rows.forEach((tr, idx) => {
+      const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+      const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
+      const amount = parseFloat(amountText) || 0;
+
+      const productName = getData('product_name').trim();
+      if (!productName) return; // Skip empty rows
+
+      allOrders.push({
+        source: source,
+        receive_date: receiveDate,
+        product_name: productName,
+        spec: getData('spec'),
+        unit_price: parseFloat(getData('unit_price')) || 0,
+        quantity: getData('quantity'),
+        unit: getData('unit'),
+        amount: amount,
+        remark: getData('remark'),
+        sort_order: idx
+      });
+    });
+  });
+
+  try {
+    // Clear all existing orders and save new ones
+    await window.api.clearPurchaseOrders();
+    for (const order of allOrders) {
+      await window.api.addPurchaseOrder(order);
+    }
+    showToast(`已保存 ${allOrders.length} 条采购记录`);
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
   }
 }
 

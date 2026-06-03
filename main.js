@@ -67,6 +67,25 @@ ipcMain.handle('import:outbound', (e, records) => db.importOutbound(records));
 ipcMain.handle('import:openingStock', (e, map) => db.importOpeningStock(map));
 ipcMain.handle('import:clearAll', () => db.clearAllData());
 
+// Purchase Orders
+ipcMain.handle('purchaseOrders:get', (e, source) => db.getPurchaseOrders(source));
+ipcMain.handle('purchaseOrders:add', (e, data) => db.addPurchaseOrder(data));
+ipcMain.handle('purchaseOrders:update', (e, id, data) => db.updatePurchaseOrder(id, data));
+ipcMain.handle('purchaseOrders:delete', (e, id) => db.deletePurchaseOrder(id));
+ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(source));
+
+// Inquiry Items
+ipcMain.handle('inquiry:get', (e, { month, category } = {}) => db.getInquiryItems(month, category));
+ipcMain.handle('inquiry:search', (e, { keyword, month }) => db.searchInquiryItems(keyword, month));
+ipcMain.handle('inquiry:add', (e, data) => db.addInquiryItem(data));
+ipcMain.handle('inquiry:import', (e, { month, items }) => db.importInquiryItems(month, items));
+ipcMain.handle('inquiry:months', () => db.getInquiryMonths());
+
+// Settings
+ipcMain.handle('settings:get', (e, key) => db.getSetting(key));
+ipcMain.handle('settings:set', (e, key, value) => db.setSetting(key, value));
+ipcMain.handle('settings:getAll', () => db.getAllSettings());
+
 // File dialog
 ipcMain.handle('dialog:openFile', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {

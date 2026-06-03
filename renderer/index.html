@@ -43,6 +43,10 @@
           <span class="nav-icon">🏷️</span>
           <span class="nav-text">产品管理</span>
         </li>
+        <li class="nav-item" data-page="purchase">
+          <span class="nav-icon">📝</span>
+          <span class="nav-text">采购单</span>
+        </li>
         <li class="nav-item" data-page="import">
           <span class="nav-icon">📥</span>
           <span class="nav-text">数据导入</span>
@@ -403,6 +407,45 @@
             </thead>
             <tbody id="products-body"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Purchase Order -->
+      <div class="page" id="page-purchase">
+        <div class="page-header">
+          <h2>采购单</h2>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="saveAllPurchaseOrders()">💾 保存所有</button>
+          </div>
+        </div>
+        <div class="purchase-container" id="purchase-container">
+          <!-- 洋安食堂厨房 分组 -->
+          <div class="purchase-group" data-source="洋安食堂厨房">
+            <div class="group-header" onclick="toggleGroup(this)">
+              <span class="group-toggle">▶</span>
+              <h3>洋安食堂厨房</h3>
+              <div class="group-actions">
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('洋安食堂厨房')">+ 添加日期</button>
+              </div>
+            </div>
+            <div class="group-content" style="display:none;">
+              <!-- 日期分组会动态添加到这里 -->
+            </div>
+          </div>
+
+          <!-- 洋安面点房 分组 -->
+          <div class="purchase-group" data-source="洋安面点房">
+            <div class="group-header" onclick="toggleGroup(this)">
+              <span class="group-toggle">▶</span>
+              <h3>洋安面点房</h3>
+              <div class="group-actions">
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('洋安面点房')">+ 添加日期</button>
+              </div>
+            </div>
+            <div class="group-content" style="display:none;">
+              <!-- 日期分组会动态添加到这里 -->
+            </div>
+          </div>
         </div>
       </div>
 

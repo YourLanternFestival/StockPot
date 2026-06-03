@@ -62,6 +62,38 @@ async function init() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE
     );
+
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT DEFAULT '洋安食堂',
+      receive_date TEXT,
+      product_name TEXT NOT NULL,
+      spec TEXT DEFAULT '',
+      unit_price REAL DEFAULT 0,
+      quantity TEXT DEFAULT '',
+      unit TEXT DEFAULT '',
+      amount REAL DEFAULT 0,
+      remark TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS inquiry_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      month TEXT NOT NULL,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      price REAL,
+      unit TEXT DEFAULT '',
+      spec TEXT DEFAULT '',
+      remark TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 
   // Create indexes
@@ -433,6 +465,117 @@ function getDashboardStats() {
   return { productCount, totalIn, totalOut, days, top10 };
 }
 
+// ===== Purchase Orders =====
+function getPurchaseOrders(source) {
+  let sql = 'SELECT * FROM purchase_orders WHERE 1=1';
+  const params = [];
+  if (source) {
+    sql += ' AND source = ?';
+    params.push(source);
+  }
+  sql += ' ORDER BY sort_order, id';
+  return queryAll(sql, params);
+}
+
+function addPurchaseOrder(data) {
+  run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount, remark, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [data.source || '洋安食堂', data.receive_date || '', data.product_name, data.spec || '',
+     data.unit_price || 0, data.quantity || '', data.unit || '', data.amount || 0, data.remark || '', data.sort_order || 0]);
+  save();
+}
+
+function updatePurchaseOrder(id, data) {
+  run(`UPDATE purchase_orders SET source=?, receive_date=?, product_name=?, spec=?, unit_price=?, quantity=?, unit=?, amount=?, remark=?
+    WHERE id=?`,
+    [data.source, data.receive_date, data.product_name, data.spec, data.unit_price, data.quantity, data.unit, data.amount, data.remark, id]);
+  save();
+}
+
+function deletePurchaseOrder(id) {
+  run('DELETE FROM purchase_orders WHERE id = ?', [id]);
+  save();
+}
+
+function clearPurchaseOrders(source) {
+  if (source) {
+    run('DELETE FROM purchase_orders WHERE source = ?', [source]);
+  } else {
+    run('DELETE FROM purchase_orders');
+  }
+  save();
+}
+
+// ===== Inquiry Items =====
+function getInquiryItems(month, category) {
+  let sql = 'SELECT * FROM inquiry_items WHERE 1=1';
+  const params = [];
+  if (month) {
+    sql += ' AND month = ?';
+    params.push(month);
+  }
+  if (category) {
+    sql += ' AND category = ?';
+    params.push(category);
+  }
+  sql += ' ORDER BY category, name';
+  return queryAll(sql, params);
+}
+
+function searchInquiryItems(keyword, month) {
+  let sql = 'SELECT * FROM inquiry_items WHERE name LIKE ?';
+  const params = [`%${keyword}%`];
+  if (month) {
+    sql += ' AND month = ?';
+    params.push(month);
+  }
+  sql += ' ORDER BY category, name LIMIT 20';
+  return queryAll(sql, params);
+}
+
+function addInquiryItem(data) {
+  run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec, remark)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [data.month, data.category, data.name, data.price || null, data.unit || '', data.spec || '', data.remark || '']);
+  save();
+}
+
+function importInquiryItems(month, items) {
+  // 覆盖式导入：先删除同月份数据
+  run('DELETE FROM inquiry_items WHERE month = ?', [month]);
+  let imported = 0;
+  for (const item of items) {
+    run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec, remark)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [month, item.category, item.name, item.price || null, item.unit || '', item.spec || '', item.remark || '']);
+    imported++;
+  }
+  save();
+  return { imported };
+}
+
+function getInquiryMonths() {
+  return queryAll('SELECT DISTINCT month FROM inquiry_items ORDER BY month DESC');
+}
+
+// ===== Settings =====
+function getSetting(key) {
+  const row = queryOne('SELECT value FROM settings WHERE key = ?', [key]);
+  return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+  run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, String(value)]);
+  save();
+}
+
+function getAllSettings() {
+  const rows = queryAll('SELECT * FROM settings');
+  const settings = {};
+  rows.forEach(r => { settings[r.key] = r.value; });
+  return settings;
+}
+
 module.exports = {
   init, save, getDb: () => db,
   getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts,
@@ -443,4 +586,10 @@ module.exports = {
   getExpiryAlerts,
   importProducts, importInbound, importOutbound, importOpeningStock, clearAllData,
   getDashboardStats,
+  // Purchase Orders
+  getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
+  // Inquiry Items
+  getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths,
+  // Settings
+  getSetting, setSetting, getAllSettings,
 };
