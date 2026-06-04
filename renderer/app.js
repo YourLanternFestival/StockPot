@@ -2319,36 +2319,29 @@ async function exportLianhuaOrderByDate(date) {
       return;
     }
 
-    const filePath = await window.api.saveFile(`联华超市${date.replace(/-/g, '')}.xls`);
-    if (!filePath) return;
+    // Look up images
+    const photoFolder = APP_SETTINGS.photo_folder;
+    const imagePromises = orders.map(order =>
+      photoFolder ? window.api.findImage(order.name, order.spec, photoFolder).catch(() => null) : Promise.resolve(null)
+    );
+    const images = await Promise.all(imagePromises);
 
-    const wsData = [
-      ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注']
-    ];
+    const sheets = [{
+      name: date,
+      title: `联华超市 ${date}`,
+      headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
+      rows: orders.map((order, idx) => ({
+        data: [order.index, '洋安', date.replace(/-/g, '.'), order.code, order.name, order.unit, order.spec, order.price, order.quantity, order.amount, order.split_qty, order.remark, ''],
+        imagePath: images[idx]
+      }))
+    }];
 
-    orders.forEach(order => {
-      wsData.push([
-        order.index,
-        '洋安',
-        date.replace(/-/g, '.'),
-        order.code,
-        order.name,
-        order.unit,
-        order.spec,
-        order.price,
-        order.quantity,
-        order.amount,
-        order.split_qty,
-        order.remark
-      ]);
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, date);
-    XLSX.writeFile(wb, filePath);
-
-    showToast('导出成功！');
+    const result = await window.api.exportPurchaseOrder(sheets, `联华超市${date.replace(/-/g, '')}.xlsx`);
+    if (result.success) {
+      showToast('导出成功！');
+    } else if (result.error !== '已取消') {
+      showToast('导出失败: ' + result.error, 'error');
+    }
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');
   }
@@ -2357,10 +2350,7 @@ async function exportLianhuaOrderByDate(date) {
 // Export all purchase orders (3 sheets in one xlsx)
 async function exportAllPurchaseOrders() {
   try {
-    const filePath = await window.api.saveFile('洋安采购单.xlsx');
-    if (!filePath) return;
-
-    const wb = XLSX.utils.book_new();
+    const photoFolder = APP_SETTINGS.photo_folder;
 
     // Helper function to get date from date group
     const getDateFromGroup = (dateGroup) => {
@@ -2404,66 +2394,52 @@ async function exportAllPurchaseOrders() {
       return allRows;
     };
 
-    // Export 洋安食堂厨房 sheet
+    // Look up image paths for rows
+    async function resolveImages(rows) {
+      if (!photoFolder) return rows.map(() => null);
+      const promises = rows.map(row => window.api.findImage(row.product_name, row.spec, photoFolder).catch(() => null));
+      return Promise.all(promises);
+    }
+
+    // Build sheets array for main process export
+    const sheets = [];
+
+    // 洋安食堂厨房
     const kitchenRows = collectRows('洋安食堂厨房');
-    const kitchenData = [
-      ['洋安食堂厨房申购单', '', '', '', '', '', '', '', '', ''],
-      ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '用途', '备注要求']
-    ];
-    kitchenRows.forEach((row, idx) => {
-      kitchenData.push([
-        idx + 1,
-        row.date,
-        row.product_name,
-        row.spec,
-        row.unit_price,
-        row.quantity,
-        row.unit,
-        row.amount,
-        '',
-        row.remark
-      ]);
+    const kitchenImages = await resolveImages(kitchenRows);
+    sheets.push({
+      name: '洋安食堂厨房申购单',
+      title: '洋安食堂厨房申购单',
+      headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '用途', '备注要求', '实物图'],
+      rows: kitchenRows.map((row, idx) => ({
+        data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, '', row.remark, ''],
+        imagePath: kitchenImages[idx]
+      }))
     });
-    const wsKitchen = XLSX.utils.aoa_to_sheet(kitchenData);
-    XLSX.utils.book_append_sheet(wb, wsKitchen, '洋安食堂厨房申购单');
 
-    // Export 洋安面点房 sheet
+    // 洋安面点房
     const pastryRows = collectRows('洋安面点房');
-    const pastryData = [
-      ['洋安面点房申购单', '', '', '', '', '', '', '', '', ''],
-      ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '用途', '备注要求']
-    ];
-    pastryRows.forEach((row, idx) => {
-      pastryData.push([
-        idx + 1,
-        row.date,
-        row.product_name,
-        row.spec,
-        row.unit_price,
-        row.quantity,
-        row.unit,
-        row.amount,
-        '',
-        row.remark
-      ]);
+    const pastryImages = await resolveImages(pastryRows);
+    sheets.push({
+      name: '洋安面点房申购单',
+      title: '洋安面点房申购单',
+      headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '用途', '备注要求', '实物图'],
+      rows: pastryRows.map((row, idx) => ({
+        data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, '', row.remark, ''],
+        imagePath: pastryImages[idx]
+      }))
     });
-    const wsPastry = XLSX.utils.aoa_to_sheet(pastryData);
-    XLSX.utils.book_append_sheet(wb, wsPastry, '洋安面点房申购单');
 
-    // Export 联华 sheet (different format)
+    // 联华 sheets
     const lianhuaGroup = document.querySelector('.purchase-group[data-source="联华"]');
     if (lianhuaGroup) {
       const lianhuaDateGroups = lianhuaGroup.querySelectorAll('.date-group');
-      lianhuaDateGroups.forEach(dateGroup => {
+      for (const dateGroup of lianhuaDateGroups) {
         const date = getDateFromGroup(dateGroup);
         const rows = dateGroup.querySelectorAll('tbody tr');
 
-        const lianhuaData = [
-          ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注']
-        ];
-
-        let hasData = false;
-        rows.forEach((tr, idx) => {
+        const lianhuaRows = [];
+        rows.forEach((tr) => {
           const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
           const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
           const amount = parseFloat(amountText.replace('¥', '')) || 0;
@@ -2471,37 +2447,47 @@ async function exportAllPurchaseOrders() {
           const productName = getData('product_name').trim();
           if (!productName) return;
 
-          hasData = true;
-
-          // Find matching lianhua item
           const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
 
-          lianhuaData.push([
-            idx + 1,
-            '洋安',
-            date.replace(/-/g, '.'),
-            item ? item.code : '',
-            productName,
-            getData('unit') || (item ? item.unit : '件'),
-            getData('spec') || (item ? item.spec : ''),
-            parseFloat(getData('unit_price')) || (item ? item.price : 0),
-            parseFloat(getData('quantity')) || 0,
-            amount,
-            item ? item.split_qty : 1,
-            getData('remark')
-          ]);
+          lianhuaRows.push({
+            product_name: productName,
+            unit: getData('unit') || (item ? item.unit : '件'),
+            spec: getData('spec') || (item ? item.spec : ''),
+            unit_price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
+            quantity: parseFloat(getData('quantity')) || 0,
+            amount: amount,
+            code: item ? item.code : '',
+            split_qty: item ? item.split_qty : 1,
+            remark: getData('remark')
+          });
         });
 
-        if (hasData) {
-          const wsLianhua = XLSX.utils.aoa_to_sheet(lianhuaData);
-          // Sheet name is the date
-          XLSX.utils.book_append_sheet(wb, wsLianhua, date);
-        }
-      });
+        if (lianhuaRows.length === 0) continue;
+
+        const lianhuaImages = await resolveImages(lianhuaRows);
+        sheets.push({
+          name: date,
+          title: `联华超市 ${date}`,
+          headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
+          rows: lianhuaRows.map((row, idx) => ({
+            data: [idx + 1, '洋安', date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
+            imagePath: lianhuaImages[idx]
+          }))
+        });
+      }
     }
 
-    XLSX.writeFile(wb, filePath);
-    showToast('导出成功！');
+    if (sheets.length === 0) {
+      showToast('没有订单数据', 'error');
+      return;
+    }
+
+    const result = await window.api.exportPurchaseOrder(sheets, '洋安采购单.xlsx');
+    if (result.success) {
+      showToast('导出成功！');
+    } else if (result.error !== '已取消') {
+      showToast('导出失败: ' + result.error, 'error');
+    }
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');
   }
@@ -2591,7 +2577,7 @@ function renderInquiryTable(items) {
   document.getElementById('inquiry-count').textContent = `${items.length} 条`;
 
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted);">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted);">暂无数据</td></tr>';
     return;
   }
 
@@ -2618,6 +2604,8 @@ function renderInquiryTable(items) {
       changeHtml = '<span class="price-na">-</span>';
     }
 
+    const imageCellId = `img-cell-${idx}`;
+
     return `
       <tr>
         <td>${idx + 1}</td>
@@ -2630,9 +2618,66 @@ function renderInquiryTable(items) {
         <td>${item.spec || ''}</td>
         <td>${changeHtml}</td>
         <td>${item.remark || ''}</td>
+        <td id="${imageCellId}" class="image-cell">
+          <button class="btn btn-sm btn-image-add" onclick="addInquiryImage(this, '${item.name.replace(/'/g, "\\'")}', '${(item.spec || '').replace(/'/g, "\\'")}')" title="添加图片">📷</button>
+        </td>
       </tr>
     `;
   }).join('');
+
+  // Load images asynchronously
+  loadInquiryImages(items);
+}
+
+async function loadInquiryImages(items) {
+  const photoFolder = APP_SETTINGS.photo_folder;
+  if (!photoFolder) return;
+
+  for (let idx = 0; idx < items.length; idx++) {
+    const item = items[idx];
+    const cell = document.getElementById(`img-cell-${idx}`);
+    if (!cell) continue;
+
+    try {
+      const imagePath = await window.api.findImage(item.name, item.spec, photoFolder);
+      if (imagePath) {
+        const imgUrl = 'file:///' + imagePath.replace(/\\/g, '/');
+        cell.innerHTML = `<img src="${imgUrl}" class="inquiry-thumb" onclick="viewImage(this.src)" title="点击查看大图">`;
+      }
+    } catch (err) {
+      console.error('Load image error:', err);
+    }
+  }
+}
+
+async function addInquiryImage(btn, name, spec) {
+  const photoFolder = APP_SETTINGS.photo_folder;
+  if (!photoFolder) {
+    showToast('请先在设置中配置照片文件夹路径', 'error');
+    return;
+  }
+
+  const result = await window.api.addImage(name, spec, photoFolder);
+  if (result.success) {
+    showToast('图片添加成功');
+    const cell = btn.closest('td');
+    if (cell) {
+      const imgUrl = 'file:///' + result.path.replace(/\\/g, '/');
+      cell.innerHTML = `<img src="${imgUrl}" class="inquiry-thumb" onclick="viewImage(this.src)" title="点击查看大图">`;
+    }
+  } else if (result.error !== '已取消') {
+    showToast('添加失败: ' + result.error, 'error');
+  }
+}
+
+function viewImage(imageSrc) {
+  openModal('实物图片查看', `
+    <div style="text-align:center;">
+      <img src="${imageSrc}" style="max-width:100%;max-height:70vh;object-fit:contain;">
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">关闭</button>
+  `);
 }
 
 async function searchInquiry() {
@@ -2875,6 +2920,7 @@ const SETTING_KEYS = [
   'discount2_name', 'discount2_rate',
   'price_decimals',
   'enter_mode',
+  'photo_folder',
 ];
 
 const SETTING_DEFAULTS = {
@@ -2885,6 +2931,7 @@ const SETTING_DEFAULTS = {
   discount2_name: '优宏', discount2_rate: '0.9058',
   price_decimals: '2',
   enter_mode: 'next-row',
+  photo_folder: '',
 };
 
 async function initSettingsPage() {
@@ -2903,8 +2950,16 @@ async function initSettingsPage() {
     document.getElementById('setting-discount2-rate').value = settings.discount2_rate || SETTING_DEFAULTS.discount2_rate;
     document.getElementById('setting-price-decimals').value = settings.price_decimals || SETTING_DEFAULTS.price_decimals;
     document.getElementById('setting-enter-mode').value = settings.enter_mode || SETTING_DEFAULTS.enter_mode;
+    document.getElementById('setting-photo-folder').value = settings.photo_folder || SETTING_DEFAULTS.photo_folder;
   } catch (err) {
     console.error('Load settings error:', err);
+  }
+}
+
+async function selectPhotoFolder() {
+  const folder = await window.api.selectFolder();
+  if (folder) {
+    document.getElementById('setting-photo-folder').value = folder;
   }
 }
 
@@ -2938,6 +2993,7 @@ async function loadAppSettings() {
       discount2_name: g('discount2_name'),
       discount2_rate: g('discount2_rate'),
       price_decimals: parseInt(g('price_decimals')) || 2,
+      photo_folder: g('photo_folder'),
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框

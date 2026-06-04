@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 
 let mainWindow;
@@ -118,6 +119,173 @@ ipcMain.handle('dialog:saveFile', async (e, defaultName) => {
     filters: [{ name: 'Excel 文件', extensions: ['xlsx'] }],
   });
   return result.canceled ? null : result.filePath;
+});
+
+ipcMain.handle('dialog:selectFolder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择照片文件夹',
+    properties: ['openDirectory'],
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+// Image handlers
+ipcMain.handle('image:find', async (e, { name, spec, photoFolder }) => {
+  if (!photoFolder) return null;
+
+  const safeName = name.replace(/[\/\\:*?"<>|]/g, '_');
+  const safeSpec = (spec || '').replace(/[\/\\:*?"<>|]/g, '_');
+  const baseName = `${safeName}_${safeSpec}`;
+
+  const extensions = ['jpg', 'jpeg', 'png', 'bmp', 'webp'];
+  for (const ext of extensions) {
+    const filePath = path.join(photoFolder, `${baseName}.${ext}`);
+    if (fs.existsSync(filePath)) {
+      return filePath;
+    }
+  }
+  return null;
+});
+
+ipcMain.handle('image:add', async (e, { name, spec, photoFolder }) => {
+  if (!photoFolder) return { success: false, error: '未配置照片文件夹' };
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: '选择图片',
+    filters: [
+      { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'webp'] }
+    ],
+    properties: ['openFile'],
+  });
+
+  if (result.canceled || !result.filePaths[0]) {
+    return { success: false, error: '已取消' };
+  }
+
+  const sourcePath = result.filePaths[0];
+  const ext = path.extname(sourcePath).toLowerCase().replace('.', '');
+
+  const safeName = name.replace(/[\/\\:*?"<>|]/g, '_');
+  const safeSpec = (spec || '').replace(/[\/\\:*?"<>|]/g, '_');
+  const baseName = `${safeName}_${safeSpec}`;
+  const targetPath = path.join(photoFolder, `${baseName}.${ext}`);
+
+  try {
+    // Ensure photo folder exists
+    if (!fs.existsSync(photoFolder)) {
+      fs.mkdirSync(photoFolder, { recursive: true });
+    }
+
+    // Remove existing images for this item
+    const extensions = ['jpg', 'jpeg', 'png', 'bmp', 'webp'];
+    for (const oldExt of extensions) {
+      const oldPath = path.join(photoFolder, `${baseName}.${oldExt}`);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Move (rename) the file; fall back to copy+delete if cross-device
+    try {
+      fs.renameSync(sourcePath, targetPath);
+    } catch (renameErr) {
+      if (renameErr.code === 'EXDEV') {
+        fs.copyFileSync(sourcePath, targetPath);
+        fs.unlinkSync(sourcePath);
+      } else {
+        throw renameErr;
+      }
+    }
+    return { success: true, path: targetPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Export purchase order with embedded images
+ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
+  const ExcelJS = require('exceljs');
+
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '保存采购单',
+    defaultPath: defaultName || '洋安采购单.xlsx',
+    filters: [{ name: 'Excel 文件', extensions: ['xlsx'] }],
+  });
+  if (result.canceled || !result.filePath) return { success: false, error: '已取消' };
+
+  try {
+    const wb = new ExcelJS.Workbook();
+
+    for (const sheet of sheets) {
+      const ws = wb.addWorksheet(sheet.name);
+
+      // Add title row
+      ws.addRow(sheet.title);
+      ws.getRow(1).font = { bold: true, size: 14 };
+      ws.mergeCells(1, 1, 1, sheet.headers.length);
+
+      // Add header row
+      const headerRow = ws.addRow(sheet.headers);
+      headerRow.font = { bold: true };
+      headerRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+        cell.border = {
+          top: { style: 'thin' }, bottom: { style: 'thin' },
+          left: { style: 'thin' }, right: { style: 'thin' }
+        };
+      });
+
+      // Add data rows
+      for (const row of sheet.rows) {
+        const dataRow = ws.addRow(row.data);
+        dataRow.eachCell(cell => {
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' },
+            left: { style: 'thin' }, right: { style: 'thin' }
+          };
+        });
+
+        // Embed image if exists
+        if (row.imagePath && fs.existsSync(row.imagePath)) {
+          try {
+            const ext = path.extname(row.imagePath).toLowerCase().replace('.', '');
+            const imageId = wb.addImage({
+              filename: row.imagePath,
+              extension: ext === 'jpg' ? 'jpeg' : ext,
+            });
+            const rowNum = dataRow.number;
+            const imgCol = row.data.length; // last column
+            ws.addImage(imageId, {
+              tl: { col: imgCol - 1, row: rowNum - 1 },
+              ext: { width: 80, height: 60 },
+            });
+            ws.getRow(rowNum).height = 50;
+          } catch (imgErr) {
+            console.error('Embed image error:', imgErr);
+          }
+        }
+      }
+
+      // Auto-width columns (except image column)
+      ws.columns.forEach((col, i) => {
+        if (i < sheet.headers.length - 1) {
+          let maxLen = sheet.headers[i] ? sheet.headers[i].length : 10;
+          col.eachCell({ includeEmpty: false }, cell => {
+            const len = String(cell.value).length;
+            if (len > maxLen) maxLen = len;
+          });
+          col.width = Math.min(maxLen + 4, 30);
+        }
+      });
+      // Image column width
+      ws.getColumn(sheet.headers.length).width = 14;
+    }
+
+    await wb.xlsx.writeFile(result.filePath);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 app.whenReady().then(createWindow);

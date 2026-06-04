@@ -78,4 +78,12 @@ contextBridge.exposeInMainWorld('api', {
   // Dialogs
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
   saveFile: (name) => ipcRenderer.invoke('dialog:saveFile', name),
+  selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+
+  // Image
+  findImage: (name, spec, photoFolder) => ipcRenderer.invoke('image:find', { name, spec, photoFolder }),
+  addImage: (name, spec, photoFolder) => ipcRenderer.invoke('image:add', { name, spec, photoFolder }),
+
+  // Export with images
+  exportPurchaseOrder: (sheets, defaultName) => ipcRenderer.invoke('export:purchaseOrder', { sheets, defaultName }),
 });
