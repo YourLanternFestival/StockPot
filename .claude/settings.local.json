@@ -32,7 +32,8 @@
       "Bash(git commit -m 'fix: 修复 Excel 日期导入因 UTC 时区偏移导致日期回退一天的问题 *)",
       "Bash(node *)",
       "Bash(npm start *)",
-      "Bash(git commit -m 'feat: 入库/出库登记改为 Excel 表格形式 + 修复导入刷新 *)"
+      "Bash(git commit -m 'feat: 入库/出库登记改为 Excel 表格形式 + 修复导入刷新 *)",
+      "Bash(git commit -m 'fix: 修复自动补全下拉菜单的键盘导航 *)"
     ]
   }
 }

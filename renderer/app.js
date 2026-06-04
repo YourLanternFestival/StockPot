@@ -477,6 +477,33 @@ function bindInboundRowEvents(tr) {
   inputs.forEach(input => {
     // Keyboard navigation
     input.addEventListener('keydown', (e) => {
+      // 如果是品名列且下拉菜单可见，处理自动补全导航
+      if (input.dataset.field === 'product_name') {
+        const td = input.closest('td');
+        const dropdown = td?.querySelector('.autocomplete-dropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+          const items = dropdown.querySelectorAll('.autocomplete-item');
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+            updateAutocompleteHighlight(items);
+            return;
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+            updateAutocompleteHighlight(items);
+            return;
+          } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+            e.preventDefault();
+            selectInboundProduct(input, items[autocompleteIndex]);
+            return;
+          } else if (e.key === 'Escape') {
+            hideAutocomplete();
+            return;
+          }
+        }
+      }
+      // 否则处理表格导航
       handleCellKeydown(e, input, document.getElementById('inbound-tbody'));
     });
 
@@ -538,24 +565,6 @@ function handleInboundProductAutocomplete(input) {
       selectInboundProduct(input, item);
     });
   });
-
-  input.onkeydown = (e) => {
-    const items = dropdown.querySelectorAll('.autocomplete-item');
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
-      updateAutocompleteHighlight(items);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
-      updateAutocompleteHighlight(items);
-    } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
-      e.preventDefault();
-      selectInboundProduct(input, items[autocompleteIndex]);
-    } else if (e.key === 'Escape') {
-      hideAutocomplete();
-    }
-  };
 }
 
 function selectInboundProduct(input, item) {
@@ -747,6 +756,33 @@ function bindOutboundRowEvents(tr) {
 
   inputs.forEach(input => {
     input.addEventListener('keydown', (e) => {
+      // 如果是品名列且下拉菜单可见，处理自动补全导航
+      if (input.dataset.field === 'product_name') {
+        const td = input.closest('td');
+        const dropdown = td?.querySelector('.autocomplete-dropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+          const items = dropdown.querySelectorAll('.autocomplete-item');
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+            updateAutocompleteHighlight(items);
+            return;
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+            updateAutocompleteHighlight(items);
+            return;
+          } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+            e.preventDefault();
+            selectOutboundProduct(input, items[autocompleteIndex]);
+            return;
+          } else if (e.key === 'Escape') {
+            hideAutocomplete();
+            return;
+          }
+        }
+      }
+      // 否则处理表格导航
       handleCellKeydown(e, input, document.getElementById('outbound-tbody'));
     });
 
@@ -801,24 +837,6 @@ async function handleOutboundProductAutocomplete(input) {
       selectOutboundProduct(input, item);
     });
   });
-
-  input.onkeydown = (e) => {
-    const items = dropdown.querySelectorAll('.autocomplete-item');
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
-      updateAutocompleteHighlight(items);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
-      updateAutocompleteHighlight(items);
-    } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
-      e.preventDefault();
-      selectOutboundProduct(input, items[autocompleteIndex]);
-    } else if (e.key === 'Escape') {
-      hideAutocomplete();
-    }
-  };
 }
 
 function selectOutboundProduct(input, item) {
@@ -1564,6 +1582,33 @@ function attachCellEvents(tr, tbody) {
   inputs.forEach(input => {
     // Handle Enter key - move to next row same column
     input.addEventListener('keydown', (e) => {
+      // 如果是品名列且下拉菜单可见，处理自动补全导航
+      if (input.dataset.field === 'product_name') {
+        const td = input.closest('td');
+        const dropdown = td?.querySelector('.autocomplete-dropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+          const items = dropdown.querySelectorAll('.autocomplete-item');
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+            updateAutocompleteHighlight(items);
+            return;
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+            updateAutocompleteHighlight(items);
+            return;
+          } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+            e.preventDefault();
+            selectAutocompleteItem(input, items[autocompleteIndex]);
+            return;
+          } else if (e.key === 'Escape') {
+            hideAutocomplete();
+            return;
+          }
+        }
+      }
+      // 否则处理表格导航
       handleCellKeydown(e, input, tbody);
     });
 
@@ -1596,7 +1641,6 @@ function attachCellEvents(tr, tbody) {
 
 function handleCellKeydown(e, input, tbody) {
   const tr = input.closest('tr');
-  const td = input.closest('td');
   const rows = Array.from(tbody.querySelectorAll('tr'));
   const editableCols = Array.from(tr.querySelectorAll('.cell-editable'));
   const colIdx = editableCols.indexOf(input);
@@ -1759,25 +1803,6 @@ async function handleProductAutocomplete(input) {
         selectAutocompleteItem(input, item);
       });
     });
-
-    // Keyboard navigation in dropdown
-    input.onkeydown = (e) => {
-      const items = dropdown.querySelectorAll('.autocomplete-item');
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
-        updateAutocompleteHighlight(items);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
-        updateAutocompleteHighlight(items);
-      } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
-        e.preventDefault();
-        selectAutocompleteItem(input, items[autocompleteIndex]);
-      } else if (e.key === 'Escape') {
-        hideAutocomplete();
-      }
-    };
   } catch (err) {
     console.error('Autocomplete error:', err);
   }
