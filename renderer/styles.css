@@ -968,3 +968,16 @@ body {
 .cell-date:focus {
   background: #fffbe6;
 }
+
+/* ===== Settings Page ===== */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

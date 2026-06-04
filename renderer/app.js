@@ -4,6 +4,15 @@ let RECIPIENTS = [];
 let selectedProductIds = new Set();
 let trendChart = null;
 let pieChart = null;
+let ENTER_MODE = 'next-row'; // 'next-row' | 'next-cell'
+let APP_SETTINGS = {
+  inbound_rows: 5, outbound_rows: 5, purchase_rows: 10,
+  inbound_history: 'on', inbound_history_days: 20,
+  outbound_history: 'on', outbound_history_days: 20,
+  discount1_name: '盛销', discount1_rate: '0.9008',
+  discount2_name: '优宏', discount2_rate: '0.9058',
+  price_decimals: 2,
+};
 
 // ===== Navigation =====
 function navigateTo(page) {
@@ -25,6 +34,7 @@ function navigateTo(page) {
     case 'inquiry': initInquiryPage(); break;
     case 'inbound': initInboundPage(); break;
     case 'outbound': initOutboundPage(); break;
+    case 'settings': initSettingsPage(); break;
   }
 }
 
@@ -422,7 +432,7 @@ let inboundInitialized = false;
 function initInboundPage() {
   const tbody = document.getElementById('inbound-tbody');
   if (!inboundInitialized) {
-    addInboundRows(5);
+    addInboundRows(APP_SETTINGS.inbound_rows);
     inboundInitialized = true;
   }
   loadRecentInbound();
@@ -442,12 +452,12 @@ function addInboundRows(count = 5) {
         <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input" value="" data-field="spec" readonly></td>
+      <td><input type="text" class="cell-input" value="" data-field="spec" readonly tabindex="-1"></td>
       <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
-      <td><input type="text" class="cell-input" value="" data-field="unit" readonly></td>
+      <td><input type="text" class="cell-input" value="" data-field="unit" readonly tabindex="-1"></td>
       <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
       <td><input type="date" class="cell-input cell-editable" value="" data-field="production_date"></td>
-      <td><input type="date" class="cell-input" value="" data-field="expiry_date" readonly></td>
+      <td><input type="date" class="cell-input" value="" data-field="expiry_date" readonly tabindex="-1"></td>
       <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="可选"></td>
       <td><button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="removeInboundRow(this)">×</button></td>
     `;
@@ -456,6 +466,30 @@ function addInboundRows(count = 5) {
     // Bind events
     bindInboundRowEvents(tr);
   }
+}
+
+function appendInboundRow(tbody) {
+  const existingRows = tbody.querySelectorAll('tr').length;
+  const today = todayStr();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-num">${existingRows + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input" value="" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
+    <td><input type="text" class="cell-input" value="" data-field="unit" readonly tabindex="-1"></td>
+    <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
+    <td><input type="date" class="cell-input cell-editable" value="" data-field="production_date"></td>
+    <td><input type="date" class="cell-input" value="" data-field="expiry_date" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="可选"></td>
+    <td><button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="removeInboundRow(this)">×</button></td>
+  `;
+  tbody.appendChild(tr);
+  bindInboundRowEvents(tr);
+  return tr;
 }
 
 function removeInboundRow(btn) {
@@ -473,20 +507,15 @@ function renumberRows(tbodyId) {
 
 function bindInboundRowEvents(tr) {
   const tbody = document.getElementById('inbound-tbody');
-  tr.querySelectorAll('.cell-input.cell-editable').forEach(input => {
-    input.addEventListener('keydown', (e) => {
-      if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, selectInboundProduct)) return;
-      handleCellKeydown(e, input, tbody);
-    });
-
-    if (input.dataset.field === 'product_name') {
-      bindAutocompleteEvents(input, handleInboundProductAutocomplete, selectInboundProduct);
-    }
-
-    if (input.dataset.field === 'production_date') {
-      input.addEventListener('change', () => calcRowExpiry(tr));
-    }
+  bindTableRowEvents(tr, tbody, {
+    onSelect: selectInboundProduct,
+    onAutocomplete: handleInboundProductAutocomplete,
+    onProductSelect: selectInboundProduct,
+    onAppendRow: appendInboundRow,
   });
+  // production_date change 触发到期日计算
+  const prodInput = tr.querySelector('[data-field="production_date"]');
+  if (prodInput) prodInput.addEventListener('change', () => calcRowExpiry(tr));
 }
 
 function handleInboundProductAutocomplete(input) {
@@ -598,10 +627,17 @@ async function submitInboundBatch() {
 }
 
 async function loadRecentInbound() {
+  const card = document.getElementById('recent-inbound')?.closest('.card');
+  if (APP_SETTINGS.inbound_history === 'off') {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  if (card) card.style.display = '';
   try {
     const records = await window.api.getInbound({});
     const tbody = document.getElementById('recent-inbound');
-    tbody.innerHTML = records.slice(0, 20).map(r => `
+    const days = APP_SETTINGS.inbound_history_days;
+    tbody.innerHTML = records.slice(0, days).map(r => `
       <tr>
         <td>${formatDate(r.date)}</td><td>${r.product_name}</td>
         <td>${r.quantity}</td><td>${r.unit}</td>
@@ -666,7 +702,7 @@ let outboundInitialized = false;
 function initOutboundPage() {
   const tbody = document.getElementById('outbound-tbody');
   if (!outboundInitialized) {
-    addOutboundRows(5);
+    addOutboundRows(APP_SETTINGS.outbound_rows);
     outboundInitialized = true;
   }
   loadRecentOutbound();
@@ -686,10 +722,10 @@ function addOutboundRows(count = 5) {
         <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input" value="" data-field="spec" readonly></td>
+      <td><input type="text" class="cell-input" value="" data-field="spec" readonly tabindex="-1"></td>
       <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
-      <td><input type="text" class="cell-input" value="" data-field="unit" readonly></td>
-      <td><input type="text" class="cell-input" value="" data-field="stock" readonly></td>
+      <td><input type="text" class="cell-input" value="" data-field="unit" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input" value="" data-field="stock" readonly tabindex="-1"></td>
       <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
       <td>
         <select class="cell-input cell-editable" data-field="recipient">
@@ -705,6 +741,34 @@ function addOutboundRows(count = 5) {
   }
 }
 
+function appendOutboundRow(tbody) {
+  const existingRows = tbody.querySelectorAll('tr').length;
+  const today = todayStr();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-num">${existingRows + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input" value="" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
+    <td><input type="text" class="cell-input" value="" data-field="unit" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input" value="" data-field="stock" readonly tabindex="-1"></td>
+    <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
+    <td>
+      <select class="cell-input cell-editable" data-field="recipient">
+        <option value="">选择...</option>
+        ${RECIPIENTS.map(r => `<option value="${r.name}">${r.name}</option>`).join('')}
+      </select>
+    </td>
+    <td><button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="removeOutboundRow(this)">×</button></td>
+  `;
+  tbody.appendChild(tr);
+  bindOutboundRowEvents(tr);
+  return tr;
+}
+
 function removeOutboundRow(btn) {
   const tr = btn.closest('tr');
   tr.remove();
@@ -713,15 +777,11 @@ function removeOutboundRow(btn) {
 
 function bindOutboundRowEvents(tr) {
   const tbody = document.getElementById('outbound-tbody');
-  tr.querySelectorAll('.cell-input.cell-editable').forEach(input => {
-    input.addEventListener('keydown', (e) => {
-      if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, selectOutboundProduct)) return;
-      handleCellKeydown(e, input, tbody);
-    });
-
-    if (input.dataset.field === 'product_name') {
-      bindAutocompleteEvents(input, handleOutboundProductAutocomplete, selectOutboundProduct);
-    }
+  bindTableRowEvents(tr, tbody, {
+    onSelect: selectOutboundProduct,
+    onAutocomplete: handleOutboundProductAutocomplete,
+    onProductSelect: selectOutboundProduct,
+    onAppendRow: appendOutboundRow,
   });
 }
 
@@ -826,10 +886,17 @@ async function submitOutboundBatch() {
 }
 
 async function loadRecentOutbound() {
+  const card = document.getElementById('recent-outbound')?.closest('.card');
+  if (APP_SETTINGS.outbound_history === 'off') {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  if (card) card.style.display = '';
   try {
     const records = await window.api.getOutbound({});
     const tbody = document.getElementById('recent-outbound');
-    tbody.innerHTML = records.slice(0, 20).map(r => `
+    const days = APP_SETTINGS.outbound_history_days;
+    tbody.innerHTML = records.slice(0, days).map(r => `
       <tr>
         <td>${formatDate(r.date)}</td><td>${r.product_name}</td>
         <td>${r.quantity}</td><td>${r.unit}</td><td>${r.recipient}</td>
@@ -1396,7 +1463,7 @@ function addDateGroup(source, date) {
       <span class="date-label">${date} 收货</span>
       <span class="date-summary">0 项</span>
       <div class="date-actions">
-        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加10行</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
         <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
       </div>
     </div>
@@ -1430,9 +1497,9 @@ function addDateGroup(source, date) {
     toggleGroup(groupHeader);
   }
 
-  // Add 10 empty rows
+  // Add empty rows
   const tbody = dateGroup.querySelector('tbody');
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < APP_SETTINGS.purchase_rows; i++) {
     appendPurchaseRow(tbody, i);
   }
 }
@@ -1450,7 +1517,7 @@ function addPurchaseRows(btn) {
   const tbody = dateGroup.querySelector('tbody');
   const currentCount = tbody.querySelectorAll('tr').length;
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < APP_SETTINGS.purchase_rows; i++) {
     appendPurchaseRow(tbody, currentCount + i);
   }
 }
@@ -1502,25 +1569,33 @@ function reindexPurchaseRows(tbody) {
 }
 
 function attachCellEvents(tr, tbody) {
-  tr.querySelectorAll('.cell-editable').forEach(input => {
-    input.addEventListener('keydown', (e) => {
-      if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, selectAutocompleteItem)) return;
-      handleCellKeydown(e, input, tbody);
-    });
-
-    input.addEventListener('change', () => recalcRowAmount(tr));
-
-    if (input.dataset.field === 'product_name') {
-      bindAutocompleteEvents(input, handleProductAutocomplete, selectAutocompleteItem);
-    }
-
-    if (input.dataset.field === 'quantity') {
-      input.addEventListener('input', () => recalcRowAmount(tr));
-    }
+  bindTableRowEvents(tr, tbody, {
+    onSelect: selectAutocompleteItem,
+    onAutocomplete: handleProductAutocomplete,
+    onProductSelect: selectAutocompleteItem,
+    onQtyChange: (row) => recalcRowAmount(row),
+    onFieldChange: (row) => recalcRowAmount(row),
   });
 }
 
-function handleCellKeydown(e, input, tbody) {
+function bindTableRowEvents(tr, tbody, options = {}) {
+  const { onSelect, onAutocomplete, onProductSelect, onQtyChange, onFieldChange, onAppendRow } = options;
+  tr.querySelectorAll('.cell-editable').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, onSelect)) return;
+      handleCellKeydown(e, input, tbody, onAppendRow);
+    });
+
+    if (input.dataset.field === 'product_name' && onAutocomplete && onProductSelect) {
+      bindAutocompleteEvents(input, onAutocomplete, onProductSelect);
+    }
+
+    if (onFieldChange) input.addEventListener('change', () => onFieldChange(tr));
+    if (input.dataset.field === 'quantity' && onQtyChange) input.addEventListener('input', () => onQtyChange(tr));
+  });
+}
+
+function handleCellKeydown(e, input, tbody, onAppendRow) {
   const tr = input.closest('tr');
   const rows = Array.from(tbody.querySelectorAll('tr'));
   const editableCols = Array.from(tr.querySelectorAll('.cell-editable'));
@@ -1530,29 +1605,37 @@ function handleCellKeydown(e, input, tbody) {
   switch (e.key) {
     case 'Enter':
       e.preventDefault();
-      // Move to next row, same editable column position
-      if (rowIdx < rows.length - 1) {
-        const nextRow = rows[rowIdx + 1];
-        const nextEditableCols = nextRow.querySelectorAll('.cell-editable');
-        const nextInput = nextEditableCols[colIdx];
-        if (nextInput) {
-          nextInput.focus();
-          nextInput.select();
+      if (ENTER_MODE === 'next-cell') {
+        // 跳到下一行首格
+        if (rowIdx < rows.length - 1) {
+          const nextRow = rows[rowIdx + 1];
+          const nextInput = nextRow.querySelector('.cell-editable');
+          if (nextInput) { nextInput.focus(); nextInput.select(); }
+        } else {
+          (onAppendRow || appendPurchaseRow)(tbody, rows.length);
+          setTimeout(() => {
+            const newRows = Array.from(tbody.querySelectorAll('tr'));
+            const nextInput = newRows[newRows.length - 1].querySelector('.cell-editable');
+            if (nextInput) { nextInput.focus(); nextInput.select(); }
+          }, 50);
         }
       } else {
-        // Add new row if at last row
-        appendPurchaseRow(tbody, rows.length);
-
-        setTimeout(() => {
-          const newRows = Array.from(tbody.querySelectorAll('tr'));
-          const nextRow = newRows[newRows.length - 1];
+        // 跳到下一行同列
+        if (rowIdx < rows.length - 1) {
+          const nextRow = rows[rowIdx + 1];
           const nextEditableCols = nextRow.querySelectorAll('.cell-editable');
           const nextInput = nextEditableCols[colIdx];
-          if (nextInput) {
-            nextInput.focus();
-            nextInput.select();
-          }
-        }, 50);
+          if (nextInput) { nextInput.focus(); nextInput.select(); }
+        } else {
+          (onAppendRow || appendPurchaseRow)(tbody, rows.length);
+          setTimeout(() => {
+            const newRows = Array.from(tbody.querySelectorAll('tr'));
+            const nextRow = newRows[newRows.length - 1];
+            const nextEditableCols = nextRow.querySelectorAll('.cell-editable');
+            const nextInput = nextEditableCols[colIdx];
+            if (nextInput) { nextInput.focus(); nextInput.select(); }
+          }, 50);
+        }
       }
       break;
 
@@ -1834,9 +1917,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadRecentInbound();
   loadRecentOutbound();
 
-  // Load discount settings
-  loadDiscountSettings();
+  // Load all app settings into cache
+  await loadAppSettings();
+
+  // Ctrl+Enter 切换回车导航模式
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      ENTER_MODE = ENTER_MODE === 'next-row' ? 'next-cell' : 'next-row';
+      const label = ENTER_MODE === 'next-row' ? '跳到下一行同列' : '跳到下一行首格';
+      showToast(`回车导航：${label}`);
+      const sel = document.getElementById('setting-enter-mode');
+      if (sel) sel.value = ENTER_MODE;
+      window.api.setSetting('enter_mode', ENTER_MODE);
+    }
+  });
 });
+
+// ===== 退出前未保存检测 =====
+function hasTableData(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return false;
+  for (const tr of tbody.querySelectorAll('tr')) {
+    const name = tr.querySelector('[data-field="product_name"]');
+    if (name && name.value.trim()) return true;
+  }
+  return false;
+}
+
+function hasUnsavedData() {
+  return hasTableData('inbound-tbody') || hasTableData('outbound-tbody');
+}
+
+function submitCurrentPage() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'page-inbound') submitInboundBatch();
+  else if (id === 'page-outbound') submitOutboundBatch();
+}
 
 // ===== Lianhua (联华) Module =====
 let lianhuaItems = [];
@@ -2466,6 +2585,8 @@ function renderInquiryTable(items) {
   const tbody = document.getElementById('inquiry-body');
   const discountSX = parseFloat(document.getElementById('discount-shengxiao').value) || 0.9008;
   const discountYH = parseFloat(document.getElementById('discount-youhong').value) || 0.9058;
+  const dec = APP_SETTINGS.price_decimals;
+  const factor = Math.pow(10, dec);
 
   document.getElementById('inquiry-count').textContent = `${items.length} 条`;
 
@@ -2475,8 +2596,8 @@ function renderInquiryTable(items) {
   }
 
   tbody.innerHTML = items.map((item, idx) => {
-    const priceSX = item.price ? Math.round(item.price * discountSX * 10) / 10 : null;
-    const priceYH = item.price ? Math.round(item.price * discountYH * 10) / 10 : null;
+    const priceSX = item.price ? Math.round(item.price * discountSX * factor) / factor : null;
+    const priceYH = item.price ? Math.round(item.price * discountYH * factor) / factor : null;
 
     // Calculate price change using name + spec as key
     const key = `${item.name}|${item.spec || ''}`;
@@ -2502,9 +2623,9 @@ function renderInquiryTable(items) {
         <td>${idx + 1}</td>
         <td>${item.category}</td>
         <td style="text-align:left;">${item.name}</td>
-        <td>${item.price || '-'}</td>
-        <td>${priceSX || '-'}</td>
-        <td>${priceYH || '-'}</td>
+        <td>${item.price ? Number(item.price).toFixed(dec) : '-'}</td>
+        <td>${priceSX != null ? priceSX.toFixed(dec) : '-'}</td>
+        <td>${priceYH != null ? priceYH.toFixed(dec) : '-'}</td>
         <td>${item.unit || ''}</td>
         <td>${item.spec || ''}</td>
         <td>${changeHtml}</td>
@@ -2597,6 +2718,8 @@ function handleInquiryFileSelected(fileInput) {
           const row = rows[i];
           const name = String(row[1] || '').trim();
           if (!name) continue;
+          // 跳过表头残留行
+          if (name === '单位' || name === '规格' || name === '名称' || name === '品名') continue;
 
           items.push({
             category: category,
@@ -2724,28 +2847,14 @@ async function doAddInquiryItem(month) {
   }
 }
 
-// Load and save discount settings
-async function loadDiscountSettings() {
-  try {
-    const settings = await window.api.getAllSettings();
-    if (settings.discount_shengxiao) {
-      document.getElementById('discount-shengxiao').value = settings.discount_shengxiao;
-    }
-    if (settings.discount_youhong) {
-      document.getElementById('discount-youhong').value = settings.discount_youhong;
-    }
-  } catch (err) {
-    console.error('Load discount settings error:', err);
-  }
-}
-
 async function saveDiscount() {
   const sx = document.getElementById('discount-shengxiao').value;
   const yh = document.getElementById('discount-youhong').value;
 
   try {
-    await window.api.setSetting('discount_shengxiao', sx);
-    await window.api.setSetting('discount_youhong', yh);
+    await window.api.setSetting('discount1_rate', sx);
+    await window.api.setSetting('discount2_rate', yh);
+    await loadAppSettings();
     showToast('折扣率已保存');
 
     // Refresh table if data exists
@@ -2755,4 +2864,97 @@ async function saveDiscount() {
   } catch (err) {
     showToast('保存失败: ' + err.message, 'error');
   }
+}
+
+// ===== Settings Page =====
+const SETTING_KEYS = [
+  'inbound_rows', 'outbound_rows', 'purchase_rows',
+  'inbound_history', 'inbound_history_days',
+  'outbound_history', 'outbound_history_days',
+  'discount1_name', 'discount1_rate',
+  'discount2_name', 'discount2_rate',
+  'price_decimals',
+  'enter_mode',
+];
+
+const SETTING_DEFAULTS = {
+  inbound_rows: '5', outbound_rows: '5', purchase_rows: '10',
+  inbound_history: 'on', inbound_history_days: '20',
+  outbound_history: 'on', outbound_history_days: '20',
+  discount1_name: '盛销', discount1_rate: '0.9008',
+  discount2_name: '优宏', discount2_rate: '0.9058',
+  price_decimals: '2',
+  enter_mode: 'next-row',
+};
+
+async function initSettingsPage() {
+  try {
+    const settings = await window.api.getAllSettings();
+    document.getElementById('setting-inbound-rows').value = settings.inbound_rows || SETTING_DEFAULTS.inbound_rows;
+    document.getElementById('setting-outbound-rows').value = settings.outbound_rows || SETTING_DEFAULTS.outbound_rows;
+    document.getElementById('setting-purchase-rows').value = settings.purchase_rows || SETTING_DEFAULTS.purchase_rows;
+    document.getElementById('setting-inbound-history').value = settings.inbound_history || SETTING_DEFAULTS.inbound_history;
+    document.getElementById('setting-inbound-history-days').value = settings.inbound_history_days || SETTING_DEFAULTS.inbound_history_days;
+    document.getElementById('setting-outbound-history').value = settings.outbound_history || SETTING_DEFAULTS.outbound_history;
+    document.getElementById('setting-outbound-history-days').value = settings.outbound_history_days || SETTING_DEFAULTS.outbound_history_days;
+    document.getElementById('setting-discount1-name').value = settings.discount1_name || SETTING_DEFAULTS.discount1_name;
+    document.getElementById('setting-discount1-rate').value = settings.discount1_rate || SETTING_DEFAULTS.discount1_rate;
+    document.getElementById('setting-discount2-name').value = settings.discount2_name || SETTING_DEFAULTS.discount2_name;
+    document.getElementById('setting-discount2-rate').value = settings.discount2_rate || SETTING_DEFAULTS.discount2_rate;
+    document.getElementById('setting-price-decimals').value = settings.price_decimals || SETTING_DEFAULTS.price_decimals;
+    document.getElementById('setting-enter-mode').value = settings.enter_mode || SETTING_DEFAULTS.enter_mode;
+  } catch (err) {
+    console.error('Load settings error:', err);
+  }
+}
+
+async function saveSettings() {
+  try {
+    for (const key of SETTING_KEYS) {
+      const el = document.getElementById(`setting-${key.replace(/_/g, '-')}`);
+      if (el) await window.api.setSetting(key, el.value);
+    }
+    await loadAppSettings();
+    showToast('设置已保存');
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+  }
+}
+
+async function loadAppSettings() {
+  try {
+    const s = await window.api.getAllSettings();
+    const g = (k) => s[k] || SETTING_DEFAULTS[k];
+    APP_SETTINGS = {
+      inbound_rows: parseInt(g('inbound_rows')) || 5,
+      outbound_rows: parseInt(g('outbound_rows')) || 5,
+      purchase_rows: parseInt(g('purchase_rows')) || 10,
+      inbound_history: g('inbound_history'),
+      inbound_history_days: parseInt(g('inbound_history_days')) || 20,
+      outbound_history: g('outbound_history'),
+      outbound_history_days: parseInt(g('outbound_history_days')) || 20,
+      discount1_name: g('discount1_name'),
+      discount1_rate: g('discount1_rate'),
+      discount2_name: g('discount2_name'),
+      discount2_rate: g('discount2_rate'),
+      price_decimals: parseInt(g('price_decimals')) || 2,
+    };
+    ENTER_MODE = g('enter_mode');
+    // 同步到询价页内联折扣输入框
+    syncDiscountToInquiry();
+  } catch (err) {
+    console.error('Load app settings error:', err);
+  }
+}
+
+function syncDiscountToInquiry() {
+  const sxEl = document.getElementById('discount-shengxiao');
+  const yhEl = document.getElementById('discount-youhong');
+  if (sxEl) sxEl.value = APP_SETTINGS.discount1_rate;
+  if (yhEl) yhEl.value = APP_SETTINGS.discount2_rate;
+  // 更新表头折扣名称
+  const h1 = document.getElementById('header-discount1');
+  const h2 = document.getElementById('header-discount2');
+  if (h1) h1.textContent = APP_SETTINGS.discount1_name + '价';
+  if (h2) h2.textContent = APP_SETTINGS.discount2_name + '价';
 }

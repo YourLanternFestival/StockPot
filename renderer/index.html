@@ -55,6 +55,10 @@
           <span class="nav-icon">📥</span>
           <span class="nav-text">数据导入</span>
         </li>
+        <li class="nav-item" data-page="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">设置</span>
+        </li>
       </ul>
     </nav>
 
@@ -491,8 +495,8 @@
                   <th style="width:120px;">分类</th>
                   <th style="width:200px;">品名</th>
                   <th style="width:80px;">评估价</th>
-                  <th style="width:80px;">盛销价</th>
-                  <th style="width:80px;">优宏价</th>
+                  <th style="width:80px;" id="header-discount1">盛销价</th>
+                  <th style="width:80px;" id="header-discount2">优宏价</th>
                   <th style="width:60px;">单位</th>
                   <th style="width:100px;">规格</th>
                   <th style="width:80px;">涨跌</th>
@@ -570,6 +574,102 @@
               <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="clearAndReimport()">🗑 清空所有数据</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <h2>⚙️ 设置</h2>
+        </div>
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-header"><h3>📋 录入表格</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="form-group">
+                <label>入库添加行数</label>
+                <input type="number" class="form-control" id="setting-inbound-rows" min="1" max="50" value="5">
+              </div>
+              <div class="form-group">
+                <label>出库添加行数</label>
+                <input type="number" class="form-control" id="setting-outbound-rows" min="1" max="50" value="5">
+              </div>
+              <div class="form-group">
+                <label>采购单添加行数</label>
+                <input type="number" class="form-control" id="setting-purchase-rows" min="1" max="50" value="10">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>📊 历史记录</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="form-group">
+                <label>入库页面展示历史</label>
+                <select class="form-control" id="setting-inbound-history">
+                  <option value="on">开启</option>
+                  <option value="off">关闭</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>入库历史展示天数</label>
+                <input type="number" class="form-control" id="setting-inbound-history-days" min="1" max="365" value="20">
+              </div>
+              <div class="form-group">
+                <label>出库页面展示历史</label>
+                <select class="form-control" id="setting-outbound-history">
+                  <option value="on">开启</option>
+                  <option value="off">关闭</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>出库历史展示天数</label>
+                <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>💰 询价管理</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: repeat(2, 1fr);">
+              <div class="form-group">
+                <label>折扣一名称</label>
+                <input type="text" class="form-control" id="setting-discount1-name" value="盛销">
+              </div>
+              <div class="form-group">
+                <label>折扣一折扣率</label>
+                <input type="text" class="form-control" id="setting-discount1-rate" value="0.9008">
+              </div>
+              <div class="form-group">
+                <label>折扣二名称</label>
+                <input type="text" class="form-control" id="setting-discount2-name" value="优宏">
+              </div>
+              <div class="form-group">
+                <label>折扣二折扣率</label>
+                <input type="text" class="form-control" id="setting-discount2-rate" value="0.9058">
+              </div>
+              <div class="form-group">
+                <label>单价小数位数</label>
+                <input type="number" class="form-control" id="setting-price-decimals" min="0" max="4" value="2">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>⌨️ 键盘导航</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+              <div class="form-group">
+                <label>回车键导航模式</label>
+                <select class="form-control" id="setting-enter-mode">
+                  <option value="next-row">跳到下一行同列</option>
+                  <option value="next-cell">跳到下一行首格</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:16px;">
+          <button class="btn btn-primary btn-lg" onclick="saveSettings()">💾 保存设置</button>
         </div>
       </div>
     </main>

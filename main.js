@@ -22,6 +22,7 @@ async function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  setupCloseHandler();
 }
 
 // ===== IPC Handlers =====
@@ -120,6 +121,42 @@ ipcMain.handle('dialog:saveFile', async (e, defaultName) => {
 });
 
 app.whenReady().then(createWindow);
+
+function setupCloseHandler() {
+  let forceQuit = false;
+
+  mainWindow.on('close', async (e) => {
+    if (forceQuit) return;
+    e.preventDefault();
+    try {
+      const hasUnsaved = await mainWindow.webContents.executeJavaScript('hasUnsavedData()');
+      if (hasUnsaved) {
+        const { response } = await dialog.showMessageBox(mainWindow, {
+          type: 'warning',
+          buttons: ['保存并退出', '直接退出', '取消'],
+          defaultId: 0,
+          cancelId: 2,
+          title: '未保存的数据',
+          message: '检测到有未保存的录入数据，是否保存后退出？',
+        });
+        if (response === 0) {
+          await mainWindow.webContents.executeJavaScript('submitCurrentPage()');
+          forceQuit = true;
+          mainWindow.close();
+        } else if (response === 1) {
+          forceQuit = true;
+          mainWindow.close();
+        }
+      } else {
+        forceQuit = true;
+        mainWindow.close();
+      }
+    } catch (err) {
+      forceQuit = true;
+      mainWindow.close();
+    }
+  });
+}
 
 app.on('window-all-closed', () => {
   app.quit();
