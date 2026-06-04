@@ -23,6 +23,8 @@ function navigateTo(page) {
     case 'products': loadProducts(); break;
     case 'purchase': initPurchasePage(); break;
     case 'inquiry': initInquiryPage(); break;
+    case 'inbound': initInboundPage(); break;
+    case 'outbound': initOutboundPage(); break;
   }
 }
 
@@ -414,74 +416,216 @@ function populateProductSelect(selectId) {
     PRODUCTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
-// ===== Inbound Form =====
-document.getElementById('in-product').addEventListener('change', async function() {
-  const p = PRODUCTS.find(x => x.id === parseInt(this.value));
-  if (p) {
-    document.getElementById('in-spec').value = p.spec;
-    document.getElementById('in-unit').value = p.unit;
-    // Show case hint
-    const hint = document.getElementById('in-case-hint');
-    if (hint) {
-      const match = p.spec.match(/(\d+)[^/]*\/箱/);
-      hint.textContent = match ? `1箱 = ${match[1]}${p.unit}` : '';
-    }
-    calcInExpiry();
-  } else {
-    document.getElementById('in-spec').value = '';
-    document.getElementById('in-unit').value = '';
-    const hint = document.getElementById('in-case-hint');
-    if (hint) hint.textContent = '';
+// ===== Inbound Table =====
+let inboundInitialized = false;
+
+function initInboundPage() {
+  const tbody = document.getElementById('inbound-tbody');
+  if (!inboundInitialized) {
+    addInboundRows(5);
+    inboundInitialized = true;
   }
-});
-
-document.getElementById('in-prod-date').addEventListener('change', calcInExpiry);
-
-function calcInExpiry() {
-  const prodDate = document.getElementById('in-prod-date').value;
-  const productId = parseInt(document.getElementById('in-product').value);
-  if (!prodDate || !productId) return;
-  const p = PRODUCTS.find(x => x.id === productId);
-  if (!p || !p.shelf_days) return;
-  const d = new Date(prodDate);
-  d.setDate(d.getDate() + p.shelf_days);
-  document.getElementById('in-expiry').value = toLocalDateStr(d);
-}
-
-async function submitInbound() {
-  const productId = parseInt(document.getElementById('in-product').value);
-  const qty = parseFloat(document.getElementById('in-qty').value);
-  const date = document.getElementById('in-date').value;
-
-  if (!productId || !qty || !date) {
-    showToast('请填写必填项', 'error');
-    return;
-  }
-
-  await window.api.addInbound({
-    product_id: productId,
-    date,
-    quantity: qty,
-    remark: document.getElementById('in-remark').value.trim(),
-    production_date: document.getElementById('in-prod-date').value || null,
-    expiry_date: document.getElementById('in-expiry').value || null,
-  });
-
-  showToast('入库登记成功！');
-  resetInboundForm();
   loadRecentInbound();
 }
 
-function resetInboundForm() {
-  document.getElementById('in-product').value = '';
-  document.getElementById('in-spec').value = '';
-  document.getElementById('in-qty').value = '';
-  document.getElementById('in-unit').value = '';
-  document.getElementById('in-prod-date').value = '';
-  document.getElementById('in-expiry').value = '';
-  document.getElementById('in-remark').value = '';
-  const hint = document.getElementById('in-case-hint');
-  if (hint) hint.textContent = '';
+function addInboundRows(count = 5) {
+  const tbody = document.getElementById('inbound-tbody');
+  const existingRows = tbody.querySelectorAll('tr').length;
+  const today = todayStr();
+
+  for (let i = 0; i < count; i++) {
+    const rowNum = existingRows + i + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="row-num">${rowNum}</td>
+      <td style="position:relative;">
+        <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <div class="autocomplete-dropdown" style="display:none;"></div>
+      </td>
+      <td><input type="text" class="cell-input" value="" data-field="spec" readonly></td>
+      <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
+      <td><input type="text" class="cell-input" value="" data-field="unit" readonly></td>
+      <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
+      <td><input type="date" class="cell-input cell-editable" value="" data-field="production_date"></td>
+      <td><input type="date" class="cell-input" value="" data-field="expiry_date" readonly></td>
+      <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="可选"></td>
+      <td><button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="removeInboundRow(this)">×</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    // Bind events
+    bindInboundRowEvents(tr);
+  }
+}
+
+function removeInboundRow(btn) {
+  const tr = btn.closest('tr');
+  tr.remove();
+  renumberRows('inbound-tbody');
+}
+
+function renumberRows(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.querySelectorAll('tr').forEach((tr, idx) => {
+    tr.querySelector('.row-num').textContent = idx + 1;
+  });
+}
+
+function bindInboundRowEvents(tr) {
+  const inputs = tr.querySelectorAll('.cell-input.cell-editable');
+
+  inputs.forEach(input => {
+    // Keyboard navigation
+    input.addEventListener('keydown', (e) => {
+      handleCellKeydown(e, input, document.getElementById('inbound-tbody'));
+    });
+
+    // Product name autocomplete
+    if (input.dataset.field === 'product_name') {
+      input.addEventListener('input', (e) => {
+        handleInboundProductAutocomplete(e.target);
+      });
+      input.addEventListener('focus', (e) => {
+        handleInboundProductAutocomplete(e.target);
+      });
+      input.addEventListener('blur', () => {
+        setTimeout(() => hideAutocomplete(), 200);
+      });
+    }
+
+    // Production date change -> auto calc expiry
+    if (input.dataset.field === 'production_date') {
+      input.addEventListener('change', () => {
+        calcRowExpiry(tr);
+      });
+    }
+  });
+}
+
+function handleInboundProductAutocomplete(input) {
+  const keyword = input.value.trim();
+  if (keyword.length < 1) {
+    hideAutocomplete();
+    return;
+  }
+
+  const td = input.closest('td');
+  const dropdown = td.querySelector('.autocomplete-dropdown');
+  if (!dropdown) return;
+
+  const results = PRODUCTS.filter(p =>
+    p.name.toLowerCase().includes(keyword.toLowerCase())
+  );
+
+  if (results.length === 0) {
+    hideAutocomplete();
+    return;
+  }
+
+  dropdown.innerHTML = results.map((item, idx) => `
+    <div class="autocomplete-item" data-index="${idx}" data-id="${item.id}" data-name="${item.name}" data-spec="${item.spec || ''}" data-unit="${item.unit || ''}" data-shelf-days="${item.shelf_days || 0}">
+      <span class="item-name">${item.name}</span>
+      <span class="item-spec">${item.spec || ''} | ${item.unit || ''}</span>
+    </div>
+  `).join('');
+
+  dropdown.style.display = 'block';
+  autocompleteIndex = -1;
+
+  dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      selectInboundProduct(input, item);
+    });
+  });
+
+  input.onkeydown = (e) => {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+      updateAutocompleteHighlight(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+      updateAutocompleteHighlight(items);
+    } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+      e.preventDefault();
+      selectInboundProduct(input, items[autocompleteIndex]);
+    } else if (e.key === 'Escape') {
+      hideAutocomplete();
+    }
+  };
+}
+
+function selectInboundProduct(input, item) {
+  const tr = input.closest('tr');
+  tr.querySelector('[data-field="product_name"]').value = item.dataset.name;
+  tr.querySelector('[data-field="spec"]').value = item.dataset.spec;
+  tr.querySelector('[data-field="unit"]').value = item.dataset.unit;
+  tr.dataset.productId = item.dataset.id;
+  tr.dataset.shelfDays = item.dataset.shelfDays;
+  hideAutocomplete();
+  calcRowExpiry(tr);
+
+  // Move focus to quantity
+  const qtyInput = tr.querySelector('[data-field="quantity"]');
+  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+}
+
+function calcRowExpiry(tr) {
+  const prodDate = tr.querySelector('[data-field="production_date"]').value;
+  const shelfDays = parseInt(tr.dataset.shelfDays) || 0;
+  const expiryInput = tr.querySelector('[data-field="expiry_date"]');
+  if (prodDate && shelfDays > 0) {
+    const d = new Date(prodDate);
+    d.setDate(d.getDate() + shelfDays);
+    expiryInput.value = toLocalDateStr(d);
+  } else {
+    expiryInput.value = '';
+  }
+}
+
+async function submitInboundBatch() {
+  const tbody = document.getElementById('inbound-tbody');
+  const rows = tbody.querySelectorAll('tr');
+  const records = [];
+
+  for (const tr of rows) {
+    const name = tr.querySelector('[data-field="product_name"]').value.trim();
+    const qty = parseFloat(tr.querySelector('[data-field="quantity"]').value);
+    const date = tr.querySelector('[data-field="date"]').value;
+    if (!name || !qty || !date) continue;
+
+    const product = PRODUCTS.find(p => p.name === name);
+    if (!product) {
+      showToast(`产品 "${name}" 不存在`, 'error');
+      return;
+    }
+
+    records.push({
+      product_id: product.id,
+      date,
+      quantity: qty,
+      remark: tr.querySelector('[data-field="remark"]').value.trim(),
+      production_date: tr.querySelector('[data-field="production_date"]').value || null,
+      expiry_date: tr.querySelector('[data-field="expiry_date"]').value || null,
+    });
+  }
+
+  if (records.length === 0) {
+    showToast('没有有效的入库记录', 'error');
+    return;
+  }
+
+  for (const r of records) {
+    await window.api.addInbound(r);
+  }
+
+  showToast(`成功入库 ${records.length} 条记录`);
+  tbody.innerHTML = '';
+  inboundInitialized = false;
+  initInboundPage();
 }
 
 async function loadRecentInbound() {
@@ -547,55 +691,195 @@ async function doDeleteInbound(id) {
   loadRecentInbound();
 }
 
-// ===== Outbound Form =====
-document.getElementById('out-product').addEventListener('change', async function() {
-  const p = PRODUCTS.find(x => x.id === parseInt(this.value));
-  if (p) {
-    document.getElementById('out-spec').value = p.spec;
-    const inv = (await window.api.getInventory()).find(x => x.id === p.id);
-    document.getElementById('out-stock').value = (inv ? inv.stock : 0) + ' ' + p.unit;
-  } else {
-    document.getElementById('out-spec').value = '';
-    document.getElementById('out-stock').value = '';
+// ===== Outbound Table =====
+let outboundInitialized = false;
+
+function initOutboundPage() {
+  const tbody = document.getElementById('outbound-tbody');
+  if (!outboundInitialized) {
+    addOutboundRows(5);
+    outboundInitialized = true;
   }
-});
-
-async function submitOutbound() {
-  const productId = parseInt(document.getElementById('out-product').value);
-  const qty = parseFloat(document.getElementById('out-qty').value);
-  const date = document.getElementById('out-date').value;
-  const recipient = document.getElementById('out-recipient').value;
-
-  if (!productId || !qty || !date || !recipient) {
-    showToast('请填写必填项', 'error');
-    return;
-  }
-
-  // Check stock
-  const inv = (await window.api.getInventory()).find(x => x.id === productId);
-  if (inv && qty > inv.stock) {
-    showToast(`库存不足！当前库存: ${inv.stock}`, 'error');
-    return;
-  }
-
-  await window.api.addOutbound({
-    product_id: productId,
-    date,
-    quantity: qty,
-    recipient,
-  });
-
-  showToast('出库登记成功！');
-  resetOutboundForm();
   loadRecentOutbound();
 }
 
-function resetOutboundForm() {
-  document.getElementById('out-product').value = '';
-  document.getElementById('out-spec').value = '';
-  document.getElementById('out-qty').value = '';
-  document.getElementById('out-stock').value = '';
-  document.getElementById('out-recipient').value = '';
+function addOutboundRows(count = 5) {
+  const tbody = document.getElementById('outbound-tbody');
+  const existingRows = tbody.querySelectorAll('tr').length;
+  const today = todayStr();
+
+  for (let i = 0; i < count; i++) {
+    const rowNum = existingRows + i + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="row-num">${rowNum}</td>
+      <td style="position:relative;">
+        <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <div class="autocomplete-dropdown" style="display:none;"></div>
+      </td>
+      <td><input type="text" class="cell-input" value="" data-field="spec" readonly></td>
+      <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
+      <td><input type="text" class="cell-input" value="" data-field="unit" readonly></td>
+      <td><input type="text" class="cell-input" value="" data-field="stock" readonly></td>
+      <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
+      <td>
+        <select class="cell-input cell-editable" data-field="recipient">
+          <option value="">选择...</option>
+          ${RECIPIENTS.map(r => `<option value="${r.name}">${r.name}</option>`).join('')}
+        </select>
+      </td>
+      <td><button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="removeOutboundRow(this)">×</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    bindOutboundRowEvents(tr);
+  }
+}
+
+function removeOutboundRow(btn) {
+  const tr = btn.closest('tr');
+  tr.remove();
+  renumberRows('outbound-tbody');
+}
+
+function bindOutboundRowEvents(tr) {
+  const inputs = tr.querySelectorAll('.cell-input.cell-editable');
+
+  inputs.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      handleCellKeydown(e, input, document.getElementById('outbound-tbody'));
+    });
+
+    if (input.dataset.field === 'product_name') {
+      input.addEventListener('input', (e) => {
+        handleOutboundProductAutocomplete(e.target);
+      });
+      input.addEventListener('focus', (e) => {
+        handleOutboundProductAutocomplete(e.target);
+      });
+      input.addEventListener('blur', () => {
+        setTimeout(() => hideAutocomplete(), 200);
+      });
+    }
+  });
+}
+
+async function handleOutboundProductAutocomplete(input) {
+  const keyword = input.value.trim();
+  if (keyword.length < 1) {
+    hideAutocomplete();
+    return;
+  }
+
+  const td = input.closest('td');
+  const dropdown = td.querySelector('.autocomplete-dropdown');
+  if (!dropdown) return;
+
+  const inventory = await window.api.getInventory();
+  const results = inventory.filter(p =>
+    p.name.toLowerCase().includes(keyword.toLowerCase()) && p.stock > 0
+  );
+
+  if (results.length === 0) {
+    hideAutocomplete();
+    return;
+  }
+
+  dropdown.innerHTML = results.map((item, idx) => `
+    <div class="autocomplete-item" data-index="${idx}" data-id="${item.id}" data-name="${item.name}" data-spec="${item.spec || ''}" data-unit="${item.unit || ''}" data-stock="${item.stock}">
+      <span class="item-name">${item.name}</span>
+      <span class="item-spec">${item.spec || ''} | 库存: ${item.stock} ${item.unit || ''}</span>
+    </div>
+  `).join('');
+
+  dropdown.style.display = 'block';
+  autocompleteIndex = -1;
+
+  dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      selectOutboundProduct(input, item);
+    });
+  });
+
+  input.onkeydown = (e) => {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+      updateAutocompleteHighlight(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+      updateAutocompleteHighlight(items);
+    } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+      e.preventDefault();
+      selectOutboundProduct(input, items[autocompleteIndex]);
+    } else if (e.key === 'Escape') {
+      hideAutocomplete();
+    }
+  };
+}
+
+function selectOutboundProduct(input, item) {
+  const tr = input.closest('tr');
+  tr.querySelector('[data-field="product_name"]').value = item.dataset.name;
+  tr.querySelector('[data-field="spec"]').value = item.dataset.spec;
+  tr.querySelector('[data-field="unit"]').value = item.dataset.unit;
+  tr.querySelector('[data-field="stock"]').value = item.dataset.stock;
+  tr.dataset.productId = item.dataset.id;
+  hideAutocomplete();
+
+  const qtyInput = tr.querySelector('[data-field="quantity"]');
+  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+}
+
+async function submitOutboundBatch() {
+  const tbody = document.getElementById('outbound-tbody');
+  const rows = tbody.querySelectorAll('tr');
+  const records = [];
+  const inventory = await window.api.getInventory();
+
+  for (const tr of rows) {
+    const name = tr.querySelector('[data-field="product_name"]').value.trim();
+    const qty = parseFloat(tr.querySelector('[data-field="quantity"]').value);
+    const date = tr.querySelector('[data-field="date"]').value;
+    const recipient = tr.querySelector('[data-field="recipient"]').value;
+    if (!name || !qty || !date || !recipient) continue;
+
+    const product = PRODUCTS.find(p => p.name === name);
+    if (!product) {
+      showToast(`产品 "${name}" 不存在`, 'error');
+      return;
+    }
+
+    const inv = inventory.find(x => x.id === product.id);
+    if (inv && qty > inv.stock) {
+      showToast(`${name} 库存不足！当前库存: ${inv.stock}`, 'error');
+      return;
+    }
+
+    records.push({
+      product_id: product.id,
+      date,
+      quantity: qty,
+      recipient,
+    });
+  }
+
+  if (records.length === 0) {
+    showToast('没有有效的出库记录', 'error');
+    return;
+  }
+
+  for (const r of records) {
+    await window.api.addOutbound(r);
+  }
+
+  showToast(`成功出库 ${records.length} 条记录`);
+  tbody.innerHTML = '';
+  outboundInitialized = false;
+  initOutboundPage();
 }
 
 async function loadRecentOutbound() {
@@ -669,20 +953,25 @@ async function doAddRecipient() {
   const name = document.getElementById('new-recipient-name').value.trim();
   if (!name) return;
   await window.api.addRecipient(name);
-  const sel = document.getElementById('out-recipient');
-  const opt = document.createElement('option');
-  opt.value = name; opt.textContent = name;
-  sel.appendChild(opt); sel.value = name;
+  await refreshRecipientSelects();
   closeModal();
   showToast(`已添加: ${name}`);
+}
+
+async function refreshRecipientSelects() {
+  RECIPIENTS = await window.api.getRecipients();
+  // Refresh all recipient selects in outbound table
+  document.querySelectorAll('#outbound-tbody select[data-field="recipient"]').forEach(sel => {
+    const val = sel.value;
+    sel.innerHTML = '<option value="">选择...</option>' +
+      RECIPIENTS.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+    sel.value = val;
+  });
 }
 
 async function loadRecipientSelect() {
   try {
     RECIPIENTS = await window.api.getRecipients();
-    const sel = document.getElementById('out-recipient');
-    sel.innerHTML = '<option value="">请选择...</option>' +
-      RECIPIENTS.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
   } catch (err) {
     console.error('Load recipients error:', err);
   }
@@ -944,6 +1233,8 @@ async function startImport() {
 
     // Refresh data
     await refreshProductSelects();
+    await loadRecentInbound();
+    await loadRecentOutbound();
   } catch (err) {
     showToast('导入失败: ' + err.message, 'error');
   }

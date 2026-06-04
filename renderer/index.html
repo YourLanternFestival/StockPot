@@ -158,49 +158,34 @@
       <div class="page" id="page-inbound">
         <div class="page-header">
           <h2>入库登记</h2>
-        </div>
-        <div class="form-card">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>材料名称 <span class="required">*</span></label>
-              <select id="in-product" class="form-control">
-                <option value="">请选择材料...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>规格</label>
-              <input type="text" id="in-spec" class="form-control" readonly>
-              <small id="in-case-hint" style="color:var(--primary);font-size:12px;"></small>
-            </div>
-            <div class="form-group">
-              <label>数量 <span class="required">*</span></label>
-              <input type="number" id="in-qty" class="form-control" min="1" placeholder="请输入数量">
-              <small style="color:var(--text-muted);font-size:12px;">按最小单位填写（瓶/包/桶等）</small>
-            </div>
-            <div class="form-group">
-              <label>单位</label>
-              <input type="text" id="in-unit" class="form-control" readonly>
-            </div>
-            <div class="form-group">
-              <label>入库日期 <span class="required">*</span></label>
-              <input type="date" id="in-date" class="form-control">
-            </div>
-            <div class="form-group">
-              <label>生产日期</label>
-              <input type="date" id="in-prod-date" class="form-control">
-            </div>
-            <div class="form-group">
-              <label>到期日（自动推算）</label>
-              <input type="date" id="in-expiry" class="form-control" readonly>
-            </div>
-            <div class="form-group">
-              <label>备注</label>
-              <input type="text" id="in-remark" class="form-control" placeholder="可选">
-            </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="submitInboundBatch()">✓ 批量提交</button>
           </div>
-          <div class="form-actions">
-            <button class="btn btn-primary btn-lg" onclick="submitInbound()">✓ 确认入库</button>
-            <button class="btn btn-lg" onclick="resetInboundForm()">清空</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>入库录入</h3>
+            <button class="btn btn-sm" onclick="addInboundRows()">+ 添加行</button>
+          </div>
+          <div class="purchase-table-wrapper">
+            <table class="table table-purchase" id="inbound-table">
+              <thead>
+                <tr>
+                  <th style="width:40px;">#</th>
+                  <th style="width:140px;">材料名称 <span class="required">*</span></th>
+                  <th style="width:80px;">规格</th>
+                  <th style="width:80px;">数量 <span class="required">*</span></th>
+                  <th style="width:60px;">单位</th>
+                  <th style="width:130px;">入库日期 <span class="required">*</span></th>
+                  <th style="width:130px;">生产日期</th>
+                  <th style="width:130px;">到期日</th>
+                  <th style="width:120px;">备注</th>
+                  <th style="width:60px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="inbound-tbody">
+              </tbody>
+            </table>
           </div>
         </div>
         <div class="card" style="margin-top: 20px;">
@@ -212,9 +197,6 @@
               <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>生产日期</th><th>到期日</th><th>操作</th></tr>
             </thead>
             <tbody id="recent-inbound">
-              <tr><td>2026-06-02</td><td>鲁花压榨特香玉米胚芽油</td><td>20</td><td>桶</td><td>2026-05-15</td><td>2026-11-11</td></tr>
-              <tr><td>2026-06-01</td><td>太太乐味精</td><td>25</td><td>包</td><td>2026-04-20</td><td>2026-10-17</td></tr>
-              <tr><td>2026-05-30</td><td>秋然香米10千克/袋</td><td>20</td><td>袋</td><td>2026-05-10</td><td>2027-05-06</td></tr>
             </tbody>
           </table>
         </div>
@@ -224,49 +206,33 @@
       <div class="page" id="page-outbound">
         <div class="page-header">
           <h2>出库登记</h2>
-        </div>
-        <div class="form-card">
-          <div class="form-grid">
-            <div class="form-group">
-              <label>材料名称 <span class="required">*</span></label>
-              <select id="out-product" class="form-control">
-                <option value="">请选择材料...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>规格</label>
-              <input type="text" id="out-spec" class="form-control" readonly>
-            </div>
-            <div class="form-group">
-              <label>数量 <span class="required">*</span></label>
-              <input type="number" id="out-qty" class="form-control" min="1" placeholder="请输入数量">
-            </div>
-            <div class="form-group">
-              <label>当前库存</label>
-              <input type="text" id="out-stock" class="form-control" readonly>
-            </div>
-            <div class="form-group">
-              <label>出库日期 <span class="required">*</span></label>
-              <input type="date" id="out-date" class="form-control">
-            </div>
-            <div class="form-group">
-              <label>领取人 <span class="required">*</span></label>
-              <div class="input-with-btn">
-                <select id="out-recipient" class="form-control">
-                  <option value="">请选择...</option>
-                  <option value="厨房">厨房</option>
-                  <option value="小食堂">小食堂</option>
-                  <option value="面点房">面点房</option>
-                  <option value="烧饭">烧饭</option>
-                  <option value="明档">明档</option>
-                </select>
-                <button class="btn btn-sm" onclick="addRecipient()">+ 新增</button>
-              </div>
-            </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" onclick="submitOutboundBatch()">✓ 批量提交</button>
           </div>
-          <div class="form-actions">
-            <button class="btn btn-primary btn-lg" onclick="submitOutbound()">✓ 确认出库</button>
-            <button class="btn btn-lg" onclick="resetOutboundForm()">清空</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>出库录入</h3>
+            <button class="btn btn-sm" onclick="addOutboundRows()">+ 添加行</button>
+          </div>
+          <div class="purchase-table-wrapper">
+            <table class="table table-purchase" id="outbound-table">
+              <thead>
+                <tr>
+                  <th style="width:40px;">#</th>
+                  <th style="width:140px;">材料名称 <span class="required">*</span></th>
+                  <th style="width:80px;">规格</th>
+                  <th style="width:80px;">数量 <span class="required">*</span></th>
+                  <th style="width:60px;">单位</th>
+                  <th style="width:60px;">库存</th>
+                  <th style="width:130px;">出库日期 <span class="required">*</span></th>
+                  <th style="width:100px;">领取人 <span class="required">*</span></th>
+                  <th style="width:60px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="outbound-tbody">
+              </tbody>
+            </table>
           </div>
         </div>
         <div class="card" style="margin-top: 20px;">
@@ -278,9 +244,6 @@
               <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>领取人</th><th>操作</th></tr>
             </thead>
             <tbody id="recent-outbound">
-              <tr><td>2026-06-02</td><td>鲁花压榨特香玉米胚芽油</td><td>3</td><td>桶</td><td>厨房</td></tr>
-              <tr><td>2026-06-02</td><td>太太乐味精</td><td>2</td><td>包</td><td>小食堂</td></tr>
-              <tr><td>2026-06-01</td><td>秋然香米10千克/袋</td><td>2</td><td>袋</td><td>烧饭</td></tr>
             </tbody>
           </table>
         </div>
