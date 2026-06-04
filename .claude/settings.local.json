@@ -28,7 +28,8 @@
       "Read(//c/Users/98085/**)",
       "Bash(/c/Program Files/Git/bin/git.exe *)",
       "Bash(curl -s -X POST https://gitee.com/api/v5/user/repos -H 'Content-Type: application/json' -d '{ *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(git commit -m 'fix: 修复 Excel 日期导入因 UTC 时区偏移导致日期回退一天的问题 *)"
     ]
   }
 }

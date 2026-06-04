@@ -2,6 +2,7 @@ const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
+const { toLocalDateStr } = require('./date-util');
 
 let db;
 let dbPath;
@@ -365,10 +366,10 @@ function getInventoryByMonth(year, month) {
 
 // ===== Alerts =====
 function getExpiryAlerts(daysAhead = 60) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + daysAhead);
-  const future = futureDate.toISOString().split('T')[0];
+  const future = toLocalDateStr(futureDate);
 
   // Only alert for products with current stock > 0
   return queryAll(`
@@ -464,7 +465,7 @@ function getDashboardStats() {
   for (let i = 29; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(d);
     const dayLabel = `${d.getMonth() + 1}/${d.getDate()}`;
     const inQty = queryOne("SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE date = ?", [dateStr]).v;
     const outQty = queryOne("SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE date = ?", [dateStr]).v;

@@ -68,16 +68,24 @@ function daysBetween(date1, date2) {
   return Math.ceil((d2 - d1) / 86400000);
 }
 
-function todayStr() {
-  return new Date().toISOString().split('T')[0];
+// 本地日期格式化（避免 toISOString 的 UTC 时区偏移导致日期回退一天）
+function toLocalDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-// Excel serial number to YYYY-MM-DD
+function todayStr() {
+  return toLocalDateStr(new Date());
+}
+
+// Excel serial number to YYYY-MM-DD (UTC，与时区无关)
 function excelSerialToDate(serial) {
   if (!serial || typeof serial !== 'number') return null;
-  const epoch = new Date(1899, 11, 30);
-  const d = new Date(epoch.getTime() + serial * 86400000);
-  return d.toISOString().split('T')[0];
+  const epochUtc = Date.UTC(1899, 11, 30);
+  const utcTime = epochUtc + serial * 86400000;
+  return new Date(utcTime).toISOString().split('T')[0];
 }
 
 // ===== Dashboard =====
@@ -437,7 +445,7 @@ function calcInExpiry() {
   if (!p || !p.shelf_days) return;
   const d = new Date(prodDate);
   d.setDate(d.getDate() + p.shelf_days);
-  document.getElementById('in-expiry').value = d.toISOString().split('T')[0];
+  document.getElementById('in-expiry').value = toLocalDateStr(d);
 }
 
 async function submitInbound() {
@@ -1061,7 +1069,7 @@ async function initPurchasePage() {
 function getTomorrowStr() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0];
+  return toLocalDateStr(d);
 }
 
 // Toggle group expand/collapse
