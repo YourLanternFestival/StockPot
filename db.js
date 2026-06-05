@@ -658,6 +658,11 @@ function getLatestCategoryForName(name) {
   return row ? row.category : null;
 }
 
+function deleteInquiryItem(id) {
+  run('DELETE FROM inquiry_items WHERE id = ?', [id]);
+  save();
+}
+
 // ===== Settings =====
 function getSetting(key) {
   const row = queryOne('SELECT value FROM settings WHERE key = ?', [key]);
@@ -771,7 +776,7 @@ module.exports = {
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
   // Inquiry Items
-  getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName,
+  getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName, deleteInquiryItem,
   // Settings
   getSetting, setSetting, getAllSettings,
   // Lianhua

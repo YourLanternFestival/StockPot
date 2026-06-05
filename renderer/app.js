@@ -1765,7 +1765,7 @@ function appendPurchaseRowWithData(tbody, item, idx) {
     <td><input type="text" class="cell-input cell-readonly" value="${item.unit || ''}" data-field="unit" readonly tabindex="-1"></td>
     <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(1) : ''}</td>
     <td><input type="text" class="cell-input cell-editable" value="${item.remark || ''}" data-field="remark" placeholder="备注"></td>
-    <td><button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
   `;
 
   tbody.appendChild(tr);
@@ -1950,11 +1950,45 @@ function appendPurchaseRow(tbody, idx) {
     <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
     <td class="amount-cell cell-readonly"></td>
     <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
-    <td><button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
   `;
 
   tbody.appendChild(tr);
   attachCellEvents(tr, tbody);
+}
+
+function copyPurchaseRow(btn) {
+  const tr = btn.closest('tr');
+  const tbody = tr.closest('tbody');
+  const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+
+  // 在当前行之后插入新行
+  const newTr = document.createElement('tr');
+  newTr.innerHTML = `
+    <td>0</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="${getData('product_name')}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input cell-readonly" value="${getData('spec')}" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${getData('unit_price')}" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="${getData('quantity')}" data-field="quantity" placeholder="数量"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${getData('unit')}" data-field="unit" readonly tabindex="-1"></td>
+    <td class="amount-cell cell-readonly">${tr.querySelector('.amount-cell')?.textContent || ''}</td>
+    <td><input type="text" class="cell-input cell-editable" value="${getData('remark')}" data-field="remark" placeholder="备注"></td>
+    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+  `;
+  tr.after(newTr);
+
+  // 绑定事件
+  const parentGroup = tbody.closest('.purchase-group');
+  const src = parentGroup ? parentGroup.dataset.source : '';
+  if (src.includes('联华')) {
+    attachLianhuaCellEvents(newTr, tbody);
+  } else {
+    attachCellEvents(newTr, tbody);
+  }
+  reindexPurchaseRows(tbody);
 }
 
 function deletePurchaseRow(btn) {
@@ -2709,7 +2743,7 @@ function appendLianhuaRow(tbody, idx) {
     <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
     <td class="amount-cell cell-readonly"></td>
     <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
-    <td><button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
   `;
   tbody.appendChild(tr);
   attachLianhuaCellEvents(tr, tbody);
@@ -3114,7 +3148,7 @@ function renderInquiryTable(items) {
   document.getElementById('inquiry-count').textContent = `${items.length} 条`;
 
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted);">暂无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted);">暂无数据</td></tr>';
     return;
   }
 
@@ -3158,12 +3192,53 @@ function renderInquiryTable(items) {
         <td id="${imageCellId}" class="image-cell">
           <button class="btn btn-sm btn-image-add" onclick="addInquiryImage(this, '${item.name.replace(/'/g, "\\'")}', '${(item.spec || '').replace(/'/g, "\\'")}')" title="添加图片">📷</button>
         </td>
+        <td>
+          <button class="btn btn-sm" onclick='copyInquiryItem(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="复制">📋</button>
+          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInquiryItem(${item.id})" title="删除">✕</button>
+        </td>
       </tr>
     `;
   }).join('');
 
   // Load images asynchronously
   loadInquiryImages(items);
+}
+
+function copyInquiryItem(item) {
+  const month = document.getElementById('inquiry-month').value;
+  if (!month) { showToast('请先选择月份', 'error'); return; }
+  showAddInquiryItem();
+  // 预填充数据
+  setTimeout(() => {
+    const nameEl = document.getElementById('new-inquiry-name');
+    const catEl = document.getElementById('new-inquiry-category');
+    const unitEl = document.getElementById('new-inquiry-unit');
+    const specEl = document.getElementById('new-inquiry-spec');
+    const priceEl = document.getElementById('new-inquiry-price');
+    if (nameEl) nameEl.value = item.name;
+    if (catEl) catEl.value = item.category;
+    if (unitEl) unitEl.value = item.unit || '';
+    if (specEl) specEl.value = item.spec || '';
+    if (priceEl && item.price) priceEl.value = item.price;
+  }, 50);
+}
+
+function deleteInquiryItem(id) {
+  openModal('确认删除', '<p>确定要删除这条询价记录吗？</p>', `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doDeleteInquiryItem(${id})">确认删除</button>
+  `);
+}
+
+async function doDeleteInquiryItem(id) {
+  try {
+    await window.api.deleteInquiryItem(id);
+    closeModal();
+    showToast('已删除');
+    await loadInquiryItems();
+  } catch (err) {
+    showToast('删除失败: ' + err.message, 'error');
+  }
 }
 
 async function loadInquiryImages(items) {
@@ -3350,7 +3425,7 @@ async function startImportInquiry() {
 }
 
 // Show add inquiry item dialog
-function showAddInquiryItem() {
+async function showAddInquiryItem() {
   const month = document.getElementById('inquiry-month').value;
   if (!month) {
     showToast('请先选择月份', 'error');
@@ -3375,9 +3450,10 @@ function showAddInquiryItem() {
           <option value="干货调料及腌制品类">干货调料及腌制品类</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="position:relative;">
         <label>品名 <span class="required">*</span></label>
-        <input type="text" class="form-control" id="new-inquiry-name" placeholder="请输入品名">
+        <input type="text" class="form-control" id="new-inquiry-name" placeholder="输入检索或手动输入" autocomplete="off">
+        <div class="autocomplete-dropdown" id="new-inquiry-name-dropdown" style="display:none;"></div>
       </div>
       <div class="form-group">
         <label>评估价格</label>
@@ -3401,22 +3477,59 @@ function showAddInquiryItem() {
     <button class="btn btn-primary" onclick="doAddInquiryItem('${month}')">保存</button>
   `);
 
-  // 品名失焦时自动识别分类（用户手动改过分类后不覆盖）
+  // 品名自动补全 + 分类/单位/规格联动
   const nameInput = document.getElementById('new-inquiry-name');
+  const dropdown = document.getElementById('new-inquiry-name-dropdown');
   const catSelect = document.getElementById('new-inquiry-category');
   let categoryManuallyChanged = false;
   if (catSelect) {
     catSelect.addEventListener('change', () => { categoryManuallyChanged = true; });
   }
-  if (nameInput) {
-    nameInput.addEventListener('blur', async () => {
+
+  // 确保 PRODUCTS 已加载
+  if (PRODUCTS.length === 0) {
+    try { PRODUCTS = await window.api.getProducts(); } catch (e) { /* ignore */ }
+  }
+
+  if (nameInput && dropdown) {
+    nameInput.addEventListener('input', () => {
+      const keyword = nameInput.value.trim();
+      if (keyword.length < 1) { dropdown.style.display = 'none'; return; }
+      const results = PRODUCTS.filter(p => p.name.toLowerCase().includes(keyword.toLowerCase()));
+      if (results.length === 0) { dropdown.style.display = 'none'; return; }
+      dropdown.innerHTML = results.map(item => `
+        <div class="autocomplete-item" data-name="${item.name}" data-spec="${item.spec || ''}" data-unit="${item.unit || ''}">
+          <span class="item-name">${item.name}</span>
+          <span class="item-spec">${item.spec || ''} | ${item.unit || ''}</span>
+        </div>
+      `).join('');
+      dropdown.style.display = 'block';
+      dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          nameInput.value = el.dataset.name;
+          document.getElementById('new-inquiry-unit').value = el.dataset.unit;
+          document.getElementById('new-inquiry-spec').value = el.dataset.spec;
+          dropdown.style.display = 'none';
+          // 自动识别分类
+          if (!categoryManuallyChanged) {
+            window.api.getLatestCategoryForName(el.dataset.name).then(category => {
+              if (category && catSelect) catSelect.value = category;
+            }).catch(() => {});
+          }
+        });
+      });
+    });
+
+    nameInput.addEventListener('blur', () => {
+      setTimeout(() => dropdown.style.display = 'none', 200);
+      // 手动输入时也尝试识别分类
       if (categoryManuallyChanged) return;
       const val = nameInput.value.trim();
       if (!val) return;
-      try {
-        const category = await window.api.getLatestCategoryForName(val);
+      window.api.getLatestCategoryForName(val).then(category => {
         if (category && catSelect) catSelect.value = category;
-      } catch (err) { /* ignore */ }
+      }).catch(() => {});
     });
   }
 }

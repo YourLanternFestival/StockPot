@@ -84,6 +84,7 @@ ipcMain.handle('inquiry:add', (e, data) => db.addInquiryItem(data));
 ipcMain.handle('inquiry:import', (e, { month, items }) => db.importInquiryItems(month, items));
 ipcMain.handle('inquiry:months', () => db.getInquiryMonths());
 ipcMain.handle('inquiry:latestCategory', (e, name) => db.getLatestCategoryForName(name));
+ipcMain.handle('inquiry:delete', (e, id) => db.deleteInquiryItem(id));
 
 // Lianhua Items
 ipcMain.handle('lianhua:items:get', () => db.getLianhuaItems());
