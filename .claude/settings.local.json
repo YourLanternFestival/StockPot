@@ -34,7 +34,8 @@
       "Bash(npm start *)",
       "Bash(git commit -m 'feat: 入库/出库登记改为 Excel 表格形式 + 修复导入刷新 *)",
       "Bash(git commit -m 'fix: 修复自动补全下拉菜单的键盘导航 *)",
-      "Bash(git commit -m 'refactor: 抽取自动补全键盘导航为公共函数复用 *)"
+      "Bash(git commit -m 'refactor: 抽取自动补全键盘导航为公共函数复用 *)",
+      "Bash(git commit -m 'refactor: 库存管理重构 + SQL扇出修复 + 导航栏整合 *)"
     ]
   }
 }

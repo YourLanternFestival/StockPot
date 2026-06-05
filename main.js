@@ -83,6 +83,7 @@ ipcMain.handle('inquiry:search', (e, { keyword, month }) => db.searchInquiryItem
 ipcMain.handle('inquiry:add', (e, data) => db.addInquiryItem(data));
 ipcMain.handle('inquiry:import', (e, { month, items }) => db.importInquiryItems(month, items));
 ipcMain.handle('inquiry:months', () => db.getInquiryMonths());
+ipcMain.handle('inquiry:latestCategory', (e, name) => db.getLatestCategoryForName(name));
 
 // Lianhua Items
 ipcMain.handle('lianhua:items:get', () => db.getLianhuaItems());
@@ -209,77 +210,93 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
 
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '保存采购单',
-    defaultPath: defaultName || '洋安采购单.xlsx',
+    defaultPath: defaultName || '采购单.xlsx',
     filters: [{ name: 'Excel 文件', extensions: ['xlsx'] }],
   });
   if (result.canceled || !result.filePath) return { success: false, error: '已取消' };
 
   try {
     const wb = new ExcelJS.Workbook();
+    const imgWidth = 80, imgHeight = 60;
 
     for (const sheet of sheets) {
       const ws = wb.addWorksheet(sheet.name);
+      const colCount = sheet.headers.length;
 
-      // Add title row
-      ws.addRow(sheet.title);
-      ws.getRow(1).font = { bold: true, size: 14 };
-      ws.mergeCells(1, 1, 1, sheet.headers.length);
+      // Row 1: Title (跨列居中, 宋体 15号)
+      const titleRow = ws.addRow([sheet.title]);
+      titleRow.font = { name: '宋体', bold: true, size: 15 };
+      titleRow.height = 30;
+      titleRow.getCell(1).alignment = { horizontal: 'centerContinuous', vertical: 'middle' };
 
-      // Add header row
+      // Row 2: Headers (宋体 15号)
       const headerRow = ws.addRow(sheet.headers);
-      headerRow.font = { bold: true };
+      headerRow.font = { name: '宋体', bold: true, size: 15 };
+      headerRow.height = 50;
       headerRow.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-        cell.border = {
-          top: { style: 'thin' }, bottom: { style: 'thin' },
-          left: { style: 'thin' }, right: { style: 'thin' }
-        };
+        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       });
 
-      // Add data rows
+      // Data rows
       for (const row of sheet.rows) {
         const dataRow = ws.addRow(row.data);
-        dataRow.eachCell(cell => {
-          cell.border = {
-            top: { style: 'thin' }, bottom: { style: 'thin' },
-            left: { style: 'thin' }, right: { style: 'thin' }
-          };
-        });
+        const rowNum = dataRow.number;
 
-        // Embed image if exists
+        if (row.isHeader) {
+          // Canteen name header in merged sheet
+          dataRow.height = 30;
+          dataRow.getCell(1).font = { name: '宋体', bold: true, size: 15 };
+          ws.mergeCells(rowNum, 1, rowNum, colCount);
+          dataRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
+          continue;
+        }
+
+        // Check if this is an empty separator row
+        const isEmpty = row.data.every(v => v === '' || v === null || v === undefined);
+        if (isEmpty) {
+          dataRow.height = 10;
+          continue;
+        }
+
+        dataRow.height = 50;
+        dataRow.font = { name: '宋体', size: 15 };
+        dataRow.eachCell(cell => {
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle' };
+          cell.font = { name: '宋体', size: 15 };
+        });
+        // Right-align amount column (col 8)
+        if (colCount >= 8) dataRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
+
+        // Embed image in last column
         if (row.imagePath && fs.existsSync(row.imagePath)) {
           try {
             const ext = path.extname(row.imagePath).toLowerCase().replace('.', '');
-            const imageId = wb.addImage({
-              filename: row.imagePath,
-              extension: ext === 'jpg' ? 'jpeg' : ext,
-            });
-            const rowNum = dataRow.number;
-            const imgCol = row.data.length; // last column
+            const imageId = wb.addImage({ filename: row.imagePath, extension: ext === 'jpg' ? 'jpeg' : ext });
             ws.addImage(imageId, {
-              tl: { col: imgCol - 1, row: rowNum - 1 },
-              ext: { width: 80, height: 60 },
+              tl: { col: colCount - 1, row: rowNum - 1 },
+              ext: { width: imgWidth, height: imgHeight },
             });
-            ws.getRow(rowNum).height = 50;
-          } catch (imgErr) {
-            console.error('Embed image error:', imgErr);
-          }
+          } catch (imgErr) { console.error('Embed image error:', imgErr); }
         }
       }
 
-      // Auto-width columns (except image column)
-      ws.columns.forEach((col, i) => {
-        if (i < sheet.headers.length - 1) {
-          let maxLen = sheet.headers[i] ? sheet.headers[i].length : 10;
-          col.eachCell({ includeEmpty: false }, cell => {
-            const len = String(cell.value).length;
-            if (len > maxLen) maxLen = len;
-          });
-          col.width = Math.min(maxLen + 4, 30);
-        }
-      });
-      // Image column width
-      ws.getColumn(sheet.headers.length).width = 14;
+      // Column widths: compact, just enough for text
+      const colWidths = [6, 12, 18, 10, 8, 8, 6, 10, 16, 12]; // 序号~实物图
+      for (let i = 1; i <= colCount; i++) {
+        const maxLen = colWidths[i - 1] || 12;
+        // Check actual data width
+        let dataMax = maxLen;
+        ws.getColumn(i).eachCell({ includeEmpty: false }, cell => {
+          const len = String(cell.value || '').length;
+          if (len > dataMax) dataMax = len;
+        });
+        ws.getColumn(i).width = Math.min(dataMax + 2, 24);
+      }
+      // Image column fixed width
+      ws.getColumn(colCount).width = 14;
     }
 
     await wb.xlsx.writeFile(result.filePath);

@@ -502,15 +502,20 @@ async function doEditProduct(id) {
   const name = document.getElementById('ep-name').value.trim();
   const unit = document.getElementById('ep-unit').value.trim();
   if (!name || !unit) { showToast('名称和单位必填', 'error'); return; }
-  await window.api.updateProduct(id, {
-    name, spec: document.getElementById('ep-spec').value.trim(), unit,
-    shelf_months: parseInt(document.getElementById('ep-months').value) || 0,
-    shelf_days: parseInt(document.getElementById('ep-days').value) || 0,
-  });
-  closeModal();
-  showToast('已保存');
-  loadProducts();
-  refreshProductSelects();
+  try {
+    await window.api.updateProduct(id, {
+      name, spec: document.getElementById('ep-spec').value.trim(), unit,
+      shelf_months: parseInt(document.getElementById('ep-months').value) || 0,
+      shelf_days: parseInt(document.getElementById('ep-days').value) || 0,
+    });
+    closeModal();
+    showToast('已保存');
+    loadProducts();
+    refreshProductSelects();
+  } catch (err) {
+    console.error('Edit product error:', err);
+    showToast('保存失败: ' + (err.message || err), 'error');
+  }
 }
 
 function deleteProduct(id) {
@@ -1530,8 +1535,249 @@ let autocompleteIndex = -1;
 
 // Initialize purchase page
 async function initPurchasePage() {
-  // Load lianhua items
   await loadLianhuaItems();
+  applyCanteenMode();
+}
+
+// ===== Canteen Mode =====
+function getKitchenSource() {
+  const canteen = APP_SETTINGS.current_canteen || '洋安';
+  return `${canteen}食堂厨房`;
+}
+
+function getPastrySource() {
+  const canteen = APP_SETTINGS.current_canteen || '洋安';
+  return `${canteen}面点房`;
+}
+
+function applyCanteenMode() {
+  const isMulti = APP_SETTINGS.xiaosuo_mode === 'on';
+  const tabsEl = document.getElementById('multi-canteen-tabs');
+  const switchEl = document.getElementById('canteen-switch');
+  const multiArea = document.getElementById('multi-canteen-area');
+  const lianhuaEl = document.getElementById('purchase-lianhua');
+  const kitchenEl = document.getElementById('purchase-kitchen');
+  const pastryEl = document.getElementById('purchase-pastry');
+
+  if (isMulti) {
+    lianhuaEl.style.display = 'none';
+    kitchenEl.style.display = 'none';
+    pastryEl.style.display = 'none';
+    switchEl.style.display = 'none';
+    tabsEl.style.display = 'flex';
+    multiArea.style.display = 'block';
+    initMultiCanteenMode();
+  } else {
+    tabsEl.style.display = 'none';
+    multiArea.style.display = 'none';
+    lianhuaEl.style.display = 'block';
+    kitchenEl.style.display = 'block';
+    switchEl.style.display = 'flex';
+    initNormalCanteenMode();
+  }
+}
+
+async function switchCanteen(canteen) {
+  APP_SETTINGS.current_canteen = canteen;
+  await window.api.setSetting('current_canteen', canteen);
+  await window.api.setSetting('canteen_mode', canteen);
+  initNormalCanteenMode();
+}
+
+function initNormalCanteenMode() {
+  const canteen = APP_SETTINGS.current_canteen || '洋安';
+  const kitchenGroup = document.getElementById('purchase-kitchen');
+  const kitchenTitle = document.getElementById('kitchen-title');
+  const kitchenSource = getKitchenSource();
+  kitchenGroup.dataset.source = kitchenSource;
+  kitchenTitle.textContent = kitchenSource;
+
+  const pastryGroup = document.getElementById('purchase-pastry');
+  const pastryTitle = document.getElementById('pastry-title');
+  const pastrySource = getPastrySource();
+  pastryGroup.dataset.source = pastrySource;
+  pastryTitle.textContent = pastrySource;
+  pastryGroup.style.display = APP_SETTINGS.show_pastry !== 'off' ? 'block' : 'none';
+
+  loadPurchaseGroupData(kitchenSource);
+  if (APP_SETTINGS.show_pastry !== 'off') loadPurchaseGroupData(pastrySource);
+
+  // 同步食堂切换按钮高亮
+  document.querySelectorAll('#canteen-switch .canteen-tab').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.canteen === canteen)
+  );
+}
+
+// ===== 下涯/制杆厂/白南山 模式 =====
+const MULTI_CANTEENS = ['下涯', '制杆厂', '白南山'];
+let currentMultiCanteen = '下涯';
+let multiModeInitialized = false;
+
+function initMultiCanteenMode() {
+  const area = document.getElementById('multi-canteen-area');
+
+  if (!multiModeInitialized) {
+    for (const canteen of MULTI_CANTEENS) {
+      // 联华分组 (per canteen)
+      const lianhuaSrc = `${canteen}-联华`;
+      const lianhuaGroup = document.createElement('div');
+      lianhuaGroup.className = 'purchase-group';
+      lianhuaGroup.dataset.source = lianhuaSrc;
+      lianhuaGroup.dataset.canteen = canteen;
+      lianhuaGroup.style.display = 'none';
+      lianhuaGroup.innerHTML = `
+        <div class="group-header" onclick="toggleGroup(this)">
+          <span class="group-toggle">▶</span>
+          <h3>联华超市 - ${canteen}</h3>
+          <div class="group-actions">
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate('${lianhuaSrc}')">+ 添加日期</button>
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()">管理商品</button>
+          </div>
+        </div>
+        <div class="group-content" style="display:none;"></div>
+      `;
+      area.appendChild(lianhuaGroup);
+      loadPurchaseGroupData(lianhuaSrc);
+
+      // 厨房分组 (per canteen)
+      const kitchenSrc = `${canteen}-厨房`;
+      const kitchenGroup = document.createElement('div');
+      kitchenGroup.className = 'purchase-group';
+      kitchenGroup.dataset.source = kitchenSrc;
+      kitchenGroup.dataset.canteen = canteen;
+      kitchenGroup.style.display = 'none';
+      kitchenGroup.innerHTML = `
+        <div class="group-header" onclick="toggleGroup(this)">
+          <span class="group-toggle">▶</span>
+          <h3>${canteen}厨房</h3>
+          <div class="group-actions">
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('${kitchenSrc}')">+ 添加日期</button>
+          </div>
+        </div>
+        <div class="group-content" style="display:none;"></div>
+      `;
+      area.appendChild(kitchenGroup);
+      loadPurchaseGroupData(kitchenSrc);
+    }
+    multiModeInitialized = true;
+  }
+
+  switchMultiCanteenTab(currentMultiCanteen);
+}
+
+function switchMultiCanteenTab(canteen) {
+  currentMultiCanteen = canteen;
+  document.querySelectorAll('#multi-canteen-tabs .tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.canteen === canteen)
+  );
+  document.querySelectorAll('#multi-canteen-area .purchase-group[data-canteen]').forEach(g => {
+    g.style.display = g.dataset.canteen === canteen ? 'block' : 'none';
+  });
+}
+
+async function loadPurchaseGroupData(source) {
+  try {
+    const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
+    if (!groupContent) return;
+    groupContent.innerHTML = '';
+
+    const orders = await window.api.getPurchaseOrders(source);
+    const byDate = {};
+    orders.forEach(o => {
+      if (!byDate[o.order_date]) byDate[o.order_date] = [];
+      byDate[o.order_date].push(o);
+    });
+
+    for (const [date, items] of Object.entries(byDate)) {
+      addDateGroupToPage(source, date, items);
+    }
+  } catch (err) {
+    console.error('Load purchase group error:', err);
+  }
+}
+
+function addDateGroupToPage(source, date, items) {
+  const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
+  if (!groupContent) return;
+
+  const dateId = `date-${source}-${date}`.replace(/[\s:]/g, '-');
+  if (document.getElementById(dateId)) return;
+
+  const dateGroup = document.createElement('div');
+  dateGroup.className = 'date-group';
+  dateGroup.id = dateId;
+
+  dateGroup.innerHTML = `
+    <div class="date-header expanded" onclick="toggleDateGroup(this)">
+      <span class="date-toggle">▶</span>
+      <span class="date-label">${date} 收货</span>
+      <span class="date-summary">${items.length} 项</span>
+      <div class="date-actions">
+        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
+        <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
+      </div>
+    </div>
+    <div class="date-content expanded">
+      <div class="purchase-table-wrapper">
+        <table class="table table-purchase">
+          <thead>
+            <tr>
+              <th style="width:40px;">序号</th>
+              <th style="width:200px;">品名</th>
+              <th style="width:120px;">规格</th>
+              <th style="width:80px;">单价</th>
+              <th style="width:80px;">数量</th>
+              <th style="width:60px;">单位</th>
+              <th style="width:80px;">金额</th>
+              <th style="width:150px;">备注</th>
+              <th style="width:50px;">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  groupContent.appendChild(dateGroup);
+
+  const tbody = dateGroup.querySelector('tbody');
+  items.forEach((item, idx) => {
+    const tr = appendPurchaseRowWithData(tbody, item, idx);
+  });
+}
+
+function appendPurchaseRowWithData(tbody, item, idx) {
+  const tr = document.createElement('tr');
+  if (item.id) tr.dataset.id = item.id;
+
+  const amount = (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+
+  tr.innerHTML = `
+    <td>${idx + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="${item.product_name || ''}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input cell-readonly" value="${item.spec || ''}" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${item.unit_price || ''}" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="${item.quantity || ''}" data-field="quantity" placeholder="数量"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${item.unit || ''}" data-field="unit" readonly tabindex="-1"></td>
+    <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(1) : ''}</td>
+    <td><input type="text" class="cell-input cell-editable" value="${item.remark || ''}" data-field="remark" placeholder="备注"></td>
+    <td><button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+  `;
+
+  tbody.appendChild(tr);
+  // Use lianhua autocomplete for lianhua sources
+  const parentGroup = tbody.closest('.purchase-group');
+  const src = parentGroup ? parentGroup.dataset.source : '';
+  if (src.includes('联华')) {
+    attachLianhuaCellEvents(tr, tbody);
+  } else {
+    attachCellEvents(tr, tbody);
+  }
+  return tr;
 }
 
 function getTomorrowStr() {
@@ -2019,7 +2265,9 @@ function bindAutocompleteEvents(input, searchFn, selectFn) {
 // Save all purchase orders (including 联华)
 async function saveAllPurchaseOrders() {
   const allOrders = [];
-  const dateGroups = document.querySelectorAll('.date-group');
+  const container = document.getElementById('purchase-container');
+  // Only process visible date groups
+  const dateGroups = [...container.querySelectorAll('.date-group')].filter(dg => dg.offsetParent !== null);
 
   dateGroups.forEach(dateGroup => {
     const purchaseGroup = dateGroup.closest('.purchase-group');
@@ -2053,8 +2301,14 @@ async function saveAllPurchaseOrders() {
   });
 
   try {
-    // Clear all existing orders and save new ones
-    await window.api.clearPurchaseOrders();
+    // Only clear orders for visible groups
+    const currentSources = [...document.querySelectorAll('#purchase-container .purchase-group[data-source]')]
+      .filter(g => g.offsetParent !== null || g.dataset.source === '联华')
+      .map(g => g.dataset.source)
+      .filter(s => s);
+    for (const source of currentSources) {
+      await window.api.clearPurchaseOrders(source);
+    }
     for (const order of allOrders) {
       await window.api.addPurchaseOrder(order);
     }
@@ -2353,7 +2607,8 @@ async function deleteLianhuaItem(id) {
 }
 
 // Show add lianhua date dialog
-function showAddLianhuaDate() {
+function showAddLianhuaDate(source) {
+  source = source || '联华';
   const tomorrow = getTomorrowStr();
   openModal('选择联华订单日期', `
     <div class="form-group">
@@ -2362,23 +2617,24 @@ function showAddLianhuaDate() {
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
-    <button class="btn btn-primary" onclick="doAddLianhuaDate()">确定</button>
+    <button class="btn btn-primary" onclick="doAddLianhuaDate('${source}')">确定</button>
   `);
 }
 
-function doAddLianhuaDate() {
+function doAddLianhuaDate(source) {
   const date = document.getElementById('new-lianhua-date').value;
   if (!date) { showToast('请选择日期', 'error'); return; }
   closeModal();
-  addLianhuaDateGroup(date);
+  addLianhuaDateGroup(date, source);
 }
 
-// Add lianhua date group - same format as other groups
-function addLianhuaDateGroup(date) {
-  const groupContent = document.querySelector('.purchase-group[data-source="联华"] .group-content');
+// Add lianhua date group - supports custom source for multi-canteen mode
+function addLianhuaDateGroup(date, source) {
+  source = source || '联华';
+  const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
   if (!groupContent) return;
 
-  const dateId = `lianhua-date-${date}`;
+  const dateId = `lianhua-date-${source}-${date}`.replace(/[\s-]/g, '_');
   if (document.getElementById(dateId)) {
     showToast('该日期已存在', 'error');
     return;
@@ -2388,7 +2644,7 @@ function addLianhuaDateGroup(date) {
   dateGroup.className = 'date-group';
   dateGroup.id = dateId;
   dateGroup.dataset.date = date;
-  dateGroup.dataset.source = '联华';
+  dateGroup.dataset.source = source;
 
   dateGroup.innerHTML = `
     <div class="date-header expanded" onclick="toggleDateGroup(this)">
@@ -2431,11 +2687,79 @@ function addLianhuaDateGroup(date) {
     toggleGroup(groupHeader);
   }
 
-  // Add 5 empty rows (联华 default)
+  // Add 5 empty rows with lianhua autocomplete
   const tbody = dateGroup.querySelector('tbody');
   for (let i = 0; i < 5; i++) {
-    appendPurchaseRow(tbody, i);
+    appendLianhuaRow(tbody, i);
   }
+}
+
+// 联华专用行：自动补全从 lianhuaItems 搜索
+function appendLianhuaRow(tbody, idx) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${idx + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="quantity" placeholder="数量"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
+    <td class="amount-cell cell-readonly"></td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
+    <td><button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  attachLianhuaCellEvents(tr, tbody);
+}
+
+function attachLianhuaCellEvents(tr, tbody) {
+  bindTableRowEvents(tr, tbody, {
+    onSelect: selectLianhuaAutocompleteItem,
+    onAutocomplete: handleLianhuaAutocomplete,
+    onProductSelect: selectLianhuaAutocompleteItem,
+    onQtyChange: (row) => recalcRowAmount(row),
+    onFieldChange: () => {},
+    onAppendRow: () => {
+      const currentCount = tbody.querySelectorAll('tr').length;
+      appendLianhuaRow(tbody, currentCount);
+    }
+  });
+}
+
+function handleLianhuaAutocomplete(input) {
+  const keyword = input.value.trim();
+  if (keyword.length < 1) { hideAutocomplete(); return; }
+  const td = input.closest('td');
+  const dropdown = td.querySelector('.autocomplete-dropdown');
+  if (!dropdown) return;
+  const results = lianhuaItems.filter(i => i.name.toLowerCase().includes(keyword.toLowerCase()));
+  if (results.length === 0) { hideAutocomplete(); return; }
+  dropdown.innerHTML = results.map((item, idx) => `
+    <div class="autocomplete-item" data-index="${idx}" data-name="${item.name}" data-spec="${item.spec || ''}" data-price="${item.price || 0}" data-unit="${item.unit || '件'}">
+      <span class="item-name">${item.name}</span>
+      <span class="item-spec">${item.spec || ''} | ¥${item.price || 0}</span>
+    </div>
+  `).join('');
+  dropdown.style.display = 'block';
+  autocompleteIndex = -1;
+  dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => { e.preventDefault(); selectLianhuaAutocompleteItem(input, item); });
+  });
+}
+
+function selectLianhuaAutocompleteItem(input, item) {
+  const tr = input.closest('tr');
+  tr.querySelector('[data-field="product_name"]').value = item.dataset.name;
+  tr.querySelector('[data-field="spec"]').value = item.dataset.spec || '';
+  tr.querySelector('[data-field="unit_price"]').value = item.dataset.price || '';
+  tr.querySelector('[data-field="unit"]').value = item.dataset.unit || '件';
+  hideAutocomplete();
+  recalcRowAmount(tr);
+  const qtyInput = tr.querySelector('[data-field="quantity"]');
+  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
 }
 
 function deleteLianhuaDateGroup(btn) {
@@ -2517,6 +2841,10 @@ async function exportLianhuaOrderByDate(date) {
 // Export all purchase orders (3 sheets in one xlsx)
 async function exportAllPurchaseOrders() {
   try {
+    // 确保联华商品数据已加载
+    if (lianhuaItems.length === 0) {
+      try { await loadLianhuaItems(); } catch (e) { /* ignore */ }
+    }
     const photoFolder = APP_SETTINGS.photo_folder;
 
     // Helper function to get date from date group
@@ -2570,77 +2898,114 @@ async function exportAllPurchaseOrders() {
 
     // Build sheets array for main process export
     const sheets = [];
+    const isMultiCanteenExport = APP_SETTINGS.xiaosuo_mode === 'on';
 
-    // 洋安食堂厨房
-    const kitchenRows = collectRows('洋安食堂厨房');
-    const kitchenImages = await resolveImages(kitchenRows);
-    sheets.push({
-      name: '洋安食堂厨房申购单',
-      title: '洋安食堂厨房申购单',
-      headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '用途', '备注要求', '实物图'],
-      rows: kitchenRows.map((row, idx) => ({
-        data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, '', row.remark, ''],
-        imagePath: kitchenImages[idx]
-      }))
-    });
-
-    // 洋安面点房
-    const pastryRows = collectRows('洋安面点房');
-    const pastryImages = await resolveImages(pastryRows);
-    sheets.push({
-      name: '洋安面点房申购单',
-      title: '洋安面点房申购单',
-      headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '用途', '备注要求', '实物图'],
-      rows: pastryRows.map((row, idx) => ({
-        data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, '', row.remark, ''],
-        imagePath: pastryImages[idx]
-      }))
-    });
-
-    // 联华 sheets
-    const lianhuaGroup = document.querySelector('.purchase-group[data-source="联华"]');
-    if (lianhuaGroup) {
-      const lianhuaDateGroups = lianhuaGroup.querySelectorAll('.date-group');
-      for (const dateGroup of lianhuaDateGroups) {
-        const date = getDateFromGroup(dateGroup);
-        const rows = dateGroup.querySelectorAll('tbody tr');
-
-        const lianhuaRows = [];
-        rows.forEach((tr) => {
-          const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
-          const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
-          const amount = parseFloat(amountText.replace('¥', '')) || 0;
-
-          const productName = getData('product_name').trim();
-          if (!productName) return;
-
-          const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
-
-          lianhuaRows.push({
-            product_name: productName,
-            unit: getData('unit') || (item ? item.unit : '件'),
-            spec: getData('spec') || (item ? item.spec : ''),
-            unit_price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
-            quantity: parseFloat(getData('quantity')) || 0,
-            amount: amount,
-            code: item ? item.code : '',
-            split_qty: item ? item.split_qty : 1,
-            remark: getData('remark')
+    if (isMultiCanteenExport) {
+      // 多食堂模式：只导出下涯/制杆厂/白南山的数据
+      for (const canteen of MULTI_CANTEENS) {
+        // 厨房
+        const kitchenRows = collectRows(`${canteen}-厨房`);
+        if (kitchenRows.length > 0) {
+          const images = await resolveImages(kitchenRows);
+          sheets.push({
+            name: `${canteen}厨房申购单`,
+            title: `${canteen}厨房申购单`,
+            headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
+            rows: kitchenRows.map((row, idx) => ({
+              data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
+              imagePath: images[idx]
+            }))
           });
-        });
+        }
+        // 联华
+        const lianhuaGroupEl = document.querySelector(`.purchase-group[data-source="${canteen}-联华"]`);
+        if (lianhuaGroupEl) {
+          for (const dateGroup of lianhuaGroupEl.querySelectorAll('.date-group')) {
+            const date = getDateFromGroup(dateGroup);
+            const rows = dateGroup.querySelectorAll('tbody tr');
+            const lianhuaRows = [];
+            rows.forEach(tr => {
+              const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+              const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
+              const amount = parseFloat(amountText.replace('¥', '')) || 0;
+              const productName = getData('product_name').trim();
+              if (!productName) return;
+              const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
+              lianhuaRows.push({
+                product_name: productName, unit: getData('unit') || (item ? item.unit : '件'),
+                spec: getData('spec') || (item ? item.spec : ''),
+                unit_price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
+                quantity: parseFloat(getData('quantity')) || 0, amount, code: item ? item.code : '',
+                split_qty: item ? item.split_qty : 1, remark: getData('remark')
+              });
+            });
+            if (lianhuaRows.length === 0) continue;
+            const images = await resolveImages(lianhuaRows);
+            sheets.push({
+              name: `${canteen}-${date}`,
+              title: `${canteen}联华超市 ${date}`,
+              headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
+              rows: lianhuaRows.map((row, idx) => ({
+                data: [idx + 1, canteen, date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
+                imagePath: images[idx]
+              }))
+            });
+          }
+        }
+      }
+    } else {
+      // 普通模式：只导出当前食堂的厨房/面点房 + 联华
+      const kitchenSources = [getKitchenSource()];
+      if (APP_SETTINGS.show_pastry !== 'off') kitchenSources.push(getPastrySource());
 
-        if (lianhuaRows.length === 0) continue;
-
-        const lianhuaImages = await resolveImages(lianhuaRows);
+      for (const source of kitchenSources) {
+        const rows = collectRows(source);
+        if (rows.length === 0) continue;
+        const images = await resolveImages(rows);
         sheets.push({
-          name: date,
-          title: `联华超市 ${date}`,
-          headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
-          rows: lianhuaRows.map((row, idx) => ({
-            data: [idx + 1, '洋安', date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
-            imagePath: lianhuaImages[idx]
+          name: source + '申购单',
+          title: source + '申购单',
+          headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
+          rows: rows.map((row, idx) => ({
+            data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
+            imagePath: images[idx]
           }))
         });
+      }
+
+      const lianhuaGroup = document.querySelector('.purchase-group[data-source="联华"]');
+      if (lianhuaGroup) {
+        for (const dateGroup of lianhuaGroup.querySelectorAll('.date-group')) {
+          const date = getDateFromGroup(dateGroup);
+          const rows = dateGroup.querySelectorAll('tbody tr');
+          const lianhuaRows = [];
+          rows.forEach((tr) => {
+            const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+            const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
+            const amount = parseFloat(amountText.replace('¥', '')) || 0;
+            const productName = getData('product_name').trim();
+            if (!productName) return;
+            const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
+            lianhuaRows.push({
+              product_name: productName, unit: getData('unit') || (item ? item.unit : '件'),
+              spec: getData('spec') || (item ? item.spec : ''),
+              unit_price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
+              quantity: parseFloat(getData('quantity')) || 0, amount, code: item ? item.code : '',
+              split_qty: item ? item.split_qty : 1, remark: getData('remark')
+            });
+          });
+          if (lianhuaRows.length === 0) continue;
+          const lianhuaImages = await resolveImages(lianhuaRows);
+          sheets.push({
+            name: date,
+            title: `联华超市 ${date}`,
+            headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
+            rows: lianhuaRows.map((row, idx) => ({
+              data: [idx + 1, APP_SETTINGS.current_canteen || '洋安', date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
+              imagePath: lianhuaImages[idx]
+            }))
+          });
+        }
       }
     }
 
@@ -2649,7 +3014,12 @@ async function exportAllPurchaseOrders() {
       return;
     }
 
-    const result = await window.api.exportPurchaseOrder(sheets, '洋安采购单.xlsx');
+    const now = new Date();
+    const month = `${now.getMonth() + 1}月`;
+    const mode = isMultiCanteenExport ? '下涯、制杆厂、白南山' : (APP_SETTINGS.canteen_mode || '洋安');
+    const defaultName = `${month}${mode}采购单.xlsx`;
+
+    const result = await window.api.exportPurchaseOrder(sheets, defaultName);
     if (result.success) {
       showToast('导出成功！');
     } else if (result.error !== '已取消') {
@@ -3030,6 +3400,25 @@ function showAddInquiryItem() {
     <button class="btn" onclick="closeModal()">取消</button>
     <button class="btn btn-primary" onclick="doAddInquiryItem('${month}')">保存</button>
   `);
+
+  // 品名失焦时自动识别分类（用户手动改过分类后不覆盖）
+  const nameInput = document.getElementById('new-inquiry-name');
+  const catSelect = document.getElementById('new-inquiry-category');
+  let categoryManuallyChanged = false;
+  if (catSelect) {
+    catSelect.addEventListener('change', () => { categoryManuallyChanged = true; });
+  }
+  if (nameInput) {
+    nameInput.addEventListener('blur', async () => {
+      if (categoryManuallyChanged) return;
+      const val = nameInput.value.trim();
+      if (!val) return;
+      try {
+        const category = await window.api.getLatestCategoryForName(val);
+        if (category && catSelect) catSelect.value = category;
+      } catch (err) { /* ignore */ }
+    });
+  }
 }
 
 async function doAddInquiryItem(month) {
@@ -3089,6 +3478,8 @@ const SETTING_KEYS = [
   'enter_mode',
   'photo_folder',
   'inv_inbound_limit', 'inv_outbound_limit',
+  'canteen_mode', 'show_pastry', 'xiaosuo_mode',
+  'current_canteen',
 ];
 
 const SETTING_DEFAULTS = {
@@ -3101,6 +3492,8 @@ const SETTING_DEFAULTS = {
   enter_mode: 'next-row',
   photo_folder: '',
   inv_inbound_limit: '5', inv_outbound_limit: '10',
+  canteen_mode: '洋安', show_pastry: 'on', xiaosuo_mode: 'off',
+  current_canteen: '洋安',
 };
 
 async function initSettingsPage() {
@@ -3122,6 +3515,14 @@ async function initSettingsPage() {
     document.getElementById('setting-photo-folder').value = settings.photo_folder || SETTING_DEFAULTS.photo_folder;
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
+    // 食堂模式：兼容旧格式
+    const rawMode = settings.canteen_mode || SETTING_DEFAULTS.canteen_mode;
+    const xiaosuoMode = settings.xiaosuo_mode || SETTING_DEFAULTS.xiaosuo_mode;
+    let modeValue = 'default';
+    if (xiaosuoMode === 'on' || ['下涯','制杆厂','白南山'].includes(rawMode)) {
+      modeValue = 'multi';
+    }
+    document.getElementById('setting-canteen-mode').value = modeValue;
   } catch (err) {
     console.error('Load settings error:', err);
   }
@@ -3140,7 +3541,23 @@ async function saveSettings() {
       const el = document.getElementById(`setting-${key.replace(/_/g, '-')}`);
       if (el) await window.api.setSetting(key, el.value);
     }
+
+    // 食堂模式：将新模式映射到旧的 canteen_mode / xiaosuo_mode / show_pastry
+    const mode = document.getElementById('setting-canteen-mode').value;
+    if (mode === 'multi') {
+      await window.api.setSetting('canteen_mode', '下涯');
+      await window.api.setSetting('xiaosuo_mode', 'on');
+      await window.api.setSetting('show_pastry', 'off');
+    } else {
+      await window.api.setSetting('xiaosuo_mode', 'off');
+      await window.api.setSetting('show_pastry', 'on');
+      // current_canteen 由采购单页的切换按钮控制，这里不覆盖
+    }
+
     await loadAppSettings();
+    if (document.getElementById('page-purchase').classList.contains('active')) {
+      applyCanteenMode();
+    }
     showToast('设置已保存');
   } catch (err) {
     showToast('保存失败: ' + err.message, 'error');
@@ -3167,6 +3584,10 @@ async function loadAppSettings() {
       photo_folder: g('photo_folder'),
       inv_inbound_limit: parseInt(g('inv_inbound_limit')) || 5,
       inv_outbound_limit: parseInt(g('inv_outbound_limit')) || 10,
+      canteen_mode: g('canteen_mode'),
+      show_pastry: g('show_pastry'),
+      xiaosuo_mode: g('xiaosuo_mode'),
+      current_canteen: g('current_canteen') || g('canteen_mode') || '洋安',
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框

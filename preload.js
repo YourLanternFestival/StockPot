@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('api', {
   addInquiryItem: (data) => ipcRenderer.invoke('inquiry:add', data),
   importInquiryItems: (month, items) => ipcRenderer.invoke('inquiry:import', { month, items }),
   getInquiryMonths: () => ipcRenderer.invoke('inquiry:months'),
+  getLatestCategoryForName: (name) => ipcRenderer.invoke('inquiry:latestCategory', name),
 
   // Lianhua Items
   getLianhuaItems: () => ipcRenderer.invoke('lianhua:items:get'),

@@ -503,47 +503,56 @@
           </div>
         </div>
         <div class="purchase-container" id="purchase-container">
-          <!-- 联华 分组 -->
-          <div class="purchase-group" data-source="联华">
+          <!-- 默认模式：食堂切换 -->
+          <div id="canteen-switch" class="tab-bar" style="display:none;">
+            <button class="tab-btn canteen-tab active" data-canteen="洋安" onclick="switchCanteen('洋安')">洋安</button>
+            <button class="tab-btn canteen-tab" data-canteen="新安" onclick="switchCanteen('新安')">新安</button>
+          </div>
+          <!-- 多食堂模式 Tab (hidden by default) -->
+          <div id="multi-canteen-tabs" class="tab-bar" style="display:none;">
+            <button class="tab-btn active" data-canteen="下涯" onclick="switchMultiCanteenTab('下涯')">下涯</button>
+            <button class="tab-btn" data-canteen="制杆厂" onclick="switchMultiCanteenTab('制杆厂')">制杆厂</button>
+            <button class="tab-btn" data-canteen="白南山" onclick="switchMultiCanteenTab('白南山')">白南山</button>
+          </div>
+
+          <!-- 多食堂模式: 联华+厨房 (JS动态创建，按Tab显隐) -->
+          <div id="multi-canteen-area"></div>
+
+          <!-- 洋安/新安模式: 联华 -->
+          <div class="purchase-group" id="purchase-lianhua" data-source="联华">
             <div class="group-header" onclick="toggleGroup(this)">
               <span class="group-toggle">▶</span>
-              <h3>联华超市</h3>
+              <h3 id="lianhua-title">联华超市</h3>
               <div class="group-actions">
                 <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate()">+ 添加日期</button>
                 <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()">管理商品</button>
               </div>
             </div>
-            <div class="group-content" style="display:none;">
-              <!-- 联华日期分组会动态添加到这里 -->
-            </div>
+            <div class="group-content" style="display:none;"></div>
           </div>
 
-          <!-- 洋安食堂厨房 分组 -->
-          <div class="purchase-group" data-source="洋安食堂厨房">
+          <!-- 洋安/新安模式: 厨房 -->
+          <div class="purchase-group" id="purchase-kitchen" data-source="">
             <div class="group-header" onclick="toggleGroup(this)">
               <span class="group-toggle">▶</span>
-              <h3>洋安食堂厨房</h3>
+              <h3 id="kitchen-title">厨房</h3>
               <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('洋安食堂厨房')">+ 添加日期</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog(getKitchenSource())">+ 添加日期</button>
               </div>
             </div>
-            <div class="group-content" style="display:none;">
-              <!-- 日期分组会动态添加到这里 -->
-            </div>
+            <div class="group-content" style="display:none;"></div>
           </div>
 
-          <!-- 洋安面点房 分组 -->
-          <div class="purchase-group" data-source="洋安面点房">
+          <!-- 洋安/新安模式: 面点房 -->
+          <div class="purchase-group" id="purchase-pastry" data-source="">
             <div class="group-header" onclick="toggleGroup(this)">
               <span class="group-toggle">▶</span>
-              <h3>洋安面点房</h3>
+              <h3 id="pastry-title">面点房</h3>
               <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('洋安面点房')">+ 添加日期</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog(getPastrySource())">+ 添加日期</button>
               </div>
             </div>
-            <div class="group-content" style="display:none;">
-              <!-- 日期分组会动态添加到这里 -->
-            </div>
+            <div class="group-content" style="display:none;"></div>
           </div>
         </div>
       </div>
@@ -711,6 +720,20 @@
               <div class="form-group">
                 <label>单价小数位数</label>
                 <input type="number" class="form-control" id="setting-price-decimals" min="0" max="4" value="2">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>🍽️ 食堂模式</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+              <div class="form-group">
+                <label>运行模式</label>
+                <select class="form-control" id="setting-canteen-mode">
+                  <option value="default">默认模式（洋安/新安，采购单页可切换）</option>
+                  <option value="multi">多食堂分页（下涯/制杆厂/白南山）</option>
+                  <option value="small" disabled>小所食堂（开发中）</option>
+                </select>
               </div>
             </div>
           </div>

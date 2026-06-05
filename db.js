@@ -168,7 +168,12 @@ function queryOne(sql, params = []) {
 }
 
 function run(sql, params = []) {
-  db.run(sql, params);
+  try {
+    db.run(sql, params);
+  } catch (err) {
+    console.error('SQL run error:', sql, params, err);
+    throw err;
+  }
 }
 
 // ===== Products =====
@@ -645,6 +650,14 @@ function getInquiryMonths() {
   return queryAll('SELECT DISTINCT month FROM inquiry_items ORDER BY month DESC');
 }
 
+function getLatestCategoryForName(name) {
+  const row = queryOne(
+    'SELECT category FROM inquiry_items WHERE name = ? ORDER BY month DESC LIMIT 1',
+    [name]
+  );
+  return row ? row.category : null;
+}
+
 // ===== Settings =====
 function getSetting(key) {
   const row = queryOne('SELECT value FROM settings WHERE key = ?', [key]);
@@ -758,7 +771,7 @@ module.exports = {
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
   // Inquiry Items
-  getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths,
+  getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName,
   // Settings
   getSetting, setSetting, getAllSettings,
   // Lianhua
