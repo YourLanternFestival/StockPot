@@ -1121,55 +1121,57 @@ function buildMatrixKitchenSheet(sheets, canteens) {
   });
 }
 
-// 样式2：两两并列（每组完整列）
+// 样式2：两两并列（每组完整列，垂直排列）
 function buildPairedKitchenSheets(sheets, canteens) {
+  // 收集所有小所数据
+  const allCanteenData = {};
+  for (const canteen of canteens) {
+    allCanteenData[canteen] = collectRows(`${canteen}-厨房`);
+  }
+
+  // 按两两分组，垂直排列
+  const allRows = [];
   for (let i = 0; i < canteens.length; i += 2) {
     const pair = canteens.slice(i, i + 2);
-    buildPairedSheet(sheets, pair);
-  }
-}
 
-function buildPairedSheet(sheets, pair) {
-  // 收集每个小所的数据
-  const canteenRows = {};
-  const allNames = new Set();
+    // 添加分组标题行（合并单元格效果）
+    allRows.push({ data: [pair.join('  &  '), '', '', '', ''], isTitle: true });
 
-  for (const canteen of pair) {
-    const rows = collectRows(`${canteen}-厨房`);
-    canteenRows[canteen] = {};
-    for (const row of rows) {
-      canteenRows[canteen][row.product_name] = row;
-      allNames.add(row.product_name);
-    }
-  }
-
-  if (allNames.size === 0) return;
-
-  // 构建并列表头
-  const pairHeaders = ['序号'];
-  for (const canteen of pair) {
-    pairHeaders.push(`${canteen}品名`, `${canteen}规格`, `${canteen}单位`, `${canteen}数量`, `${canteen}备注`);
-  }
-
-  // 构建行数据
-  const names = [...allNames];
-  const pairRows = names.map((name, idx) => {
-    const rowData = [idx + 1];
+    // 收集这对小所的所有品名
+    const allNames = new Set();
+    const pairData = {};
     for (const canteen of pair) {
-      const r = canteenRows[canteen][name];
-      if (r) {
-        rowData.push(r.product_name, r.spec, r.unit, r.quantity, r.remark || '');
-      } else {
-        rowData.push(name, '', '', '', '');
+      pairData[canteen] = {};
+      for (const row of allCanteenData[canteen]) {
+        pairData[canteen][row.product_name] = row;
+        allNames.add(row.product_name);
       }
     }
-    return { data: rowData };
-  });
 
-  sheets.push({
-    name: pair.join('&'),
-    title: pair.join(' & ') + ' 厨房申购单',
-    headers: pairHeaders,
-    rows: pairRows,
-  });
+    // 添加每个品名的行
+    let seq = 0;
+    for (const name of allNames) {
+      seq++;
+      for (const canteen of pair) {
+        const r = pairData[canteen][name];
+        if (r) {
+          allRows.push({ data: [seq, r.product_name, r.spec, r.unit, r.quantity, r.remark || ''] });
+        } else {
+          allRows.push({ data: [seq, name, '', '', '', ''] });
+        }
+      }
+    }
+
+    // 添加空行分隔
+    allRows.push({ data: ['', '', '', '', '', ''] });
+  }
+
+  if (allRows.length > 0) {
+    sheets.push({
+      name: '小所厨房',
+      title: '小所厨房申购单（两两并列）',
+      headers: ['序号', '品名', '规格', '单位', '数量', '备注'],
+      rows: allRows,
+    });
+  }
 }
