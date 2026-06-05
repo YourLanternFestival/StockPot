@@ -12,12 +12,12 @@
 | products.js | 产品CRUD+批量选择 | ✅ |
 | inventory.js | 库存查询+过期预警 | ✅ |
 | inbound.js | 入库登记 | ✅ |
-| outbound.js | 出库登记 | 🔄 进行中 |
-| purchase.js | 食堂模式+厨房/面点房采购表 | ❌ 待做 |
-| lianhua.js | 联华商品管理+联华行 | ❌ 待做 |
-| inquiry.js | 询价管理 | ❌ 待做 |
-| data-io.js | 数据导入导出 | ❌ 待做 |
-| app.js | 入口+全局状态+导航+Toast/Modal | 瘦身中(2214行→目标~200行) |
+| outbound.js | 出库登记 | ✅ |
+| purchase.js | 食堂模式+厨房/面点房采购表 | ✅ |
+| lianhua.js | 联华商品管理+联华行 | ✅ |
+| inquiry.js | 询价管理 | ✅ |
+| data-io.js | 数据导入导出 | ✅ |
+| app.js | 入口+全局状态+导航+Toast/Modal+Init | ✅ 135行 |
 
 ### db.js 去重
 - ✅ `getInboundRecords`/`getOutboundRecords` → 提取 `getRecords(table, filters)`
@@ -35,7 +35,7 @@
 | 复制行按钮 | ✅ 询价表+采购单 |
 
 ### 待做
-1. 完成剩余模块拆分（outbound/purchase/lianhua/inquiry/data-io）
+1. ~~完成剩余模块拆分~~ ✅ 全部完成
 2. 小所食堂模式（大块开发）
 3. BUG3 库存字段串值（需复现步骤）
 
