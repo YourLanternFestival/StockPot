@@ -1600,6 +1600,7 @@ function initNormalCanteenMode() {
   pastryGroup.style.display = APP_SETTINGS.show_pastry !== 'off' ? 'block' : 'none';
 
   loadPurchaseGroupData(kitchenSource);
+  loadPurchaseGroupData('联华');
   if (APP_SETTINGS.show_pastry !== 'off') loadPurchaseGroupData(pastrySource);
 
   // 同步食堂切换按钮高亮
@@ -1929,9 +1930,15 @@ function addPurchaseRows(btn) {
   const dateGroup = btn.closest('.date-group');
   const tbody = dateGroup.querySelector('tbody');
   const currentCount = tbody.querySelectorAll('tr').length;
+  const purchaseGroup = dateGroup.closest('.purchase-group');
+  const source = purchaseGroup ? purchaseGroup.dataset.source : '';
 
   for (let i = 0; i < APP_SETTINGS.purchase_rows; i++) {
-    appendPurchaseRow(tbody, currentCount + i);
+    if (source.includes('联华')) {
+      appendLianhuaRow(tbody, currentCount + i);
+    } else {
+      appendPurchaseRow(tbody, currentCount + i);
+    }
   }
 }
 
@@ -3204,23 +3211,20 @@ function renderInquiryTable(items) {
   loadInquiryImages(items);
 }
 
-function copyInquiryItem(item) {
+async function copyInquiryItem(item) {
   const month = document.getElementById('inquiry-month').value;
   if (!month) { showToast('请先选择月份', 'error'); return; }
-  showAddInquiryItem();
-  // 预填充数据
-  setTimeout(() => {
-    const nameEl = document.getElementById('new-inquiry-name');
-    const catEl = document.getElementById('new-inquiry-category');
-    const unitEl = document.getElementById('new-inquiry-unit');
-    const specEl = document.getElementById('new-inquiry-spec');
-    const priceEl = document.getElementById('new-inquiry-price');
-    if (nameEl) nameEl.value = item.name;
-    if (catEl) catEl.value = item.category;
-    if (unitEl) unitEl.value = item.unit || '';
-    if (specEl) specEl.value = item.spec || '';
-    if (priceEl && item.price) priceEl.value = item.price;
-  }, 50);
+  await showAddInquiryItem();
+  const nameEl = document.getElementById('new-inquiry-name');
+  const catEl = document.getElementById('new-inquiry-category');
+  const unitEl = document.getElementById('new-inquiry-unit');
+  const specEl = document.getElementById('new-inquiry-spec');
+  const priceEl = document.getElementById('new-inquiry-price');
+  if (nameEl) nameEl.value = item.name;
+  if (catEl) catEl.value = item.category;
+  if (unitEl) unitEl.value = item.unit || '';
+  if (specEl) specEl.value = item.spec || '';
+  if (priceEl && item.price) priceEl.value = item.price;
 }
 
 function deleteInquiryItem(id) {
