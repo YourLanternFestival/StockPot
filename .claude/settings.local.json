@@ -47,7 +47,8 @@
       "Read(//c/Users/Administrator/.claude/**)",
       "Bash(claude --version)",
       "Bash(env)",
-      "Bash(xargs grep -l \"SUBAGENT\")"
+      "Bash(xargs grep -l \"SUBAGENT\")",
+      "Bash(grep -A2 \"Overall Score\\\\|renderer\\\\\\\\\\\\\\\\purchase.js\")"
     ]
   }
 }

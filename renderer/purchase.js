@@ -153,11 +153,20 @@ function switchMultiCanteenTab(canteen) {
 }
 
 // ===== 小所食堂模式 =====
-let currentSmallCanteen = '';
 let smallModeInitialized = false;
 
 function getSmallCanteens() {
   return APP_SETTINGS.small_canteens || ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'];
+}
+
+// 将小所按两个一组分页：12, 34, 56, 7
+function getSmallCanteenPages() {
+  const canteens = getSmallCanteens();
+  const pages = [];
+  for (let i = 0; i < canteens.length; i += 2) {
+    pages.push(canteens.slice(i, i + 2));
+  }
+  return pages;
 }
 
 function initSmallCanteenMode() {
@@ -165,10 +174,12 @@ function initSmallCanteenMode() {
   const tabsEl = document.getElementById('small-canteen-tabs');
   const areaEl = document.getElementById('small-canteen-area');
 
-  // 渲染 tab
-  tabsEl.innerHTML = canteens.map((name, idx) =>
-    `<button class="tab-btn${idx === 0 ? ' active' : ''}" data-canteen="${name}" onclick="switchSmallCanteenTab('${name}')">${name}</button>`
-  ).join('');
+  // 渲染分组 tab（12, 34, 56, 7）
+  const pages = getSmallCanteenPages();
+  tabsEl.innerHTML = pages.map((page, idx) => {
+    const label = page.join(' / ');
+    return `<button class="tab-btn${idx === 0 ? ' active' : ''}" data-page="${idx}" onclick="switchSmallCanteenPage(${idx})">${label}</button>`;
+  }).join('');
 
   if (!smallModeInitialized) {
     // 为每个小所创建 purchase-group（厨房+联华）
@@ -217,61 +228,49 @@ function initSmallCanteenMode() {
     smallModeInitialized = true;
   }
 
-  // 默认选中第一个，并排显示前两个
-  if (canteens.length > 0) {
-    switchSmallCanteenTab(canteens[0]);
-  }
+  // 默认显示第一组
+  switchSmallCanteenPage(0);
 }
 
-function switchSmallCanteenTab(canteen) {
-  currentSmallCanteen = canteen;
-  const canteens = getSmallCanteens();
-  const idx = canteens.indexOf(canteen);
+function switchSmallCanteenPage(pageIdx) {
+  const pages = getSmallCanteenPages();
+  const page = pages[pageIdx] || [];
 
   // 高亮当前 tab
   document.querySelectorAll('#small-canteen-tabs .tab-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.canteen === canteen)
+    b.classList.toggle('active', parseInt(b.dataset.page) === pageIdx)
   );
 
-  // 并排显示：当前小所 + 下一个小所
   const areaEl = document.getElementById('small-canteen-area');
   areaEl.className = 'small-parallel';
 
-  // 隐藏所有，然后显示当前和下一个
+  // 隐藏所有
   areaEl.querySelectorAll('.purchase-group').forEach(g => { g.style.display = 'none'; });
 
-  // 当前小所的所有分组
-  areaEl.querySelectorAll(`.purchase-group[data-canteen="${canteen}"]`).forEach(g => {
-    g.style.display = 'block';
-  });
-
-  // 下一个小所（如果有）
-  const nextIdx = idx + 1;
-  if (nextIdx < canteens.length) {
-    const nextCanteen = canteens[nextIdx];
-    areaEl.querySelectorAll(`.purchase-group[data-canteen="${nextCanteen}"]`).forEach(g => {
+  // 显示当前组的小所
+  for (const canteen of page) {
+    areaEl.querySelectorAll(`.purchase-group[data-canteen="${canteen}"]`).forEach(g => {
       g.style.display = 'block';
     });
   }
 }
 
-// 复用其他小所的厨房数据
+// 复用：单对单
 function showCopyCanteenDialog() {
   const canteens = getSmallCanteens();
-  const source = currentSmallCanteen || canteens[0];
 
-  openModal('复用其他小所数据', `
-    <p style="margin-bottom:12px;">将选中小所的<strong>厨房</strong>数据复制到当前小所（仅厨房，不含联华）</p>
+  openModal('复用单个小所数据', `
+    <p style="margin-bottom:12px;">将源小所的<strong>厨房</strong>数据复制到目标小所（仅厨房，不含联华）</p>
     <div class="form-group">
       <label>从哪个小所复制</label>
       <select class="form-control" id="copy-source-canteen">
-        ${canteens.filter(c => c !== source).map(c => `<option value="${c}">${c}</option>`).join('')}
+        ${canteens.map(c => `<option value="${c}">${c}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
       <label>复制到</label>
       <select class="form-control" id="copy-target-canteen">
-        ${canteens.map(c => `<option value="${c}" ${c === source ? 'selected' : ''}>${c}</option>`).join('')}
+        ${canteens.map((c, i) => `<option value="${c}" ${i === 1 ? 'selected' : ''}>${c}</option>`).join('')}
       </select>
     </div>
   `, `
@@ -289,27 +288,60 @@ async function doCopyCanteen() {
     return;
   }
 
+  copyKitchenData(fromCanteen, toCanteen);
+  closeModal();
+  showToast(`已将 ${fromCanteen} 厨房数据复制到 ${toCanteen}`);
+}
+
+// 复用：单对多（一键同步到所有小所）
+function showSyncAllDialog() {
+  const canteens = getSmallCanteens();
+
+  openModal('一键同步到所有小所', `
+    <p style="margin-bottom:12px;">将选中小所的<strong>厨房</strong>数据同步到其他所有小所（仅厨房，不含联华）</p>
+    <div class="form-group">
+      <label>源小所</label>
+      <select class="form-control" id="sync-source-canteen">
+        ${canteens.map((c, i) => `<option value="${c}" ${i === 0 ? 'selected' : ''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:8px;">将覆盖其他 ${canteens.length - 1} 个小所的厨房数据</p>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doSyncAll()">确认同步</button>
+  `);
+}
+
+async function doSyncAll() {
+  const source = document.getElementById('sync-source-canteen').value;
+  const canteens = getSmallCanteens();
+  const targets = canteens.filter(c => c !== source);
+
+  for (const target of targets) {
+    copyKitchenData(source, target);
+  }
+
+  closeModal();
+  showToast(`已将 ${source} 厨房数据同步到 ${targets.length} 个小所`);
+}
+
+// 核心：复制厨房数据（从源到目标）
+function copyKitchenData(fromCanteen, toCanteen) {
   const fromSource = `${fromCanteen}-厨房`;
   const toSource = `${toCanteen}-厨房`;
 
-  // 获取源小所的厨房数据
   const fromGroup = document.querySelector(`.purchase-group[data-source="${fromSource}"]`);
-  if (!fromGroup) { showToast('未找到源小所数据', 'error'); return; }
-
   const toGroup = document.querySelector(`.purchase-group[data-source="${toSource}"]`);
-  if (!toGroup) { showToast('未找到目标小所', 'error'); return; }
+  if (!fromGroup || !toGroup) return;
 
-  // 清空目标小所的厨房内容
   const toContent = toGroup.querySelector('.group-content');
   toContent.innerHTML = '';
 
-  // 复制源小所的日期分组
   const fromDateGroups = fromGroup.querySelectorAll('.date-group');
   for (const fromDateGroup of fromDateGroups) {
     const date = getDateFromGroup(fromDateGroup);
     const dateId = `date-${toSource}-${date}`.replace(/[\s:]/g, '-');
 
-    // 创建新的日期分组
     const newDateGroup = document.createElement('div');
     newDateGroup.className = 'date-group';
     newDateGroup.id = dateId;
@@ -346,38 +378,29 @@ async function doCopyCanteen() {
     `;
     toContent.appendChild(newDateGroup);
 
-    // 复制行数据
     const toTbody = newDateGroup.querySelector('tbody');
-    const fromRows = fromDateGroup.querySelectorAll('tbody tr');
-    fromRows.forEach((tr, idx) => {
+    fromDateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
       const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
       const productName = getData('product_name').trim();
       if (!productName) return;
-
-      const item = {
+      appendPurchaseRowWithData(toTbody, {
         product_name: productName,
         spec: getData('spec'),
         unit_price: getData('unit_price'),
         quantity: getData('quantity'),
         unit: getData('unit'),
         remark: getData('remark'),
-      };
-      appendPurchaseRowWithData(toTbody, item, idx);
+      }, idx);
     });
 
-    // 更新摘要
-    const summary = newDateGroup.querySelector('.date-summary');
-    summary.textContent = `${toTbody.querySelectorAll('tr').length} 项`;
+    newDateGroup.querySelector('.date-summary').textContent = `${toTbody.querySelectorAll('tr').length} 项`;
   }
 
-  // 展开目标小所的分组
+  // 展开目标分组
   const groupHeader = toContent.previousElementSibling;
-  if (!groupHeader.classList.contains('expanded')) {
+  if (groupHeader && !groupHeader.classList.contains('expanded')) {
     toggleGroup(groupHeader);
   }
-
-  closeModal();
-  showToast(`已将 ${fromCanteen} 厨房数据复制到 ${toCanteen}`);
 }
 
 async function loadPurchaseGroupData(source) {
