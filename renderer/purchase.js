@@ -1128,22 +1128,23 @@ function buildPairedKitchenSheets(sheets, canteens) {
 
   for (let i = 0; i < canteens.length; i += 2) {
     const pair = canteens.slice(i, i + 2);
-    const [left, right] = pair;
+    const left = pair[0];
+    const right = pair[1]; // 奇数时为 undefined
     const leftRows = collectRows(`${left}-厨房`);
-    const rightRows = collectRows(`${right}-厨房`);
+    const rightRows = right ? collectRows(`${right}-厨房`) : [];
 
-    // 小所名称行：左边跨A-F，右边跨H-M
+    // 小所名称行：左边跨A-F，右边跨H-M（如有）
+    const mergeRanges = [{ range: 'A:F', text: left }];
+    if (right) mergeRanges.push({ range: 'H:M', text: right });
+
     allRows.push({
-      data: [left, '', '', '', '', '', '', right, '', '', '', '', ''],
+      data: [left, '', '', '', '', '', '', right || '', '', '', '', '', ''],
       isHeader: true,
-      mergeRanges: [
-        { range: 'A:F', text: left },
-        { range: 'H:M', text: right },
-      ],
+      mergeRanges,
     });
 
-    // 表头行
-    allRows.push({ data: [...sub, '', ...sub] });
+    // 表头行（带样式标记）
+    allRows.push({ data: [...sub, '', ...sub], isSubHeader: true });
 
     // 数据行
     const maxLen = Math.max(leftRows.length, rightRows.length);
@@ -1159,8 +1160,10 @@ function buildPairedKitchenSheets(sheets, canteens) {
       });
     }
 
-    // 空行分隔
-    allRows.push({ data: ['', '', '', '', '', '', '', '', '', '', '', '', ''] });
+    // 空行分隔（最后一组不加）
+    if (i + 2 < canteens.length) {
+      allRows.push({ data: ['', '', '', '', '', '', '', '', '', '', '', '', ''] });
+    }
   }
 
   if (allRows.length > 0) {

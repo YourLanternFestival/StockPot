@@ -216,6 +216,16 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
   });
   if (result.canceled || !result.filePath) return { success: false, error: '已取消' };
 
+  // 列字母转数字：A→1, B→2, ..., Z→26, AA→27
+  function colLetterToNum(letter) {
+    if (!letter) return 0;
+    let num = 0;
+    for (let i = 0; i < letter.length; i++) {
+      num = num * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return num;
+  }
+
   try {
     const wb = new ExcelJS.Workbook();
     const imgWidth = 80, imgHeight = 60;
@@ -260,10 +270,9 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
           if (row.mergeRanges) {
             // 支持多个合并范围，如 [{range: 'A:F', text: '寿昌'}, {range: 'H:M', text: '梅城'}]
             for (const mr of row.mergeRanges) {
-              const match = mr.range.match(/^([A-Z]+):([A-Z]+)$/);
-              if (match) {
-                const colStart = match[1].charCodeAt(0) - 64;
-                const colEnd = match[2].charCodeAt(0) - 64;
+              const colStart = colLetterToNum(mr.range.split(':')[0]);
+              const colEnd = colLetterToNum(mr.range.split(':')[1]);
+              if (colStart && colEnd) {
                 ws.mergeCells(rowNum, colStart, rowNum, colEnd);
                 const cell = dataRow.getCell(colStart);
                 cell.value = mr.text;
@@ -272,10 +281,9 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
               }
             }
           } else if (row.mergeRange) {
-            const match = row.mergeRange.match(/^([A-Z]+):([A-Z]+)$/);
-            if (match) {
-              const colStart = match[1].charCodeAt(0) - 64;
-              const colEnd = match[2].charCodeAt(0) - 64;
+            const colStart = colLetterToNum(row.mergeRange.split(':')[0]);
+            const colEnd = colLetterToNum(row.mergeRange.split(':')[1]);
+            if (colStart && colEnd) {
               ws.mergeCells(rowNum, colStart, rowNum, colEnd);
               dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
               dataRow.getCell(colStart).alignment = { vertical: 'middle', horizontal: 'center' };
@@ -295,6 +303,18 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
           continue;
         }
 
+        // Sub-header row styling (表头行，如 序号/品名/规格/...)
+        if (row.isSubHeader) {
+          dataRow.height = 30;
+          dataRow.font = { name: '宋体', bold: true, size: 15 };
+          dataRow.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+            cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+            cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          });
+          continue;
+        }
+
         dataRow.height = 50;
         dataRow.font = { name: '宋体', size: 15 };
         dataRow.eachCell(cell => {
@@ -302,8 +322,8 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
           cell.alignment = { vertical: 'middle' };
           cell.font = { name: '宋体', size: 15 };
         });
-        // Right-align amount column (col 8)
-        if (colCount >= 8) dataRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
+        // Right-align amount column (col 8) — only for standard layout (10 columns)
+        if (colCount === 10 && colCount >= 8) dataRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
 
         // Embed image in last column
         if (row.imagePath && fs.existsSync(row.imagePath)) {
@@ -330,8 +350,11 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
         });
         ws.getColumn(i).width = Math.min(dataMax + 2, 24);
       }
-      // Image column fixed width
-      ws.getColumn(colCount).width = 14;
+      // Image column fixed width (only for standard layout with image column)
+      const hasImageCol = sheet.rows.some(r => r.imagePath);
+      if (hasImageCol) {
+        ws.getColumn(colCount).width = 14;
+      }
     }
 
     await wb.xlsx.writeFile(result.filePath);
