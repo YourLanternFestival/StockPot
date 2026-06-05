@@ -1121,44 +1121,47 @@ function buildMatrixKitchenSheet(sheets, canteens) {
   });
 }
 
-// 样式2：两两左右并列（同一行上两个完整表格）
+// 样式2：两两左右并列（同一个sheet内，垂直排列多组）
 function buildPairedKitchenSheets(sheets, canteens) {
+  const allRows = [];
+  const sub = ['序号', '品名', '规格', '单位', '数量', '备注'];
+
   for (let i = 0; i < canteens.length; i += 2) {
     const pair = canteens.slice(i, i + 2);
-    buildOnePairedSheet(sheets, pair);
+    const [left, right] = pair;
+    const leftRows = collectRows(`${left}-厨房`);
+    const rightRows = collectRows(`${right}-厨房`);
+
+    // 标题行（isHeader: true 会被合并单元格加粗）
+    allRows.push({ data: [`${left}    ${right}`, '', '', '', '', '', '', '', '', '', '', '', ''], isHeader: true });
+
+    // 表头行
+    allRows.push({ data: [...sub, '', ...sub] });
+
+    // 数据行
+    const maxLen = Math.max(leftRows.length, rightRows.length);
+    for (let idx = 0; idx < maxLen; idx++) {
+      const l = leftRows[idx];
+      const r = rightRows[idx];
+      allRows.push({
+        data: [
+          l ? idx + 1 : '', l ? l.product_name : '', l ? l.spec : '', l ? l.unit : '', l ? l.quantity : '', l ? (l.remark || '') : '',
+          '',
+          r ? idx + 1 : '', r ? r.product_name : '', r ? r.spec : '', r ? r.unit : '', r ? r.quantity : '', r ? (r.remark || '') : '',
+        ]
+      });
+    }
+
+    // 空行分隔
+    allRows.push({ data: ['', '', '', '', '', '', '', '', '', '', '', '', ''] });
   }
-}
 
-function buildOnePairedSheet(sheets, pair) {
-  const [left, right] = pair;
-  const leftRows = collectRows(`${left}-厨房`);
-  const rightRows = collectRows(`${right}-厨房`);
-
-  if (leftRows.length === 0 && rightRows.length === 0) return;
-
-  // 表头：左边6列 + 空列 + 右边6列
-  const sub = ['序号', '品名', '规格', '单位', '数量', '备注'];
-  const headers = [...sub.map(h => `${left}${h}`), '', ...sub.map(h => `${right}${h}`)];
-
-  const maxLen = Math.max(leftRows.length, rightRows.length);
-  const rows = [];
-
-  for (let idx = 0; idx < maxLen; idx++) {
-    const l = leftRows[idx];
-    const r = rightRows[idx];
-    rows.push({
-      data: [
-        l ? idx + 1 : '', l ? l.product_name : '', l ? l.spec : '', l ? l.unit : '', l ? l.quantity : '', l ? (l.remark || '') : '',
-        '',
-        r ? idx + 1 : '', r ? r.product_name : '', r ? r.spec : '', r ? r.unit : '', r ? r.quantity : '', r ? (r.remark || '') : '',
-      ]
+  if (allRows.length > 0) {
+    sheets.push({
+      name: '小所厨房',
+      title: '小所厨房申购单',
+      headers: [...sub.map(h => `${canteens[0]}${h}`), '', ...sub.map(h => `${canteens[1] || ''}${h}`)],
+      rows: allRows,
     });
   }
-
-  sheets.push({
-    name: pair.join('&'),
-    title: `${left} & ${right} 厨房申购单`,
-    headers,
-    rows,
-  });
 }
