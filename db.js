@@ -209,11 +209,11 @@ function batchDeleteProducts(ids) {
   save();
 }
 
-// ===== Inbound =====
-function getInboundRecords({ startDate, endDate, productId } = {}) {
+// ===== Records (shared) =====
+function getRecords(table, { startDate, endDate, productId } = {}) {
   let sql = `
     SELECT r.*, p.name as product_name, p.spec, p.unit
-    FROM inbound_records r
+    FROM ${table} r
     JOIN products p ON r.product_id = p.id
     WHERE 1=1
   `;
@@ -223,6 +223,11 @@ function getInboundRecords({ startDate, endDate, productId } = {}) {
   if (productId) { sql += ' AND r.product_id = ?'; params.push(productId); }
   sql += ' ORDER BY r.date DESC, r.id DESC';
   return queryAll(sql, params);
+}
+
+// ===== Inbound =====
+function getInboundRecords(filters) {
+  return getRecords('inbound_records', filters);
 }
 
 function addInbound({ product_id, date, quantity, remark, production_date, expiry_date }) {
@@ -243,19 +248,8 @@ function deleteInbound(id) {
 }
 
 // ===== Outbound =====
-function getOutboundRecords({ startDate, endDate, productId } = {}) {
-  let sql = `
-    SELECT r.*, p.name as product_name, p.spec, p.unit
-    FROM outbound_records r
-    JOIN products p ON r.product_id = p.id
-    WHERE 1=1
-  `;
-  const params = [];
-  if (startDate) { sql += ' AND r.date >= ?'; params.push(startDate); }
-  if (endDate) { sql += ' AND r.date <= ?'; params.push(endDate); }
-  if (productId) { sql += ' AND r.product_id = ?'; params.push(productId); }
-  sql += ' ORDER BY r.date DESC, r.id DESC';
-  return queryAll(sql, params);
+function getOutboundRecords(filters) {
+  return getRecords('outbound_records', filters);
 }
 
 function addOutbound({ product_id, date, quantity, recipient }) {
@@ -480,34 +474,33 @@ function importOpeningStock(openingStockMap) {
   save();
 }
 
-function importInbound(records) {
+function importRecords(sqlFn, records) {
   const productMap = {};
   queryAll('SELECT id, name FROM products').forEach(p => { productMap[p.name] = p.id; });
   let imported = 0, skipped = 0;
   for (const r of records) {
     const pid = productMap[r.name];
     if (!pid) { skipped++; continue; }
-    run('INSERT INTO inbound_records (product_id, date, quantity, remark, production_date, expiry_date) VALUES (?, ?, ?, ?, ?, ?)',
-      [pid, r.date, r.quantity, r.remark || '', r.productionDate || null, r.expiryDate || null]);
+    const [sql, params] = sqlFn(r, pid);
+    run(sql, params);
     imported++;
   }
   save();
   return { imported, skipped };
 }
 
+function importInbound(records) {
+  return importRecords((r, pid) => [
+    'INSERT INTO inbound_records (product_id, date, quantity, remark, production_date, expiry_date) VALUES (?, ?, ?, ?, ?, ?)',
+    [pid, r.date, r.quantity, r.remark || '', r.productionDate || null, r.expiryDate || null]
+  ], records);
+}
+
 function importOutbound(records) {
-  const productMap = {};
-  queryAll('SELECT id, name FROM products').forEach(p => { productMap[p.name] = p.id; });
-  let imported = 0, skipped = 0;
-  for (const r of records) {
-    const pid = productMap[r.name];
-    if (!pid) { skipped++; continue; }
-    run('INSERT INTO outbound_records (product_id, date, quantity, recipient) VALUES (?, ?, ?, ?)',
-      [pid, r.date, r.quantity, r.recipient || '']);
-    imported++;
-  }
-  save();
-  return { imported, skipped };
+  return importRecords((r, pid) => [
+    'INSERT INTO outbound_records (product_id, date, quantity, recipient) VALUES (?, ?, ?, ?)',
+    [pid, r.date, r.quantity, r.recipient || '']
+  ], records);
 }
 
 function clearAllData() {
