@@ -1,194 +1,175 @@
-# Handoff - 采购单模块未完成需求 & 已知问题
+# 洋安出入库管理系统 - 交接文档
 
-> 写于 2026-06-05，基于子代理代码审查报告整理
+## 已完成功能
 
----
+### 1. 产品管理
+- ✅ 产品增删改查
+- ✅ 批量删除（带确认弹窗）
+- ✅ 保质期月/日联动换算
+- ✅ 产品搜索
 
-## 一、未完成需求
+### 2. 入库登记
+- ✅ 批量入库（可配置默认行数）
+- ✅ 产品自动补全（品名、规格、单位自动填充）
+- ✅ 到期日自动计算（生产日期 + 保质期）
+- ✅ 最近入库记录查看
+- ✅ 键盘导航（Enter跳行、Arrow上下移动）
 
-### 1.1 导出美化（未开始）
+### 3. 出库登记
+- ✅ 批量出库
+- ✅ 产品自动补全（显示当前库存）
+- ✅ 库存不足提醒
+- ✅ 最近出库记录查看
+- ✅ 键盘导航
 
-| 导出项 | 当前状态 | 目标 |
-|--------|---------|------|
-| 月度台账 | SheetJS，无格式化 | ExcelJS，表头加粗/底色/边框，金额1位小数，冻结前4列，自动列宽，零值空白 |
-| 入库流水账 | SheetJS，无格式化 | 同台账美化风格 |
-| 出库流水账 | SheetJS，无格式化 | 同台账美化风格 |
+### 4. 库存查询
+- ✅ 实时库存计算（上月结存 + 入库 - 出库）
+- ✅ 库存详情（入库/出库记录）
+- ✅ 过期预警（30天/60天/已过期分类）
 
-**关键文件**：
-- `renderer/app.js` → `exportInventory()` (行 1438), `exportLedger()` (行 1459), `exportAll()` (行 1494)
-- 需要将 SheetJS (`XLSX`) 替换为 ExcelJS，迁移到 `main.js` 通过 IPC 调用
+### 5. 月度台账
+- ✅ 按月查看库存变动
+- ✅ 每日入库/出库明细
+- ✅ 导入/导出功能
 
-### 1.2 采购单导出格式修正（部分完成）
+### 6. 总览仪表盘
+- ✅ 统计卡片（在库品种、入库笔数、出库笔数、临期预警）
+- ✅ 近30天入出库趋势图
+- ✅ 库存分布饼图（Top 10）
+- ✅ 临期预警列表
 
-**已完成**：
-- `main.js` 的 `export:purchaseOrder` handler 已改为 ExcelJS，支持跨列居中、宋体15号、行高50
-- 删除了"用途"列，改为"实物图"列
+### 7. 采购单
+- ✅ 食堂采购单管理（厨房、面点房、联华超市）
+- ✅ 按日期分组
+- ✅ 金额自动计算
+- ✅ 保存/加载功能
+- ✅ 联华商品管理（独立商品库）
+- ✅ 导出采购单（ExcelJS，含实物图嵌入）
+- ✅ 复制行按钮（快速复制相同物料条目）
 
-**未完成**：
-- 图片嵌入尺寸需根据实际效果微调（当前 80×60，行高 50）
-- 列宽需要根据实际数据测试后调整（当前用预设值）
+### 8. 询价管理
+- ✅ 月份筛选
+- ✅ 分类筛选
+- ✅ 搜索功能
+- ✅ 折扣计算（盛销价、优宏价）
+- ✅ 导入鉴证表（xlsx）
+- ✅ 新增单品
+- ✅ 实物图保存/显示
+- ✅ 品名自动补全（从物料表检索，选择后自动填充单位/规格/分类）
+- ✅ 操作列（复制📋、删除✕）
 
-### 1.3 多食堂模式（下涯/制杆厂/白南山）（框架在，问题多）
-
-**需求描述**：
-- 设置中开启"多食堂分页模式"
-- 采购单页显示 Tab（下涯 | 制杆厂 | 白南山）
-- 每个 Tab 下有：联华超市（从联华商品库选品）+ 厨房（自由录入）
-- 联华商品库共享，但每个所的订单独立
-- 导出时：三个所的厨房合一个 sheet（所名标题 + 3行分隔），联华合一个 sheet（同理）
-- 文件名：`x月下涯、制杆厂、白南山采购单.xlsx`
-
-**当前状态**：
-- HTML 结构已搭建（Tab bar + multi-canteen-area）
-- JS 框架已搭建（`initMultiCanteenMode`, `switchMultiCanteenTab`）
-- Tab 切换只做显隐，不销毁 DOM（✓ 正确）
-- 导出合并逻辑已实现
-
-**存在的 Bug（见下方第二节）**：BUG-1, BUG-3, BUG-4, BUG-5
-
-### 1.4 各小所食堂（完全未开始）
-
-**需求描述**：
-- 一个"各所食堂"导航入口
-- 每页一个所（寿昌、梅城、大同、洋溪、乾潭等），不分并排
-- 固定 20 行表格，列 = 序号/食堂名称/名称规格/单位/规格/单价/数量/金额/备注
-- 支持从联华商品库导入
-- 设置中可配置小所名称列表（增删）
-- 导出时两两并排（寿昌+梅城一个 sheet，大同+洋溪一个 sheet，...）
-- 表头参考 `6月各所采购单(3).xls`
-
-**涉及的改动**：
-- `db.js`：新建 `canteen_orders` 表
-- `main.js`：新增 IPC handler
-- `preload.js`：新增 API
-- `renderer/app.js`：新页面逻辑 + 导出
-- `renderer/index.html`：新导航项 + 新页面 HTML
-- `renderer/styles.css`：新样式
-- 设置页：小所名称管理 UI
-
-### 1.5 导航栏名称调整（未完成）
-
-- 当前"采购单"导航项名称需要根据食堂模式动态变化
-- 或者保持"采购单"不变，在页面内显示当前模式标识
+### 9. 数据导入导出
+- ✅ 导入产品数据
+- ✅ 导入入库记录
+- ✅ 导入出库记录
+- ✅ 导出库存（xlsx）
+- ✅ 导出台账（xlsx）
+- ✅ 导出全部数据
 
 ---
 
-## 二、已知 Bug（按严重程度排序）
+## 已知问题 (BUGS) — 已修复
 
-### 🔴 严重
+### 1. 导出采购单功能失效 ✅ 已修复
+- **现象：** 导出时混入其他食堂模式的旧数据
+- **根因：** 导出函数从 DOM 收集所有 `purchase-group[data-source]` 的数据，不区分当前模式
+- **解决：** 按当前模式过滤数据源
+  - 多食堂模式：只导出 `下涯/制杆厂/白南山` 的厨房+联华
+  - 默认模式：只导出当前食堂的厨房/面点房+联华
 
-#### BUG-1: `exportLianhuaOrderByDate` DOM id 查找永远失败
-- **文件**: `renderer/app.js`
-- **问题**: `addLianhuaDateGroup` 创建的 dateId 格式为 `lianhua-date_${source}_${date}`（连字符被替换），但 `exportLianhuaOrderByDate` 查找时用 `lianhua-date-${date}`（无 source，带连字符）
-- **影响**: 单日期联华订单导出功能完全不可用
-- **修复方向**: 统一 id 生成逻辑，或改用 `closest('.date-group')` 从按钮 DOM 向上查找
+### 2. 物料表的类别自动识别 ✅ 已修复
+- **现象：** 新增询价单品时，品名已存在但分类不会自动填充
+- **解决：** 新增 `getLatestCategoryForName` 数据库函数，从询价历史查询最近月份的分类
+  - 品名输入框支持自动补全（从物料表 PRODUCTS 检索）
+  - 选择已有物料后自动填充：单位、规格、分类
+  - 手动输入品名失焦时也尝试识别分类
+  - 用户手动改过分类后不覆盖
 
-#### BUG-2: `editLianhuaItem` 函数未定义
-- **文件**: `renderer/app.js`，`showManageLianhuaItems` 函数中
-- **问题**: HTML 中引用了 `editLianhuaItem(${item.id})`，但该函数从未定义
-- **影响**: 联华商品管理页面点击"编辑"按钮报 ReferenceError
-- **修复方向**: 实现 `editLianhuaItem` 函数，或移除编辑按钮
+### 3. 物料表的库存字段 ⚠️ 未复现
+- **现象：** HANDOFF 描述为"新建一个物料，再新建一个物料并填写库存后，前一个新建物料的库存会自动同步变成后一个新建物料的库存数值"
+- **分析：** 产品表无库存列，库存由入库/出库记录计算。出库表格每行独立（`input.closest('tr')` 精确限定行范围），未发现行间状态共享
+- **状态：** 需要具体复现步骤
 
-### 🟡 中等
-
-#### BUG-3: `isLianhua` 硬编码判断在多食堂模式下失效
-- **文件**: `renderer/app.js`，`handleProductAutocomplete` 函数
-- **行号**: 约 2121
-- **问题**: `purchaseGroup.dataset.source === '联华'` 只匹配字面量，不匹配 `'下涯-联华'` 等
-- **影响**: 如果多食堂联华行误用了通用自动补全路径，会查询询价数据而非联华商品库
-- **修复方向**: 改为 `source.includes('联华')` 或 `source.endsWith('联华')`
-
-#### BUG-4: 日期分组删除不清理数据库
-- **文件**: `renderer/app.js`，`deleteDateGroup` 和 `deleteLianhuaDateGroup`
-- **问题**: 只移除 DOM 元素，不调用 `deletePurchaseOrder` 清理数据库
-- **影响**: 删除后重新加载数据会"复活"
-- **修复方向**: 删除前遍历 tbody 中所有 tr，对有 `data-id` 的行调用 `deletePurchaseOrder`；或新增按 source+date 批量删除的 API
-
-#### BUG-6: 保存清理逻辑中的硬编码
-- **文件**: `renderer/app.js`，`saveAllPurchaseOrders`
-- **问题**: `g.dataset.source === '联华'` 硬编码，多食堂的 `'下涯-联华'` 等不匹配
-- **影响**: 当前用 `offsetParent !== null` 兜底，实际不影响，但代码意图不清晰
-- **修复方向**: 改为 `source.includes('联华')` 或统一用可见性判断
-
-### 🟢 低
-
-#### BUG-5: 厨房和联华共用 `addDateGroup`，自动补全靠运行时判断
-- **问题**: 设计隐患，厨房用询价数据，联华用联华商品库，但都走 `addDateGroup` → `appendPurchaseRow`
-- **影响**: 如果联华分组误用了 `addDateGroup`（而非 `addLianhuaDateGroup`），自动补全数据源错误
-- **修复方向**: 联华分组的"添加日期"按钮始终调用 `showAddLianhuaDate`，不暴露 `addDateGroup`
+### 4. 修改物料信息保存后数据库未更新 ✅ 已修复
+- **现象：** 编辑物料后保存，界面上显示更新了，但是数据库中的数据未更新
+- **根因：** `db.run()` 在 sql.js 中对 SQL 错误静默失败，前端 `doEditProduct` 无 try-catch
+- **解决：**
+  - `db.run()` 添加 try-catch 日志包装，SQL 出错时抛出异常
+  - `doEditProduct` 添加 try-catch，错误时显示 toast 提示
 
 ---
 
-## 三、代码复用问题（低优先级）
+## 额外修复项目
 
-| 编号 | 问题 | 位置 |
-|------|------|------|
-| REUSE-1 | 日期分组 table HTML 模板重复三处 | `addDateGroupToPage`, `addDateGroup`, `addLianhuaDateGroup` |
-| REUSE-2 | 采购行 HTML 模板重复三处 | `appendPurchaseRow`, `appendLianhuaRow`, `appendPurchaseRowWithData` |
-| REUSE-3 | 行数据提取逻辑重复四处 | `saveAllPurchaseOrders`, `collectRows`, 联华导出, `exportLianhuaOrderByDate` |
-| REUSE-4 | 日期分组删除函数重复两处 | `deleteDateGroup`, `deleteLianhuaDateGroup` |
+### 1. 食堂模式重构 ✅
+- **改动：** 设置页简化为三种模式选择（默认/多食堂/小所），采购单页新增洋安/新安切换按钮
+- **兼容：** 自动兼容旧设置格式（`xiaosuo_mode=on` → 多食堂模式）
 
-**建议**：合并为公共函数，通过参数区分行为（如 `createDateGroupHTML(options)`, `createPurchaseRow(item, isLianhua)`）
-
----
-
-## 四、其他待处理
-
-| 编号 | 问题 | 说明 |
-|------|------|------|
-| OTHER-1 | 退出时不检测采购单未保存数据 | `hasUnsavedData` 只检查入库/出库 |
-| OTHER-2 | 模式切换时 `loadPurchaseGroupData` 清空未保存编辑 | `saveSettings` → `applyCanteenMode` 会重建 DOM |
-| MISS-4 | 多食堂导出联华"客户名称"用各自所名 | 确认是否符合预期（下涯的联华导出显示"下涯"） |
+### 2. 审查问题修复 ✅
+- `addPurchaseRows`：联华分组使用 `appendLianhuaRow` 而非 `appendPurchaseRow`
+- `initNormalCanteenMode`：切换食堂时重新加载联华分组数据
+- `copyInquiryItem`：改为 async/await，消除 setTimeout 竞态
 
 ---
 
-## 五、关键文件索引
+## 待实现功能
 
-| 文件 | 说明 |
-|------|------|
-| `renderer/index.html` | 页面结构，采购单分组在 `#purchase-container` 内 |
-| `renderer/app.js` | 所有前端逻辑，约 3100 行 |
-| `renderer/styles.css` | 样式 |
-| `main.js` | Electron 主进程，IPC handler，`export:purchaseOrder` 导出逻辑 |
-| `preload.js` | contextBridge API 定义 |
-| `db.js` | SQLite 数据库操作 |
-| `6月洋安采购单.xls` | 洋安采购单参考格式 |
-| `6月各所采购单(3).xls` | 各小所采购单参考格式（寿昌+梅城并排） |
+### 1. 小所食堂模式（大块开发）
+- 状态：**未开始**
+- 说明：设置页已预留选项（禁用状态），采购单页结构已支持扩展
+
+### 2. 物料表库存字段串值（BUG3）
+- 状态：**未复现**
+- 说明：需要具体复现步骤确认问题是否存在
 
 ---
 
-## 六、建议实施顺序
+## 技术栈
 
-1. **先修 Bug**：BUG-1 ~ BUG-4（影响基本功能）
-2. **再做导出美化**：台账/入库/出库的 ExcelJS 格式化
-3. **然后做各小所食堂**：新功能，独立模块，不影响现有代码
-4. **最后做代码复用重构**：在功能稳定后再重构，避免引入新问题
+- **前端：** Electron + 原生HTML/CSS/JS
+- **后端：** Node.js + sql.js (SQLite in-memory)
+- **图表：** Chart.js
+- **Excel：** XLSX.js (导入) + ExcelJS (导出含图片)
+- **构建：** Electron Builder
 
-  我的问题（核心）
+## 项目结构
 
-  1. 过度设计，不刹车
-  用户说"先做这个大块的 demo"，我却一口气搭了 6
-  个分组、一堆新函数、新数据源。明明在单页洋安基础上改几个字段就能解决的事，我搞成了重写整个模块。
+```
+├── main.js          # Electron主进程
+├── preload.js       # 预加载脚本（IPC桥接）
+├── db.js            # 数据库操作
+├── renderer/
+│   ├── index.html   # 主页面
+│   ├── styles.css   # 样式
+│   └── app.js       # 前端逻辑
+└── package.json
+```
 
-  2. 不看示例文件就动手
-  用户给了 6月各所采购单(3).xls 和 6月洋安采购单.xls，我扫了一眼就按自己的理解编码。联华的"客户名称"写死"洋安"、导出格式
-  不对、列名错误——都是因为没认真对照示例。
+## 开发命令
 
-  3. 反复犯同一个错
-  - 联华数据源问题：用户说了"共享联华分组数据"，我理解成共享订单，又理解成共享商品库，改了三版还没搞对
-  - 硬编码问题：=== '联华' 写了一次，被指出后修了 appendPurchaseRowWithData，但 handleProductAutocomplete
-  里还留着同样的硬编码
-  - SQL JOIN 扇出：一个 bug 修了三处（getInventory, getDashboardStats, getExpiryAlerts），说明我不理解自己写的 SQL
+```bash
+# 安装依赖
+npm install
 
-  4. 抄代码不改逻辑
-  从正常模式复制联华逻辑到多食堂模式时，直接调用了询价数据的接口，没有检查数据源是否正确。用户骂"复用功能不是让你直接抄
-  过来什么都不改"，完全正确。
+# 开发模式运行
+npm start
 
-  5. 不做基本验证
-  写完代码不自测，不检查函数是否存在（editLianhuaItem）、不检查 DOM id
-  是否匹配（exportLianhuaOrderByDate）、不检查变量是否定义（date）。这些是最低限度的自检。
+# 构建
+npm run build
+```
 
-    教训
+## 数据库位置
 
-  收到示例文件时，应该先对照示例逐列确认表头和数据格式，再写任何代码。用户说"复用"时，应该问清楚复用的是数据、逻辑还是
-  UI，而不是自己猜。改动量大时，应该先列清单让用户确认，而不是写完再被推翻。
+Windows: `%APPDATA%/洋安出入库管理系统/inventory.db`
+
+## 注意事项
+
+1. **数据备份：** 建议定期备份数据库文件
+2. **Excel导入：** 导入会清空现有数据，请谨慎操作
+3. **保质期计算：** 月数会自动转换为天数（1月=30天）
+4. **键盘导航：**
+   - Enter：跳到下一行同列（可配置为跳到下一行首格）
+   - Arrow Up/Down：上下移动
+   - Escape：关闭下拉菜单
+5. **联华商品：** 独立于物料表，需要单独管理
+6. **实物图片：** 按"品名_规格.ext"命名，建议使用内网共享文件夹
