@@ -69,10 +69,14 @@ function handleAutocompleteKeydown(e, input, selectFn) {
     autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
     updateAutocompleteHighlight(items);
     return true;
-  } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
-    e.preventDefault();
-    selectFn(input, items[autocompleteIndex]);
-    return true;
+  } else if (e.key === 'Enter') {
+    // 下拉有结果时自动选中第一项（不需要先用方向键高亮）
+    if (autocompleteIndex < 0 && items.length > 0) autocompleteIndex = 0;
+    if (autocompleteIndex >= 0) {
+      e.preventDefault();
+      selectFn(input, items[autocompleteIndex]);
+      return true;
+    }
   } else if (e.key === 'Escape') {
     hideAutocomplete();
     return true;
@@ -81,10 +85,13 @@ function handleAutocompleteKeydown(e, input, selectFn) {
 }
 
 // 绑定自动补全的 input/focus/blur 事件
-function bindAutocompleteEvents(input, searchFn, selectFn) {
+function bindAutocompleteEvents(input, searchFn, selectFn, onBlur) {
   input.addEventListener('input', () => searchFn(input));
   input.addEventListener('focus', () => searchFn(input));
-  input.addEventListener('blur', () => setTimeout(hideAutocomplete, 200));
+  input.addEventListener('blur', () => setTimeout(() => {
+    hideAutocomplete();
+    if (onBlur) onBlur(input);
+  }, 200));
 }
 
 // ===== Public Table Keyboard Navigation =====
@@ -178,7 +185,7 @@ function handleCellKeydown(e, input, tbody, onAppendRow) {
 }
 
 function bindTableRowEvents(tr, tbody, options = {}) {
-  const { onSelect, onAutocomplete, onProductSelect, onQtyChange, onFieldChange, onAppendRow } = options;
+  const { onSelect, onAutocomplete, onProductSelect, onProductBlur, onQtyChange, onFieldChange, onAppendRow } = options;
   tr.querySelectorAll('.cell-editable').forEach(input => {
     input.addEventListener('keydown', (e) => {
       if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, onSelect)) return;
@@ -186,7 +193,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
     });
 
     if (input.dataset.field === 'product_name' && onAutocomplete && onProductSelect) {
-      bindAutocompleteEvents(input, onAutocomplete, onProductSelect);
+      bindAutocompleteEvents(input, onAutocomplete, onProductSelect, onProductBlur);
     }
 
     if (onFieldChange) input.addEventListener('change', () => onFieldChange(tr));

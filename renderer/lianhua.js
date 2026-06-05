@@ -340,6 +340,7 @@ function attachLianhuaCellEvents(tr, tbody) {
     onSelect: selectLianhuaAutocompleteItem,
     onAutocomplete: handleLianhuaAutocomplete,
     onProductSelect: selectLianhuaAutocompleteItem,
+    onProductBlur: handleLianhuaBlur,
     onQtyChange: (row) => recalcRowAmount(row),
     onFieldChange: () => {},
     onAppendRow: () => {
@@ -347,6 +348,26 @@ function attachLianhuaCellEvents(tr, tbody) {
       appendLianhuaRow(tbody, currentCount);
     }
   });
+}
+
+// 失焦时自动匹配：键入全名后点别处，自动拉取规格、单位、单价
+function handleLianhuaBlur(input) {
+  if (!input.isConnected) return;
+  const tr = input.closest('tr');
+  const keyword = input.value.trim();
+  if (!keyword) return;
+
+  const existingSpec = tr.querySelector('[data-field="spec"]')?.value;
+  const existingPrice = tr.querySelector('[data-field="unit_price"]')?.value;
+  if (existingSpec || existingPrice) return;
+
+  const match = lianhuaItems.find(i => i.name.toLowerCase() === keyword.toLowerCase());
+  if (match) {
+    tr.querySelector('[data-field="spec"]').value = match.spec || '';
+    tr.querySelector('[data-field="unit_price"]').value = match.price || 0;
+    tr.querySelector('[data-field="unit"]').value = match.unit || '件';
+    recalcRowAmount(tr);
+  }
 }
 
 function handleLianhuaAutocomplete(input) {
@@ -363,6 +384,18 @@ function handleLianhuaAutocomplete(input) {
       <span class="item-spec">${item.spec || ''} | ¥${item.price || 0}</span>
     </div>
   `).join('');
+  // 定位下拉菜单（fixed 定位，不会被滚动容器裁切）
+  const rect = input.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  dropdown.style.minWidth = rect.width + 'px';
+  if (spaceBelow < 220) {
+    dropdown.style.bottom = (window.innerHeight - rect.top) + 'px';
+    dropdown.style.top = 'auto';
+  } else {
+    dropdown.style.top = rect.bottom + 'px';
+    dropdown.style.bottom = 'auto';
+  }
+  dropdown.style.left = rect.left + 'px';
   dropdown.style.display = 'block';
   autocompleteIndex = -1;
   dropdown.querySelectorAll('.autocomplete-item').forEach(item => {

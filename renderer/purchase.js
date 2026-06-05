@@ -754,9 +754,53 @@ function attachCellEvents(tr, tbody) {
     onSelect: selectAutocompleteItem,
     onAutocomplete: handleProductAutocomplete,
     onProductSelect: selectAutocompleteItem,
+    onProductBlur: handleProductBlur,
     onQtyChange: (row) => recalcRowAmount(row),
     onFieldChange: (row) => recalcRowAmount(row),
+    onAppendRow: (tbody, idx) => appendPurchaseRow(tbody, idx),
   });
+}
+
+// 失焦时自动匹配：键入全名后点别处，自动拉取规格、单位、单价
+async function handleProductBlur(input) {
+  if (!input.isConnected) return;
+  const tr = input.closest('tr');
+  const keyword = input.value.trim();
+  if (!keyword) return;
+
+  // 已有数据则不覆盖
+  const existingSpec = tr.querySelector('[data-field="spec"]')?.value;
+  const existingPrice = tr.querySelector('[data-field="unit_price"]')?.value;
+  if (existingSpec || existingPrice) return;
+
+  const purchaseGroup = tr.closest('.purchase-group');
+  const isLianhua = purchaseGroup && purchaseGroup.dataset.source.includes('联华');
+
+  try {
+    let match = null;
+
+    if (isLianhua) {
+      match = lianhuaItems.find(i => i.name.toLowerCase() === keyword.toLowerCase());
+    } else {
+      let currentMonth = document.getElementById('inquiry-month')?.value;
+      if (!currentMonth) {
+        const months = await window.api.getInquiryMonths();
+        currentMonth = months.length > 0 ? months[0].month : null;
+      }
+      const results = await window.api.searchInquiryItems(keyword, currentMonth);
+      // 优先精确匹配，否则取第一个结果
+      match = results.find(r => r.name.toLowerCase() === keyword.toLowerCase()) || results[0];
+    }
+
+    if (match) {
+      tr.querySelector('[data-field="spec"]').value = match.spec || '';
+      tr.querySelector('[data-field="unit_price"]').value = match.price || 0;
+      tr.querySelector('[data-field="unit"]').value = match.unit || '';
+      recalcRowAmount(tr);
+    }
+  } catch (err) {
+    console.error('Product blur match error:', err);
+  }
 }
 
 function recalcRowAmount(tr) {
@@ -832,6 +876,18 @@ async function handleProductAutocomplete(input) {
       </div>
     `).join('');
 
+    // 定位下拉菜单（fixed 定位，不会被滚动容器裁切）
+    const rect = input.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    dropdown.style.minWidth = rect.width + 'px';
+    if (spaceBelow < 220) {
+      dropdown.style.bottom = (window.innerHeight - rect.top) + 'px';
+      dropdown.style.top = 'auto';
+    } else {
+      dropdown.style.top = rect.bottom + 'px';
+      dropdown.style.bottom = 'auto';
+    }
+    dropdown.style.left = rect.left + 'px';
     dropdown.style.display = 'block';
     autocompleteIndex = -1;
 
@@ -1174,6 +1230,11 @@ function buildPairedKitchenSheets(sheets, canteens) {
       title: `${dateStr}小所厨房申购单`,
       headers: ['', '', '', '', '', '', '', '', '', '', '', '', ''],
       rows: allRows,
+      // 序号8 品名30 规格20 单位8 数量8 备注12 分割2
+      colWidths: [8, 30, 20, 8, 8, 12, 2, 8, 30, 20, 8, 8, 12],
+      headerHeight: 40,
+      rowHeight: 30,
+      titleFontSize: 36,
     });
   }
 }

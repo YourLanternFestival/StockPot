@@ -237,21 +237,25 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
       const dataMaxLen = sheet.rows.reduce((max, r) => Math.max(max, r.data.length), 0);
       const colCount = Math.max(headerLen, dataMaxLen);
 
-      // Row 1: Title (合并单元格跨列居中, 宋体 15号)
+      // Row 1: Title (宋体)
+      const titleFontSize = sheet.titleFontSize || 15;
       const titleRow = ws.addRow([sheet.title]);
-      titleRow.font = { name: '宋体', bold: true, size: 15 };
-      titleRow.height = 30;
+      titleRow.font = { name: '宋体', bold: true, size: titleFontSize };
+      titleRow.height = sheet.headerHeight || 30;
       if (colCount > 1) {
-        ws.mergeCells(1, 1, 1, colCount);
+        for (let c = 1; c <= colCount; c++) {
+          titleRow.getCell(c).alignment = { horizontal: 'centerContinuous', vertical: 'middle' };
+        }
+      } else {
+        titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
       }
-      titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
-      // Row 2: Headers (宋体 15号) — 跳过全空的 headers
+      // Row 2: Headers — 跳过全空的 headers
       const hasHeaders = sheet.headers.some(h => h !== '' && h !== null && h !== undefined);
       if (hasHeaders) {
         const headerRow = ws.addRow(sheet.headers);
         headerRow.font = { name: '宋体', bold: true, size: 15 };
-        headerRow.height = 50;
+        headerRow.height = sheet.headerHeight || 50;
         headerRow.eachCell(cell => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -259,39 +263,49 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
         });
       }
 
+      // 先设列宽（合并前设，确保各列宽度独立生效）
+      if (sheet.colWidths) {
+        for (let i = 1; i <= colCount; i++) {
+          ws.getColumn(i).width = sheet.colWidths[i - 1] || 12;
+        }
+      }
+
       // Data rows
       for (const row of sheet.rows) {
-        const dataRow = ws.addRow(row.data);
+        const isHeaderRow = row.isHeader;
+        // isHeader 行用空行建，避免空字符串单元格干扰跨列居中
+        const dataRow = isHeaderRow ? ws.addRow([]) : ws.addRow(row.data);
         const rowNum = dataRow.number;
 
-        if (row.isHeader) {
-          // Canteen name header in merged sheet
-          dataRow.height = 30;
+        if (isHeaderRow) {
+          // Canteen name header — 跨列居中（不合并单元格）
+          dataRow.height = sheet.headerHeight || 30;
           if (row.mergeRanges) {
-            // 支持多个合并范围，如 [{range: 'A:F', text: '寿昌'}, {range: 'H:M', text: '梅城'}]
             for (const mr of row.mergeRanges) {
               const colStart = colLetterToNum(mr.range.split(':')[0]);
               const colEnd = colLetterToNum(mr.range.split(':')[1]);
               if (colStart && colEnd) {
-                ws.mergeCells(rowNum, colStart, rowNum, colEnd);
-                const cell = dataRow.getCell(colStart);
-                cell.value = mr.text;
-                cell.font = { name: '宋体', bold: true, size: 15 };
-                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                dataRow.getCell(colStart).value = mr.text;
+                dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
+                for (let c = colStart; c <= colEnd; c++) {
+                  dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
+                }
               }
             }
           } else if (row.mergeRange) {
             const colStart = colLetterToNum(row.mergeRange.split(':')[0]);
             const colEnd = colLetterToNum(row.mergeRange.split(':')[1]);
             if (colStart && colEnd) {
-              ws.mergeCells(rowNum, colStart, rowNum, colEnd);
               dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
-              dataRow.getCell(colStart).alignment = { vertical: 'middle', horizontal: 'center' };
+              for (let c = colStart; c <= colEnd; c++) {
+                dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
+              }
             }
           } else {
             dataRow.getCell(1).font = { name: '宋体', bold: true, size: 15 };
-            ws.mergeCells(rowNum, 1, rowNum, colCount);
-            dataRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
+            for (let c = 1; c <= colCount; c++) {
+              dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
+            }
           }
           continue;
         }
@@ -305,7 +319,7 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
 
         // Sub-header row styling (表头行，如 序号/品名/规格/...)
         if (row.isSubHeader) {
-          dataRow.height = 30;
+          dataRow.height = sheet.headerHeight || 30;
           dataRow.font = { name: '宋体', bold: true, size: 15 };
           dataRow.eachCell(cell => {
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
@@ -315,7 +329,7 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
           continue;
         }
 
-        dataRow.height = 50;
+        dataRow.height = sheet.rowHeight || 50;
         dataRow.font = { name: '宋体', size: 15 };
         dataRow.eachCell(cell => {
           cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -338,17 +352,18 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
         }
       }
 
-      // Column widths: compact, just enough for text
-      const colWidths = [6, 12, 18, 10, 8, 8, 6, 10, 16, 12]; // 序号~实物图
-      for (let i = 1; i <= colCount; i++) {
-        const maxLen = colWidths[i - 1] || 12;
-        // Check actual data width
-        let dataMax = maxLen;
-        ws.getColumn(i).eachCell({ includeEmpty: false }, cell => {
-          const len = String(cell.value || '').length;
-          if (len > dataMax) dataMax = len;
-        });
-        ws.getColumn(i).width = Math.min(dataMax + 2, 24);
+      // Column widths（没有自定义列宽时用默认逻辑）
+      if (!sheet.colWidths) {
+        const defaultColWidths = [6, 12, 18, 10, 8, 8, 6, 10, 16, 12];
+        for (let i = 1; i <= colCount; i++) {
+          const maxLen = defaultColWidths[i - 1] || 12;
+          let dataMax = maxLen;
+          ws.getColumn(i).eachCell({ includeEmpty: false }, cell => {
+            const len = String(cell.value || '').length;
+            if (len > dataMax) dataMax = len;
+          });
+          ws.getColumn(i).width = Math.min(dataMax + 2, 24);
+        }
       }
       // Image column fixed width (only for standard layout with image column)
       const hasImageCol = sheet.rows.some(r => r.imagePath);
