@@ -1132,8 +1132,15 @@ function buildPairedKitchenSheets(sheets, canteens) {
     const leftRows = collectRows(`${left}-厨房`);
     const rightRows = collectRows(`${right}-厨房`);
 
-    // 标题行（isHeader: true 会被合并单元格加粗）
-    allRows.push({ data: [`${left}    ${right}`, '', '', '', '', '', '', '', '', '', '', '', ''], isHeader: true });
+    // 小所名称行：左边跨A-F，右边跨H-M
+    allRows.push({
+      data: [left, '', '', '', '', '', '', right, '', '', '', '', ''],
+      isHeader: true,
+      mergeRanges: [
+        { range: 'A:F', text: left },
+        { range: 'H:M', text: right },
+      ],
+    });
 
     // 表头行
     allRows.push({ data: [...sub, '', ...sub] });
@@ -1157,10 +1164,12 @@ function buildPairedKitchenSheets(sheets, canteens) {
   }
 
   if (allRows.length > 0) {
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
     sheets.push({
       name: '小所厨房',
-      title: '小所厨房申购单',
-      headers: [...sub.map(h => `${canteens[0]}${h}`), '', ...sub.map(h => `${canteens[1] || ''}${h}`)],
+      title: `${dateStr}小所厨房申购单`,
+      headers: ['', '', '', '', '', '', '', '', '', '', '', '', ''],
       rows: allRows,
     });
   }

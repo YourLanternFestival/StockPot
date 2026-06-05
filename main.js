@@ -248,9 +248,34 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
         if (row.isHeader) {
           // Canteen name header in merged sheet
           dataRow.height = 30;
-          dataRow.getCell(1).font = { name: '宋体', bold: true, size: 15 };
-          ws.mergeCells(rowNum, 1, rowNum, colCount);
-          dataRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
+          if (row.mergeRanges) {
+            // 支持多个合并范围，如 [{range: 'A:F', text: '寿昌'}, {range: 'H:M', text: '梅城'}]
+            for (const mr of row.mergeRanges) {
+              const match = mr.range.match(/^([A-Z]+):([A-Z]+)$/);
+              if (match) {
+                const colStart = match[1].charCodeAt(0) - 64;
+                const colEnd = match[2].charCodeAt(0) - 64;
+                ws.mergeCells(rowNum, colStart, rowNum, colEnd);
+                const cell = dataRow.getCell(colStart);
+                cell.value = mr.text;
+                cell.font = { name: '宋体', bold: true, size: 15 };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+              }
+            }
+          } else if (row.mergeRange) {
+            const match = row.mergeRange.match(/^([A-Z]+):([A-Z]+)$/);
+            if (match) {
+              const colStart = match[1].charCodeAt(0) - 64;
+              const colEnd = match[2].charCodeAt(0) - 64;
+              ws.mergeCells(rowNum, colStart, rowNum, colEnd);
+              dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
+              dataRow.getCell(colStart).alignment = { vertical: 'middle', horizontal: 'center' };
+            }
+          } else {
+            dataRow.getCell(1).font = { name: '宋体', bold: true, size: 15 };
+            ws.mergeCells(rowNum, 1, rowNum, colCount);
+            dataRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
+          }
           continue;
         }
 
