@@ -662,174 +662,127 @@ async function saveAllPurchaseOrders() {
   }
 }
 
-// Export all purchase orders (3 sheets in one xlsx)
+// Export all purchase orders — helper functions
+function getDateFromGroup(dateGroup) {
+  const label = dateGroup.querySelector('.date-label').textContent;
+  return label.replace(' 收货', '').replace(' 发货', '').trim();
+}
+
+function getRowData(tr) {
+  const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+  const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
+  const productName = getData('product_name').trim();
+  if (!productName) return null;
+  return {
+    product_name: productName,
+    spec: getData('spec'),
+    unit_price: parseFloat(getData('unit_price')) || 0,
+    quantity: getData('quantity'),
+    unit: getData('unit'),
+    amount: parseFloat(amountText.replace('¥', '')) || 0,
+    remark: getData('remark'),
+  };
+}
+
+function collectRows(source) {
+  const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
+  if (!group) return [];
+  const rows = [];
+  group.querySelectorAll('.date-group').forEach(dateGroup => {
+    const date = getDateFromGroup(dateGroup);
+    dateGroup.querySelectorAll('tbody tr').forEach(tr => {
+      const data = getRowData(tr);
+      if (data) rows.push({ date, ...data });
+    });
+  });
+  return rows;
+}
+
+function collectLianhuaRows(dateGroup) {
+  const rows = [];
+  dateGroup.querySelectorAll('tbody tr').forEach(tr => {
+    const data = getRowData(tr);
+    if (!data) return;
+    const item = lianhuaItems.find(i => i.name === data.product_name || data.product_name.includes(i.name));
+    rows.push({
+      ...data,
+      code: item ? item.code : '',
+      unit: data.unit || (item ? item.unit : '件'),
+      spec: data.spec || (item ? item.spec : ''),
+      unit_price: data.unit_price || (item ? item.price : 0),
+      split_qty: item ? item.split_qty : 1,
+    });
+  });
+  return rows;
+}
+
+async function resolveImages(rows) {
+  const photoFolder = APP_SETTINGS.photo_folder;
+  if (!photoFolder) return rows.map(() => null);
+  return Promise.all(rows.map(r => window.api.findImage(r.product_name, r.spec, photoFolder).catch(() => null)));
+}
+
+function buildKitchenSheet(title, rows, images) {
+  return {
+    name: title, title,
+    headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
+    rows: rows.map((row, idx) => ({
+      data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
+      imagePath: images[idx]
+    }))
+  };
+}
+
+function buildLianhuaSheet(title, canteen, date, rows, images) {
+  return {
+    name: title,
+    title: `${canteen}联华超市 ${date}`,
+    headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
+    rows: rows.map((row, idx) => ({
+      data: [idx + 1, canteen, date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
+      imagePath: images[idx]
+    }))
+  };
+}
+
+function getLianhuaDateGroups(source) {
+  const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
+  return group ? group.querySelectorAll('.date-group') : [];
+}
+
+// Export all purchase orders (main entry)
 async function exportAllPurchaseOrders() {
   try {
-    // 确保联华商品数据已加载
     if (lianhuaItems.length === 0) {
       try { await loadLianhuaItems(); } catch (e) { /* ignore */ }
     }
-    const photoFolder = APP_SETTINGS.photo_folder;
 
-    // Helper function to get date from date group
-    const getDateFromGroup = (dateGroup) => {
-      const label = dateGroup.querySelector('.date-label').textContent;
-      return label.replace(' 收货', '').replace(' 发货', '').trim();
-    };
-
-    // Helper function to collect rows from date groups
-    const collectRows = (source) => {
-      const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
-      if (!group) return [];
-
-      const dateGroups = group.querySelectorAll('.date-group');
-      const allRows = [];
-
-      dateGroups.forEach(dateGroup => {
-        const date = getDateFromGroup(dateGroup);
-        const rows = dateGroup.querySelectorAll('tbody tr');
-
-        rows.forEach(tr => {
-          const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
-          const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
-          const amount = parseFloat(amountText.replace('¥', '')) || 0;
-
-          const productName = getData('product_name').trim();
-          if (!productName) return;
-
-          allRows.push({
-            date: date,
-            product_name: productName,
-            spec: getData('spec'),
-            unit_price: parseFloat(getData('unit_price')) || 0,
-            quantity: getData('quantity'),
-            unit: getData('unit'),
-            amount: amount,
-            remark: getData('remark')
-          });
-        });
-      });
-
-      return allRows;
-    };
-
-    // Look up image paths for rows
-    async function resolveImages(rows) {
-      if (!photoFolder) return rows.map(() => null);
-      const promises = rows.map(row => window.api.findImage(row.product_name, row.spec, photoFolder).catch(() => null));
-      return Promise.all(promises);
-    }
-
-    // Build sheets array for main process export
     const sheets = [];
-    const isMultiCanteenExport = APP_SETTINGS.xiaosuo_mode === 'on';
+    const isMulti = APP_SETTINGS.xiaosuo_mode === 'on';
+    const canteens = isMulti ? MULTI_CANTEENS : [APP_SETTINGS.current_canteen || '洋安'];
 
-    if (isMultiCanteenExport) {
-      // 多食堂模式：只导出下涯/制杆厂/白南山的数据
-      for (const canteen of MULTI_CANTEENS) {
-        // 厨房
-        const kitchenRows = collectRows(`${canteen}-厨房`);
-        if (kitchenRows.length > 0) {
-          const images = await resolveImages(kitchenRows);
-          sheets.push({
-            name: `${canteen}厨房申购单`,
-            title: `${canteen}厨房申购单`,
-            headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
-            rows: kitchenRows.map((row, idx) => ({
-              data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
-              imagePath: images[idx]
-            }))
-          });
-        }
-        // 联华
-        const lianhuaGroupEl = document.querySelector(`.purchase-group[data-source="${canteen}-联华"]`);
-        if (lianhuaGroupEl) {
-          for (const dateGroup of lianhuaGroupEl.querySelectorAll('.date-group')) {
-            const date = getDateFromGroup(dateGroup);
-            const rows = dateGroup.querySelectorAll('tbody tr');
-            const lianhuaRows = [];
-            rows.forEach(tr => {
-              const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
-              const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
-              const amount = parseFloat(amountText.replace('¥', '')) || 0;
-              const productName = getData('product_name').trim();
-              if (!productName) return;
-              const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
-              lianhuaRows.push({
-                product_name: productName, unit: getData('unit') || (item ? item.unit : '件'),
-                spec: getData('spec') || (item ? item.spec : ''),
-                unit_price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
-                quantity: parseFloat(getData('quantity')) || 0, amount, code: item ? item.code : '',
-                split_qty: item ? item.split_qty : 1, remark: getData('remark')
-              });
-            });
-            if (lianhuaRows.length === 0) continue;
-            const images = await resolveImages(lianhuaRows);
-            sheets.push({
-              name: `${canteen}-${date}`,
-              title: `${canteen}联华超市 ${date}`,
-              headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
-              rows: lianhuaRows.map((row, idx) => ({
-                data: [idx + 1, canteen, date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
-                imagePath: images[idx]
-              }))
-            });
-          }
+    for (const canteen of canteens) {
+      // 厨房
+      const kitchenSource = isMulti ? `${canteen}-厨房` : getKitchenSource();
+      const kitchenRows = collectRows(kitchenSource);
+      if (kitchenRows.length > 0) {
+        sheets.push(buildKitchenSheet(`${canteen}厨房申购单`, kitchenRows, await resolveImages(kitchenRows)));
+      }
+      // 面点房（仅普通模式）
+      if (!isMulti && APP_SETTINGS.show_pastry !== 'off') {
+        const pastryRows = collectRows(getPastrySource());
+        if (pastryRows.length > 0) {
+          sheets.push(buildKitchenSheet(`${getPastrySource()}申购单`, pastryRows, await resolveImages(pastryRows)));
         }
       }
-    } else {
-      // 普通模式：只导出当前食堂的厨房/面点房 + 联华
-      const kitchenSources = [getKitchenSource()];
-      if (APP_SETTINGS.show_pastry !== 'off') kitchenSources.push(getPastrySource());
-
-      for (const source of kitchenSources) {
-        const rows = collectRows(source);
+      // 联华
+      const lianhuaSource = isMulti ? `${canteen}-联华` : '联华';
+      for (const dateGroup of getLianhuaDateGroups(lianhuaSource)) {
+        const date = getDateFromGroup(dateGroup);
+        const rows = collectLianhuaRows(dateGroup);
         if (rows.length === 0) continue;
-        const images = await resolveImages(rows);
-        sheets.push({
-          name: source + '申购单',
-          title: source + '申购单',
-          headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
-          rows: rows.map((row, idx) => ({
-            data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
-            imagePath: images[idx]
-          }))
-        });
-      }
-
-      const lianhuaGroup = document.querySelector('.purchase-group[data-source="联华"]');
-      if (lianhuaGroup) {
-        for (const dateGroup of lianhuaGroup.querySelectorAll('.date-group')) {
-          const date = getDateFromGroup(dateGroup);
-          const rows = dateGroup.querySelectorAll('tbody tr');
-          const lianhuaRows = [];
-          rows.forEach((tr) => {
-            const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
-            const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
-            const amount = parseFloat(amountText.replace('¥', '')) || 0;
-            const productName = getData('product_name').trim();
-            if (!productName) return;
-            const item = lianhuaItems.find(i => i.name === productName || productName.includes(i.name));
-            lianhuaRows.push({
-              product_name: productName, unit: getData('unit') || (item ? item.unit : '件'),
-              spec: getData('spec') || (item ? item.spec : ''),
-              unit_price: parseFloat(getData('unit_price')) || (item ? item.price : 0),
-              quantity: parseFloat(getData('quantity')) || 0, amount, code: item ? item.code : '',
-              split_qty: item ? item.split_qty : 1, remark: getData('remark')
-            });
-          });
-          if (lianhuaRows.length === 0) continue;
-          const lianhuaImages = await resolveImages(lianhuaRows);
-          sheets.push({
-            name: date,
-            title: `联华超市 ${date}`,
-            headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
-            rows: lianhuaRows.map((row, idx) => ({
-              data: [idx + 1, APP_SETTINGS.current_canteen || '洋安', date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
-              imagePath: lianhuaImages[idx]
-            }))
-          });
-        }
+        const title = isMulti ? `${canteen}-${date}` : date;
+        sheets.push(buildLianhuaSheet(title, canteen, date, rows, await resolveImages(rows)));
       }
     }
 
@@ -840,10 +793,8 @@ async function exportAllPurchaseOrders() {
 
     const now = new Date();
     const month = `${now.getMonth() + 1}月`;
-    const mode = isMultiCanteenExport ? '下涯、制杆厂、白南山' : (APP_SETTINGS.canteen_mode || '洋安');
-    const defaultName = `${month}${mode}采购单.xlsx`;
-
-    const result = await window.api.exportPurchaseOrder(sheets, defaultName);
+    const mode = isMulti ? '下涯、制杆厂、白南山' : (APP_SETTINGS.canteen_mode || '洋安');
+    const result = await window.api.exportPurchaseOrder(sheets, `${month}${mode}采购单.xlsx`);
     if (result.success) {
       showToast('导出成功！');
     } else if (result.error !== '已取消') {
