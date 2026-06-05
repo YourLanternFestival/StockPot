@@ -12,6 +12,7 @@ let APP_SETTINGS = {
   discount1_name: '盛销', discount1_rate: '0.9008',
   discount2_name: '优宏', discount2_rate: '0.9058',
   price_decimals: 2,
+  inv_inbound_limit: 5, inv_outbound_limit: 10,
 };
 
 // ===== Navigation =====
@@ -28,7 +29,6 @@ function navigateTo(page) {
     case 'dashboard': loadDashboard(); break;
     case 'inventory': loadInventory(); break;
     case 'ledger': loadLedger(); break;
-    case 'alerts': loadAlerts(); break;
     case 'products': loadProducts(); break;
     case 'purchase': initPurchasePage(); break;
     case 'inquiry': initInquiryPage(); break;
@@ -207,33 +207,181 @@ function renderDashboardAlerts(alerts) {
 }
 
 // ===== Inventory =====
-async function loadInventory(filter = '') {
-  try {
-    const inventory = await window.api.getInventory();
-    const tbody = document.getElementById('inventory-body');
-
-    const filtered = inventory.filter(p =>
-      p.name.toLowerCase().includes(filter.toLowerCase())
-    );
-
-    tbody.innerHTML = filtered.map(p => {
-      const statusClass = p.stock === 0 ? 'stock-zero' : p.stock < 5 ? 'stock-low' : 'stock-ok';
-      const statusText = p.stock === 0 ? '缺货' : p.stock < 5 ? '偏低' : '正常';
-      const tagClass = p.stock === 0 ? 'tag-danger' : p.stock < 5 ? 'tag-warning' : 'tag-success';
-      return `<tr>
-        <td>${p.id}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td>
-        <td class="${statusClass}">${p.stock}</td><td>${p.total_in}</td><td>${p.total_out}</td>
-        <td><span class="tag ${tagClass}">${statusText}</span></td>
-      </tr>`;
-    }).join('');
-  } catch (err) {
-    console.error('Inventory load error:', err);
+async function loadInventory() {
+  // Ensure PRODUCTS is loaded for autocomplete
+  if (PRODUCTS.length === 0) {
+    try { PRODUCTS = await window.api.getProducts(); } catch (e) { /* ignore */ }
   }
+  // Update alert badge count
+  try {
+    const alerts = await window.api.getAlerts(30);
+    const badge = document.getElementById('alert-badge');
+    if (badge) {
+      badge.textContent = alerts.length;
+      badge.style.display = alerts.length > 0 ? 'inline' : 'none';
+    }
+  } catch (e) { /* ignore */ }
 }
 
-document.getElementById('inv-search').addEventListener('input', (e) => {
-  loadInventory(e.target.value);
-});
+function switchInvTab(tabId) {
+  document.querySelectorAll('#page-inventory .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('#page-inventory .tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tabId}`));
+  if (tabId === 'inv-alerts') loadAlerts();
+}
+
+// Inventory search autocomplete
+(function() {
+  const searchInput = document.getElementById('inv-search-input');
+  const dropdown = document.getElementById('inv-search-dropdown');
+  if (!searchInput || !dropdown) return;
+
+  let searchIndex = -1;
+
+  searchInput.addEventListener('input', () => {
+    const keyword = searchInput.value.trim();
+    if (keyword.length < 1) { dropdown.style.display = 'none'; return; }
+
+    const results = PRODUCTS.filter(p => p.name.toLowerCase().includes(keyword.toLowerCase()));
+    if (results.length === 0) { dropdown.style.display = 'none'; return; }
+
+    dropdown.innerHTML = results.map((item, idx) => `
+      <div class="autocomplete-item" data-index="${idx}" data-id="${item.id}" data-name="${item.name}">
+        <span class="item-name">${item.name}</span>
+        <span class="item-spec">${item.spec || ''} | ${item.unit || ''}</span>
+      </div>
+    `).join('');
+    dropdown.style.display = 'block';
+    searchIndex = -1;
+
+    dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectInvProduct(item);
+      });
+    });
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown' && items.length && dropdown.style.display === 'block') {
+      e.preventDefault();
+      searchIndex = Math.min(searchIndex + 1, items.length - 1);
+      updateHighlight(items);
+    } else if (e.key === 'ArrowUp' && items.length && dropdown.style.display === 'block') {
+      e.preventDefault();
+      searchIndex = Math.max(searchIndex - 1, 0);
+      updateHighlight(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      // If an item is highlighted in dropdown, select it
+      if (searchIndex >= 0 && items[searchIndex]) {
+        selectInvProduct(items[searchIndex]);
+      } else {
+        // Otherwise try to match the input value directly
+        searchByExactName(searchInput.value.trim());
+      }
+    } else if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  searchInput.addEventListener('blur', () => setTimeout(() => dropdown.style.display = 'none', 200));
+
+  async function searchByExactName(name) {
+    if (!name) return;
+    dropdown.style.display = 'none';
+    // Try exact match first, then partial
+    let product = PRODUCTS.find(p => p.name === name);
+    if (!product) product = PRODUCTS.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (!product) product = PRODUCTS.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
+    if (!product) {
+      document.getElementById('inv-search-hint').textContent = '未找到匹配的材料';
+      document.getElementById('inv-detail').style.display = 'none';
+      return;
+    }
+    searchInput.value = product.name;
+    try {
+      const detail = await window.api.getProductStockDetail(
+        product.id,
+        APP_SETTINGS.inv_inbound_limit || 5,
+        APP_SETTINGS.inv_outbound_limit || 10
+      );
+      if (!detail) return;
+      renderInvDetail(detail);
+    } catch (err) {
+      console.error('Stock detail error:', err);
+    }
+  }
+
+  function updateHighlight(items) {
+    items.forEach((item, idx) => item.classList.toggle('active', idx === searchIndex));
+    if (searchIndex >= 0 && items[searchIndex]) items[searchIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  async function selectInvProduct(item) {
+    const productId = parseInt(item.dataset.id);
+    searchInput.value = item.dataset.name;
+    dropdown.style.display = 'none';
+
+    try {
+      const detail = await window.api.getProductStockDetail(
+        productId,
+        APP_SETTINGS.inv_inbound_limit || 5,
+        APP_SETTINGS.inv_outbound_limit || 10
+      );
+      if (!detail) return;
+      renderInvDetail(detail);
+    } catch (err) {
+      console.error('Stock detail error:', err);
+    }
+  }
+})();
+
+function renderInvDetail(detail) {
+  const container = document.getElementById('inv-detail');
+  container.style.display = 'block';
+  document.getElementById('inv-search-hint').textContent = '';
+
+  const { product, stock, prevStock, totalIn, totalOut, monthIn, monthOut, recentInbound, recentOutbound } = detail;
+
+  // Stats
+  document.getElementById('inv-prev-stock').textContent = prevStock;
+  document.getElementById('inv-month-in').textContent = monthIn;
+  document.getElementById('inv-month-out').textContent = monthOut;
+  document.getElementById('inv-stock').textContent = stock;
+
+  const statusEl = document.getElementById('inv-status');
+  if (stock === 0) { statusEl.textContent = '缺货'; statusEl.style.color = 'var(--danger)'; }
+  else if (stock < 5) { statusEl.textContent = '偏低'; statusEl.style.color = 'var(--warning)'; }
+  else { statusEl.textContent = '正常'; statusEl.style.color = 'var(--success)'; }
+
+  // Product info bar
+  document.getElementById('inv-p-name').textContent = product.name;
+  document.getElementById('inv-p-spec').textContent = product.spec || '-';
+  document.getElementById('inv-p-unit').textContent = product.unit || '-';
+  document.getElementById('inv-total-in').textContent = totalIn;
+  document.getElementById('inv-total-out').textContent = totalOut;
+  document.getElementById('inv-net-in').textContent = totalIn - totalOut;
+
+  // Inbound records
+  document.getElementById('inv-inbound-count').textContent = recentInbound.length;
+  document.getElementById('inv-inbound-body').innerHTML = recentInbound.length === 0
+    ? '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:16px;">暂无入库记录</td></tr>'
+    : recentInbound.map(r => `<tr>
+        <td>${formatDate(r.date)}</td><td>${r.quantity}</td>
+        <td>${formatDate(r.production_date)}</td><td>${formatDate(r.expiry_date)}</td>
+        <td>${r.remark || ''}</td>
+      </tr>`).join('');
+
+  // Outbound records
+  document.getElementById('inv-outbound-count').textContent = recentOutbound.length;
+  document.getElementById('inv-outbound-body').innerHTML = recentOutbound.length === 0
+    ? '<tr><td colspan="3" class="text-muted" style="text-align:center;padding:16px;">暂无出库记录</td></tr>'
+    : recentOutbound.map(r => `<tr>
+        <td>${formatDate(r.date)}</td><td>${r.quantity}</td>
+        <td>${r.recipient || ''}</td>
+      </tr>`).join('');
+}
 
 // ===== Products =====
 async function loadProducts(filter = '') {
@@ -251,10 +399,10 @@ function renderProductTable(filter = '') {
     p.name.toLowerCase().includes(filter.toLowerCase())
   );
 
-  tbody.innerHTML = filtered.map(p => `
+  tbody.innerHTML = filtered.map((p, i) => `
     <tr>
       <td><input type="checkbox" class="prod-cb" data-id="${p.id}" ${selectedProductIds.has(p.id) ? 'checked' : ''} onchange="toggleProductSelect(${p.id}, this.checked)"></td>
-      <td>${p.id}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td>
+      <td>${i + 1}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td>
       <td>${p.shelf_months}</td><td>${p.shelf_days}</td>
       <td>
         <button class="btn btn-sm" onclick="editProduct(${p.id})">编辑</button>
@@ -309,8 +457,8 @@ function showAddProduct() {
       <div class="form-group"><label>材料名称</label><input type="text" class="form-control" id="np-name" placeholder="请输入材料名称"></div>
       <div class="form-group"><label>规格</label><input type="text" class="form-control" id="np-spec" placeholder="如: 500克/瓶"></div>
       <div class="form-group"><label>单位</label><input type="text" class="form-control" id="np-unit" placeholder="如: 瓶、包、桶"></div>
-      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="np-months" min="0" value="0"></div>
-      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="np-days" min="0" value="0"></div>
+      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="np-months" min="0" value="0" onchange="document.getElementById('np-days').value=this.value*30"></div>
+      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="np-days" min="0" value="0" placeholder="填写月数自动换算"></div>
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
@@ -341,8 +489,8 @@ function editProduct(id) {
       <div class="form-group"><label>材料名称</label><input type="text" class="form-control" id="ep-name" value="${p.name}"></div>
       <div class="form-group"><label>规格</label><input type="text" class="form-control" id="ep-spec" value="${p.spec}"></div>
       <div class="form-group"><label>单位</label><input type="text" class="form-control" id="ep-unit" value="${p.unit}"></div>
-      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="ep-months" value="${p.shelf_months}"></div>
-      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="ep-days" value="${p.shelf_days}"></div>
+      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="ep-months" value="${p.shelf_months}" onchange="document.getElementById('ep-days').value=this.value*30"></div>
+      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="ep-days" value="${p.shelf_days}" placeholder="填写月数自动换算"></div>
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
@@ -1096,6 +1244,12 @@ async function loadAlerts() {
 
 document.getElementById('alert-filter').addEventListener('change', loadAlerts);
 
+// ===== Import Panel =====
+function toggleImportPanel() {
+  const panel = document.getElementById('import-panel');
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
 // ===== Import =====
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('file-input');
@@ -1215,13 +1369,27 @@ function handleFileSelected(file) {
 async function startImport() {
   if (!pendingImportData) return;
 
-  showToast('正在导入数据...', 'info');
+  // Default overwrite: clear existing data before importing
+  openModal('确认导入', `
+    <p>导入将<strong>清空现有数据</strong>后重新导入，此操作不可撤销。</p>
+    <p style="margin-top:8px;color:var(--text-secondary);">产品: ${pendingImportData.products.length}条 | 入库: ${pendingImportData.inbound.length}条 | 出库: ${pendingImportData.outbound.length}条</p>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doStartImport()">确认导入</button>
+  `);
+}
+
+async function doStartImport() {
+  if (!pendingImportData) return;
+  closeModal();
+  showToast('正在清空并重新导入...', 'info');
 
   try {
-    const pResult = await window.api.importProducts(pendingImportData.products);
-    let msg = `产品: 导入${pResult.imported}条, 跳过${pResult.skipped}条`;
+    await window.api.clearAllData();
 
-    // Import opening stock from ledger
+    const pResult = await window.api.importProducts(pendingImportData.products);
+    let msg = `产品: ${pResult.imported}条`;
+
     if (Object.keys(pendingImportData.openingStock).length > 0) {
       await window.api.importOpeningStock(pendingImportData.openingStock);
       msg += ` | 初始库存: 已设置`;
@@ -1229,19 +1397,18 @@ async function startImport() {
 
     if (pendingImportData.inbound.length > 0) {
       const iResult = await window.api.importInbound(pendingImportData.inbound);
-      msg += ` | 入库: 导入${iResult.imported}条, 跳过${iResult.skipped}条`;
+      msg += ` | 入库: ${iResult.imported}条`;
     }
 
     if (pendingImportData.outbound.length > 0) {
       const oResult = await window.api.importOutbound(pendingImportData.outbound);
-      msg += ` | 出库: 导入${oResult.imported}条, 跳过${oResult.skipped}条`;
+      msg += ` | 出库: ${oResult.imported}条`;
     }
 
     showToast('导入完成！' + msg);
     pendingImportData = null;
     document.getElementById('import-preview').style.display = 'none';
 
-    // Refresh data
     await refreshProductSelects();
     await loadRecentInbound();
     await loadRecentOutbound();
@@ -2921,6 +3088,7 @@ const SETTING_KEYS = [
   'price_decimals',
   'enter_mode',
   'photo_folder',
+  'inv_inbound_limit', 'inv_outbound_limit',
 ];
 
 const SETTING_DEFAULTS = {
@@ -2932,6 +3100,7 @@ const SETTING_DEFAULTS = {
   price_decimals: '2',
   enter_mode: 'next-row',
   photo_folder: '',
+  inv_inbound_limit: '5', inv_outbound_limit: '10',
 };
 
 async function initSettingsPage() {
@@ -2951,6 +3120,8 @@ async function initSettingsPage() {
     document.getElementById('setting-price-decimals').value = settings.price_decimals || SETTING_DEFAULTS.price_decimals;
     document.getElementById('setting-enter-mode').value = settings.enter_mode || SETTING_DEFAULTS.enter_mode;
     document.getElementById('setting-photo-folder').value = settings.photo_folder || SETTING_DEFAULTS.photo_folder;
+    document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
+    document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
   } catch (err) {
     console.error('Load settings error:', err);
   }
@@ -2994,6 +3165,8 @@ async function loadAppSettings() {
       discount2_rate: g('discount2_rate'),
       price_decimals: parseInt(g('price_decimals')) || 2,
       photo_folder: g('photo_folder'),
+      inv_inbound_limit: parseInt(g('inv_inbound_limit')) || 5,
+      inv_outbound_limit: parseInt(g('inv_outbound_limit')) || 10,
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框

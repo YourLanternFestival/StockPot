@@ -286,16 +286,80 @@ function getInventory() {
     SELECT
       p.id, p.name, p.spec, p.unit, p.shelf_months, p.shelf_days, p.unit_price,
       p.opening_stock,
-      COALESCE(SUM(i.quantity), 0) as total_in,
-      COALESCE(SUM(o.quantity), 0) as total_out,
-      p.opening_stock + COALESCE(SUM(i.quantity), 0) - COALESCE(SUM(o.quantity), 0) as stock
+      COALESCE(i.total_in, 0) as total_in,
+      COALESCE(o.total_out, 0) as total_out,
+      p.opening_stock + COALESCE(i.total_in, 0) - COALESCE(o.total_out, 0) as stock
     FROM products p
-    LEFT JOIN inbound_records i ON i.product_id = p.id
-    LEFT JOIN outbound_records o ON o.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_in FROM inbound_records GROUP BY product_id) i ON i.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_out FROM outbound_records GROUP BY product_id) o ON o.product_id = p.id
     WHERE p.active = 1
-    GROUP BY p.id
     ORDER BY p.id
   `);
+}
+
+function getProductStockDetail(productId, inboundLimit = 5, outboundLimit = 10) {
+  const product = queryOne('SELECT * FROM products WHERE id = ? AND active = 1', [productId]);
+  if (!product) return null;
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const monthEnd = toLocalDateStr(now);
+
+  // 上月结存 = opening_stock + 本月前累计入库 - 本月前累计出库
+  const prevIn = queryOne(
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ? AND date < ?",
+    [productId, monthStart]
+  ).v;
+  const prevOut = queryOne(
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ? AND date < ?",
+    [productId, monthStart]
+  ).v;
+  const prevStock = (product.opening_stock || 0) + prevIn - prevOut;
+
+  // 本月入库/出库
+  const monthIn = queryOne(
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ? AND date >= ? AND date <= ?",
+    [productId, monthStart, monthEnd]
+  ).v;
+  const monthOut = queryOne(
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ? AND date >= ? AND date <= ?",
+    [productId, monthStart, monthEnd]
+  ).v;
+
+  const stock = prevStock + monthIn - monthOut;
+
+  // 累计入库/出库（全量）
+  const totalIn = queryOne(
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ?",
+    [productId]
+  ).v;
+  const totalOut = queryOne(
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ?",
+    [productId]
+  ).v;
+
+  const recentInbound = queryAll(
+    "SELECT * FROM inbound_records WHERE product_id = ? ORDER BY date DESC, id DESC LIMIT ?",
+    [productId, inboundLimit]
+  );
+  const recentOutbound = queryAll(
+    "SELECT * FROM outbound_records WHERE product_id = ? ORDER BY date DESC, id DESC LIMIT ?",
+    [productId, outboundLimit]
+  );
+
+  return {
+    product,
+    stock,
+    prevStock,
+    totalIn,
+    totalOut,
+    monthIn,
+    monthOut,
+    recentInbound,
+    recentOutbound,
+  };
 }
 
 function getInventoryByMonth(year, month) {
@@ -379,11 +443,11 @@ function getExpiryAlerts(daysAhead = 60) {
     WHERE r.expiry_date IS NOT NULL AND r.expiry_date <= ?
       AND p.id IN (
         SELECT p2.id FROM products p2
-        LEFT JOIN inbound_records i2 ON i2.product_id = p2.id
-        LEFT JOIN outbound_records o2 ON o2.product_id = p2.id
+        LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM inbound_records GROUP BY product_id) i2 ON i2.product_id = p2.id
+        LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM outbound_records GROUP BY product_id) o2 ON o2.product_id = p2.id
         WHERE p2.active = 1
         GROUP BY p2.id
-        HAVING p2.opening_stock + COALESCE(SUM(i2.quantity), 0) - COALESCE(SUM(o2.quantity), 0) > 0
+        HAVING p2.opening_stock + COALESCE(i2.s, 0) - COALESCE(o2.s, 0) > 0
       )
     ORDER BY r.expiry_date ASC
   `, [future]);
@@ -474,10 +538,10 @@ function getDashboardStats() {
 
   const top10 = queryAll(`
     SELECT p.name,
-      p.opening_stock + COALESCE(SUM(i.quantity), 0) - COALESCE(SUM(o.quantity), 0) as stock
+      p.opening_stock + COALESCE(i.total_in, 0) - COALESCE(o.total_out, 0) as stock
     FROM products p
-    LEFT JOIN inbound_records i ON i.product_id = p.id
-    LEFT JOIN outbound_records o ON o.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_in FROM inbound_records GROUP BY product_id) i ON i.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_out FROM outbound_records GROUP BY product_id) o ON o.product_id = p.id
     WHERE p.active = 1
     GROUP BY p.id
     HAVING stock > 0
@@ -687,7 +751,7 @@ module.exports = {
   getInboundRecords, addInbound, updateInbound, deleteInbound,
   getOutboundRecords, addOutbound, updateOutbound, deleteOutbound,
   getRecipients, addRecipient,
-  getInventory, getInventoryByMonth,
+  getInventory, getProductStockDetail, getInventoryByMonth,
   getExpiryAlerts,
   importProducts, importInbound, importOutbound, importOpeningStock, clearAllData,
   getDashboardStats,

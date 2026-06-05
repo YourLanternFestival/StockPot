@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Inventory
   getInventory: () => ipcRenderer.invoke('inventory:get'),
+  getProductStockDetail: (productId, inboundLimit, outboundLimit) => ipcRenderer.invoke('inventory:detail', productId, inboundLimit, outboundLimit),
   getInventoryByMonth: (year, month) => ipcRenderer.invoke('inventory:byMonth', year, month),
 
   // Alerts

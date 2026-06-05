@@ -54,6 +54,7 @@ ipcMain.handle('recipients:add', (e, name) => db.addRecipient(name));
 
 // Inventory
 ipcMain.handle('inventory:get', () => db.getInventory());
+ipcMain.handle('inventory:detail', (e, productId, inboundLimit, outboundLimit) => db.getProductStockDetail(productId, inboundLimit, outboundLimit));
 ipcMain.handle('inventory:byMonth', (e, year, month) => db.getInventoryByMonth(year, month));
 
 // Alerts
