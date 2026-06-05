@@ -19,25 +19,33 @@ function getPastrySource() {
 }
 
 function applyCanteenMode() {
-  const isMulti = APP_SETTINGS.xiaosuo_mode === 'on';
+  const mode = APP_SETTINGS.xiaosuo_mode;
   const tabsEl = document.getElementById('multi-canteen-tabs');
   const switchEl = document.getElementById('canteen-switch');
   const multiArea = document.getElementById('multi-canteen-area');
+  const smallTabsEl = document.getElementById('small-canteen-tabs');
+  const smallActionsEl = document.getElementById('small-canteen-actions');
+  const smallAreaEl = document.getElementById('small-canteen-area');
   const lianhuaEl = document.getElementById('purchase-lianhua');
   const kitchenEl = document.getElementById('purchase-kitchen');
   const pastryEl = document.getElementById('purchase-pastry');
 
-  if (isMulti) {
-    lianhuaEl.style.display = 'none';
-    kitchenEl.style.display = 'none';
-    pastryEl.style.display = 'none';
-    switchEl.style.display = 'none';
+  // 隐藏所有
+  [tabsEl, switchEl, multiArea, smallTabsEl, smallActionsEl, smallAreaEl, lianhuaEl, kitchenEl, pastryEl].forEach(el => { if (el) el.style.display = 'none'; });
+
+  if (mode === 'on') {
+    // 多食堂模式
     tabsEl.style.display = 'flex';
     multiArea.style.display = 'block';
     initMultiCanteenMode();
+  } else if (mode === 'small') {
+    // 小所食堂模式
+    smallTabsEl.style.display = 'flex';
+    smallActionsEl.style.display = 'block';
+    smallAreaEl.style.display = 'block';
+    initSmallCanteenMode();
   } else {
-    tabsEl.style.display = 'none';
-    multiArea.style.display = 'none';
+    // 默认模式
     lianhuaEl.style.display = 'block';
     kitchenEl.style.display = 'block';
     switchEl.style.display = 'flex';
@@ -142,6 +150,234 @@ function switchMultiCanteenTab(canteen) {
   document.querySelectorAll('#multi-canteen-area .purchase-group[data-canteen]').forEach(g => {
     g.style.display = g.dataset.canteen === canteen ? 'block' : 'none';
   });
+}
+
+// ===== 小所食堂模式 =====
+let currentSmallCanteen = '';
+let smallModeInitialized = false;
+
+function getSmallCanteens() {
+  return APP_SETTINGS.small_canteens || ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'];
+}
+
+function initSmallCanteenMode() {
+  const canteens = getSmallCanteens();
+  const tabsEl = document.getElementById('small-canteen-tabs');
+  const areaEl = document.getElementById('small-canteen-area');
+
+  // 渲染 tab
+  tabsEl.innerHTML = canteens.map((name, idx) =>
+    `<button class="tab-btn${idx === 0 ? ' active' : ''}" data-canteen="${name}" onclick="switchSmallCanteenTab('${name}')">${name}</button>`
+  ).join('');
+
+  if (!smallModeInitialized) {
+    // 为每个小所创建 purchase-group（厨房+联华）
+    for (const canteen of canteens) {
+      // 厨房
+      const kitchenSrc = `${canteen}-厨房`;
+      const kitchenGroup = document.createElement('div');
+      kitchenGroup.className = 'purchase-group';
+      kitchenGroup.dataset.source = kitchenSrc;
+      kitchenGroup.dataset.canteen = canteen;
+      kitchenGroup.style.display = 'none';
+      kitchenGroup.innerHTML = `
+        <div class="group-header" onclick="toggleGroup(this)">
+          <span class="group-toggle">▶</span>
+          <h3>${canteen}厨房</h3>
+          <div class="group-actions">
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('${kitchenSrc}')">+ 添加日期</button>
+          </div>
+        </div>
+        <div class="group-content" style="display:none;"></div>
+      `;
+      areaEl.appendChild(kitchenGroup);
+      loadPurchaseGroupData(kitchenSrc);
+
+      // 联华
+      const lianhuaSrc = `${canteen}-联华`;
+      const lianhuaGroup = document.createElement('div');
+      lianhuaGroup.className = 'purchase-group';
+      lianhuaGroup.dataset.source = lianhuaSrc;
+      lianhuaGroup.dataset.canteen = canteen;
+      lianhuaGroup.style.display = 'none';
+      lianhuaGroup.innerHTML = `
+        <div class="group-header" onclick="toggleGroup(this)">
+          <span class="group-toggle">▶</span>
+          <h3>${canteen}联华</h3>
+          <div class="group-actions">
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate('${lianhuaSrc}')">+ 添加日期</button>
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()">管理商品</button>
+          </div>
+        </div>
+        <div class="group-content" style="display:none;"></div>
+      `;
+      areaEl.appendChild(lianhuaGroup);
+      loadPurchaseGroupData(lianhuaSrc);
+    }
+    smallModeInitialized = true;
+  }
+
+  // 默认选中第一个，并排显示前两个
+  if (canteens.length > 0) {
+    switchSmallCanteenTab(canteens[0]);
+  }
+}
+
+function switchSmallCanteenTab(canteen) {
+  currentSmallCanteen = canteen;
+  const canteens = getSmallCanteens();
+  const idx = canteens.indexOf(canteen);
+
+  // 高亮当前 tab
+  document.querySelectorAll('#small-canteen-tabs .tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.canteen === canteen)
+  );
+
+  // 并排显示：当前小所 + 下一个小所
+  const areaEl = document.getElementById('small-canteen-area');
+  areaEl.className = 'small-parallel';
+
+  // 隐藏所有，然后显示当前和下一个
+  areaEl.querySelectorAll('.purchase-group').forEach(g => { g.style.display = 'none'; });
+
+  // 当前小所的所有分组
+  areaEl.querySelectorAll(`.purchase-group[data-canteen="${canteen}"]`).forEach(g => {
+    g.style.display = 'block';
+  });
+
+  // 下一个小所（如果有）
+  const nextIdx = idx + 1;
+  if (nextIdx < canteens.length) {
+    const nextCanteen = canteens[nextIdx];
+    areaEl.querySelectorAll(`.purchase-group[data-canteen="${nextCanteen}"]`).forEach(g => {
+      g.style.display = 'block';
+    });
+  }
+}
+
+// 复用其他小所的厨房数据
+function showCopyCanteenDialog() {
+  const canteens = getSmallCanteens();
+  const source = currentSmallCanteen || canteens[0];
+
+  openModal('复用其他小所数据', `
+    <p style="margin-bottom:12px;">将选中小所的<strong>厨房</strong>数据复制到当前小所（仅厨房，不含联华）</p>
+    <div class="form-group">
+      <label>从哪个小所复制</label>
+      <select class="form-control" id="copy-source-canteen">
+        ${canteens.filter(c => c !== source).map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>复制到</label>
+      <select class="form-control" id="copy-target-canteen">
+        ${canteens.map(c => `<option value="${c}" ${c === source ? 'selected' : ''}>${c}</option>`).join('')}
+      </select>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doCopyCanteen()">确认复制</button>
+  `);
+}
+
+async function doCopyCanteen() {
+  const fromCanteen = document.getElementById('copy-source-canteen').value;
+  const toCanteen = document.getElementById('copy-target-canteen').value;
+
+  if (fromCanteen === toCanteen) {
+    showToast('不能复制到自身', 'error');
+    return;
+  }
+
+  const fromSource = `${fromCanteen}-厨房`;
+  const toSource = `${toCanteen}-厨房`;
+
+  // 获取源小所的厨房数据
+  const fromGroup = document.querySelector(`.purchase-group[data-source="${fromSource}"]`);
+  if (!fromGroup) { showToast('未找到源小所数据', 'error'); return; }
+
+  const toGroup = document.querySelector(`.purchase-group[data-source="${toSource}"]`);
+  if (!toGroup) { showToast('未找到目标小所', 'error'); return; }
+
+  // 清空目标小所的厨房内容
+  const toContent = toGroup.querySelector('.group-content');
+  toContent.innerHTML = '';
+
+  // 复制源小所的日期分组
+  const fromDateGroups = fromGroup.querySelectorAll('.date-group');
+  for (const fromDateGroup of fromDateGroups) {
+    const date = getDateFromGroup(fromDateGroup);
+    const dateId = `date-${toSource}-${date}`.replace(/[\s:]/g, '-');
+
+    // 创建新的日期分组
+    const newDateGroup = document.createElement('div');
+    newDateGroup.className = 'date-group';
+    newDateGroup.id = dateId;
+    newDateGroup.innerHTML = `
+      <div class="date-header expanded" onclick="toggleDateGroup(this)">
+        <span class="date-toggle">▶</span>
+        <span class="date-label">${date} 收货</span>
+        <span class="date-summary">0 项</span>
+        <div class="date-actions">
+          <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
+          <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
+        </div>
+      </div>
+      <div class="date-content expanded">
+        <div class="purchase-table-wrapper">
+          <table class="table table-purchase">
+            <thead>
+              <tr>
+                <th style="width:40px;">序号</th>
+                <th style="width:200px;">品名</th>
+                <th style="width:120px;">规格</th>
+                <th style="width:80px;">单价</th>
+                <th style="width:80px;">数量</th>
+                <th style="width:60px;">单位</th>
+                <th style="width:80px;">金额</th>
+                <th style="width:150px;">备注</th>
+                <th style="width:50px;">操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    toContent.appendChild(newDateGroup);
+
+    // 复制行数据
+    const toTbody = newDateGroup.querySelector('tbody');
+    const fromRows = fromDateGroup.querySelectorAll('tbody tr');
+    fromRows.forEach((tr, idx) => {
+      const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+      const productName = getData('product_name').trim();
+      if (!productName) return;
+
+      const item = {
+        product_name: productName,
+        spec: getData('spec'),
+        unit_price: getData('unit_price'),
+        quantity: getData('quantity'),
+        unit: getData('unit'),
+        remark: getData('remark'),
+      };
+      appendPurchaseRowWithData(toTbody, item, idx);
+    });
+
+    // 更新摘要
+    const summary = newDateGroup.querySelector('.date-summary');
+    summary.textContent = `${toTbody.querySelectorAll('tr').length} 项`;
+  }
+
+  // 展开目标小所的分组
+  const groupHeader = toContent.previousElementSibling;
+  if (!groupHeader.classList.contains('expanded')) {
+    toggleGroup(groupHeader);
+  }
+
+  closeModal();
+  showToast(`已将 ${fromCanteen} 厨房数据复制到 ${toCanteen}`);
 }
 
 async function loadPurchaseGroupData(source) {
@@ -758,31 +994,36 @@ async function exportAllPurchaseOrders() {
     }
 
     const sheets = [];
-    const isMulti = APP_SETTINGS.xiaosuo_mode === 'on';
-    const canteens = isMulti ? MULTI_CANTEENS : [APP_SETTINGS.current_canteen || '洋安'];
+    const mode = APP_SETTINGS.xiaosuo_mode;
 
-    for (const canteen of canteens) {
-      // 厨房
-      const kitchenSource = isMulti ? `${canteen}-厨房` : getKitchenSource();
-      const kitchenRows = collectRows(kitchenSource);
-      if (kitchenRows.length > 0) {
-        sheets.push(buildKitchenSheet(`${canteen}厨房申购单`, kitchenRows, await resolveImages(kitchenRows)));
-      }
-      // 面点房（仅普通模式）
-      if (!isMulti && APP_SETTINGS.show_pastry !== 'off') {
-        const pastryRows = collectRows(getPastrySource());
-        if (pastryRows.length > 0) {
-          sheets.push(buildKitchenSheet(`${getPastrySource()}申购单`, pastryRows, await resolveImages(pastryRows)));
+    if (mode === 'small') {
+      // 小所食堂模式：厨房并列，联华按日期
+      await exportSmallCanteenOrders(sheets);
+    } else {
+      // 普通模式或多食堂模式
+      const isMulti = mode === 'on';
+      const canteens = isMulti ? MULTI_CANTEENS : [APP_SETTINGS.current_canteen || '洋安'];
+
+      for (const canteen of canteens) {
+        const kitchenSource = isMulti ? `${canteen}-厨房` : getKitchenSource();
+        const kitchenRows = collectRows(kitchenSource);
+        if (kitchenRows.length > 0) {
+          sheets.push(buildKitchenSheet(`${canteen}厨房申购单`, kitchenRows, await resolveImages(kitchenRows)));
         }
-      }
-      // 联华
-      const lianhuaSource = isMulti ? `${canteen}-联华` : '联华';
-      for (const dateGroup of getLianhuaDateGroups(lianhuaSource)) {
-        const date = getDateFromGroup(dateGroup);
-        const rows = collectLianhuaRows(dateGroup);
-        if (rows.length === 0) continue;
-        const title = isMulti ? `${canteen}-${date}` : date;
-        sheets.push(buildLianhuaSheet(title, canteen, date, rows, await resolveImages(rows)));
+        if (!isMulti && APP_SETTINGS.show_pastry !== 'off') {
+          const pastryRows = collectRows(getPastrySource());
+          if (pastryRows.length > 0) {
+            sheets.push(buildKitchenSheet(`${getPastrySource()}申购单`, pastryRows, await resolveImages(pastryRows)));
+          }
+        }
+        const lianhuaSource = isMulti ? `${canteen}-联华` : '联华';
+        for (const dateGroup of getLianhuaDateGroups(lianhuaSource)) {
+          const date = getDateFromGroup(dateGroup);
+          const rows = collectLianhuaRows(dateGroup);
+          if (rows.length === 0) continue;
+          const title = isMulti ? `${canteen}-${date}` : date;
+          sheets.push(buildLianhuaSheet(title, canteen, date, rows, await resolveImages(rows)));
+        }
       }
     }
 
@@ -793,8 +1034,8 @@ async function exportAllPurchaseOrders() {
 
     const now = new Date();
     const month = `${now.getMonth() + 1}月`;
-    const mode = isMulti ? '下涯、制杆厂、白南山' : (APP_SETTINGS.canteen_mode || '洋安');
-    const result = await window.api.exportPurchaseOrder(sheets, `${month}${mode}采购单.xlsx`);
+    const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.canteen_mode || '洋安'));
+    const result = await window.api.exportPurchaseOrder(sheets, `${month}${modeLabel}采购单.xlsx`);
     if (result.success) {
       showToast('导出成功！');
     } else if (result.error !== '已取消') {
@@ -802,5 +1043,55 @@ async function exportAllPurchaseOrders() {
     }
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
+// 小所食堂导出：厨房并列，联华按日期
+async function exportSmallCanteenOrders(sheets) {
+  const canteens = getSmallCanteens();
+
+  // 1. 厨房并列 sheet
+  // 收集所有小所的厨房数据，按品名合并
+  const allKitchenData = {}; // { productName: { spec, unit, canteen1_qty, canteen2_qty, ... } }
+  const canteenQuantities = {}; // { canteen: { productName: quantity } }
+
+  for (const canteen of canteens) {
+    const rows = collectRows(`${canteen}-厨房`);
+    canteenQuantities[canteen] = {};
+    for (const row of rows) {
+      const key = row.product_name;
+      if (!allKitchenData[key]) {
+        allKitchenData[key] = { spec: row.spec, unit: row.unit, remark: row.remark };
+      }
+      canteenQuantities[canteen][key] = (canteenQuantities[canteen][key] || 0) + (parseFloat(row.quantity) || 0);
+    }
+  }
+
+  const productNames = Object.keys(allKitchenData);
+  if (productNames.length > 0) {
+    const headers = ['序号', '品名', '规格', '单位', ...canteens, '备注'];
+    const rows = productNames.map((name, idx) => {
+      const info = allKitchenData[name];
+      const quantities = canteens.map(c => canteenQuantities[c][name] || 0);
+      return {
+        data: [idx + 1, name, info.spec, info.unit, ...quantities, info.remark || '']
+      };
+    });
+    sheets.push({
+      name: '小所厨房',
+      title: '小所厨房申购单',
+      headers,
+      rows,
+    });
+  }
+
+  // 2. 联华按日期（和多食堂模式类似，不并列）
+  for (const canteen of canteens) {
+    for (const dateGroup of getLianhuaDateGroups(`${canteen}-联华`)) {
+      const date = getDateFromGroup(dateGroup);
+      const rows = collectLianhuaRows(dateGroup);
+      if (rows.length === 0) continue;
+      sheets.push(buildLianhuaSheet(`${canteen}-${date}`, canteen, date, rows, await resolveImages(rows)));
+    }
   }
 }

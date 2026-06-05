@@ -518,6 +518,16 @@
           <!-- 多食堂模式: 联华+厨房 (JS动态创建，按Tab显隐) -->
           <div id="multi-canteen-area"></div>
 
+          <!-- 小所食堂模式 Tab -->
+          <div id="small-canteen-tabs" class="tab-bar" style="display:none;">
+          </div>
+          <!-- 小所食堂模式: 复用按钮 -->
+          <div id="small-canteen-actions" style="display:none;margin-bottom:12px;">
+            <button class="btn btn-sm" onclick="showCopyCanteenDialog()">📋 复用其他小所数据</button>
+          </div>
+          <!-- 小所食堂模式: 并排区域 (JS动态创建) -->
+          <div id="small-canteen-area" style="display:none;"></div>
+
           <!-- 洋安/新安模式: 联华 -->
           <div class="purchase-group" id="purchase-lianhua" data-source="联华">
             <div class="group-header" onclick="toggleGroup(this)">
@@ -730,11 +740,18 @@
             <div class="card-body form-grid" style="grid-template-columns: 1fr;">
               <div class="form-group">
                 <label>运行模式</label>
-                <select class="form-control" id="setting-canteen-mode">
+                <select class="form-control" id="setting-canteen-mode" onchange="toggleSmallCanteenConfig()">
                   <option value="default">默认模式（洋安/新安，采购单页可切换）</option>
                   <option value="multi">多食堂分页（下涯/制杆厂/白南山）</option>
-                  <option value="small" disabled>小所食堂（开发中）</option>
+                  <option value="small">小所食堂</option>
                 </select>
+              </div>
+              <div id="small-canteen-config" style="display:none;">
+                <div class="form-group">
+                  <label>小所列表（可拖拽排序）</label>
+                  <div id="small-canteen-list"></div>
+                  <button class="btn btn-sm" onclick="addSmallCanteen()" style="margin-top:8px;">+ 添加小所</button>
+                </div>
               </div>
             </div>
           </div>

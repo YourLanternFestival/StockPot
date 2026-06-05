@@ -11,6 +11,7 @@ const SETTING_KEYS = [
   'inv_inbound_limit', 'inv_outbound_limit',
   'canteen_mode', 'show_pastry', 'xiaosuo_mode',
   'current_canteen',
+  'small_canteens',
 ];
 
 const SETTING_DEFAULTS = {
@@ -25,6 +26,7 @@ const SETTING_DEFAULTS = {
   inv_inbound_limit: '5', inv_outbound_limit: '10',
   canteen_mode: '洋安', show_pastry: 'on', xiaosuo_mode: 'off',
   current_canteen: '洋安',
+  small_canteens: '["寿昌","梅城","大同","大洋","洋溪","三都","乾潭"]',
 };
 
 async function initSettingsPage() {
@@ -54,6 +56,8 @@ async function initSettingsPage() {
       modeValue = 'multi';
     }
     document.getElementById('setting-canteen-mode').value = modeValue;
+    // 小所配置
+    renderSmallCanteenList(settings.small_canteens || SETTING_DEFAULTS.small_canteens);
   } catch (err) {
     console.error('Load settings error:', err);
   }
@@ -79,6 +83,12 @@ async function saveSettings() {
       await window.api.setSetting('canteen_mode', '下涯');
       await window.api.setSetting('xiaosuo_mode', 'on');
       await window.api.setSetting('show_pastry', 'off');
+    } else if (mode === 'small') {
+      await window.api.setSetting('xiaosuo_mode', 'small');
+      await window.api.setSetting('show_pastry', 'off');
+      // 保存小所配置
+      const canteens = collectSmallCanteens();
+      await window.api.setSetting('small_canteens', JSON.stringify(canteens));
     } else {
       await window.api.setSetting('xiaosuo_mode', 'off');
       await window.api.setSetting('show_pastry', 'on');
@@ -119,6 +129,7 @@ async function loadAppSettings() {
       show_pastry: g('show_pastry'),
       xiaosuo_mode: g('xiaosuo_mode'),
       current_canteen: g('current_canteen') || g('canteen_mode') || '洋安',
+      small_canteens: JSON.parse(g('small_canteens')),
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框
@@ -138,4 +149,55 @@ function syncDiscountToInquiry() {
   const h2 = document.getElementById('header-discount2');
   if (h1) h1.textContent = APP_SETTINGS.discount1_name + '价';
   if (h2) h2.textContent = APP_SETTINGS.discount2_name + '价';
+}
+
+// ===== 小所配置 =====
+function renderSmallCanteenList(jsonStr) {
+  let canteens;
+  try { canteens = JSON.parse(jsonStr); } catch { canteens = ['寿昌','梅城','大同','大洋','洋溪','三都','乾潭']; }
+  const container = document.getElementById('small-canteen-list');
+  if (!container) return;
+  container.innerHTML = canteens.map((name, idx) => `
+    <div class="small-canteen-item" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="color:var(--text-muted);min-width:20px;">${idx + 1}.</span>
+      <input type="text" class="form-control" value="${name}" style="flex:1;" data-idx="${idx}">
+      <button class="btn btn-sm" onclick="moveSmallCanteen(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>↑</button>
+      <button class="btn btn-sm" onclick="moveSmallCanteen(${idx}, 1)" ${idx === canteens.length - 1 ? 'disabled' : ''}>↓</button>
+      <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="removeSmallCanteen(${idx})">✕</button>
+    </div>
+  `).join('');
+}
+
+function collectSmallCanteens() {
+  const items = document.querySelectorAll('#small-canteen-list input[type="text"]');
+  return Array.from(items).map(el => el.value.trim()).filter(Boolean);
+}
+
+function addSmallCanteen() {
+  const container = document.getElementById('small-canteen-list');
+  const items = container.querySelectorAll('input[type="text"]');
+  const canteens = Array.from(items).map(el => el.value.trim());
+  canteens.push('新小所');
+  renderSmallCanteenList(JSON.stringify(canteens));
+}
+
+function removeSmallCanteen(idx) {
+  const canteens = collectSmallCanteens();
+  if (canteens.length <= 1) { showToast('至少保留一个小所', 'error'); return; }
+  canteens.splice(idx, 1);
+  renderSmallCanteenList(JSON.stringify(canteens));
+}
+
+function moveSmallCanteen(idx, dir) {
+  const canteens = collectSmallCanteens();
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= canteens.length) return;
+  [canteens[idx], canteens[newIdx]] = [canteens[newIdx], canteens[idx]];
+  renderSmallCanteenList(JSON.stringify(canteens));
+}
+
+function toggleSmallCanteenConfig() {
+  const mode = document.getElementById('setting-canteen-mode').value;
+  const section = document.getElementById('small-canteen-config');
+  if (section) section.style.display = mode === 'small' ? 'block' : 'none';
 }

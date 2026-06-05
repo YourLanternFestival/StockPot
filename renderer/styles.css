@@ -1083,3 +1083,20 @@ body {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ===== 小所食堂并排模式 ===== */
+.small-parallel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.small-parallel .purchase-group {
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .small-parallel {
+    grid-template-columns: 1fr;
+  }
+}

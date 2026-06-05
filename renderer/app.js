@@ -10,6 +10,7 @@ let APP_SETTINGS = {
   discount2_name: '优宏', discount2_rate: '0.9058',
   price_decimals: 2,
   inv_inbound_limit: 5, inv_outbound_limit: 10,
+  small_canteens: ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'],
 };
 
 // ===== Navigation =====

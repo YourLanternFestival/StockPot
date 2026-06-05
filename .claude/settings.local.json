@@ -44,7 +44,10 @@
       "Bash(echo \"=== 1. data-io.js 依赖检查 ===\")",
       "Bash(grep -rn '^function __TRACKED_VAR__\\\\b\\\\|^async function __TRACKED_VAR__\\\\b\\\\|^const __TRACKED_VAR__\\\\b\\\\|^let __TRACKED_VAR__\\\\b' *.js)",
       "Bash(sort -t'>' -k2)",
-      "Read(//c/Users/Administrator/.claude/**)"
+      "Read(//c/Users/Administrator/.claude/**)",
+      "Bash(claude --version)",
+      "Bash(env)",
+      "Bash(xargs grep -l \"SUBAGENT\")"
     ]
   }
 }
