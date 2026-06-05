@@ -12,6 +12,7 @@ const SETTING_KEYS = [
   'canteen_mode', 'show_pastry', 'xiaosuo_mode',
   'current_canteen',
   'small_canteens',
+  'small_export_style',
 ];
 
 const SETTING_DEFAULTS = {
@@ -27,6 +28,7 @@ const SETTING_DEFAULTS = {
   canteen_mode: '洋安', show_pastry: 'on', xiaosuo_mode: 'off',
   current_canteen: '洋安',
   small_canteens: '["寿昌","梅城","大同","大洋","洋溪","三都","乾潭"]',
+  small_export_style: 'matrix',
 };
 
 async function initSettingsPage() {
@@ -58,6 +60,9 @@ async function initSettingsPage() {
     document.getElementById('setting-canteen-mode').value = modeValue;
     // 小所配置
     renderSmallCanteenList(settings.small_canteens || SETTING_DEFAULTS.small_canteens);
+    const styleEl = document.getElementById('setting-small-export-style');
+    if (styleEl) styleEl.value = settings.small_export_style || SETTING_DEFAULTS.small_export_style;
+    toggleSmallCanteenConfig();
   } catch (err) {
     console.error('Load settings error:', err);
   }
@@ -130,6 +135,7 @@ async function loadAppSettings() {
       xiaosuo_mode: g('xiaosuo_mode'),
       current_canteen: g('current_canteen') || g('canteen_mode') || '洋安',
       small_canteens: JSON.parse(g('small_canteens')),
+      small_export_style: g('small_export_style'),
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框

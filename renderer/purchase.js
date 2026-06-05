@@ -1072,40 +1072,15 @@ async function exportAllPurchaseOrders() {
 // 小所食堂导出：厨房并列，联华按日期
 async function exportSmallCanteenOrders(sheets) {
   const canteens = getSmallCanteens();
+  const style = APP_SETTINGS.small_export_style || 'matrix';
 
-  // 1. 厨房并列 sheet
-  // 收集所有小所的厨房数据，按品名合并
-  const allKitchenData = {}; // { productName: { spec, unit, canteen1_qty, canteen2_qty, ... } }
-  const canteenQuantities = {}; // { canteen: { productName: quantity } }
-
-  for (const canteen of canteens) {
-    const rows = collectRows(`${canteen}-厨房`);
-    canteenQuantities[canteen] = {};
-    for (const row of rows) {
-      const key = row.product_name;
-      if (!allKitchenData[key]) {
-        allKitchenData[key] = { spec: row.spec, unit: row.unit, remark: row.remark };
-      }
-      canteenQuantities[canteen][key] = (canteenQuantities[canteen][key] || 0) + (parseFloat(row.quantity) || 0);
-    }
-  }
-
-  const productNames = Object.keys(allKitchenData);
-  if (productNames.length > 0) {
-    const headers = ['序号', '品名', '规格', '单位', ...canteens, '备注'];
-    const rows = productNames.map((name, idx) => {
-      const info = allKitchenData[name];
-      const quantities = canteens.map(c => canteenQuantities[c][name] || 0);
-      return {
-        data: [idx + 1, name, info.spec, info.unit, ...quantities, info.remark || '']
-      };
-    });
-    sheets.push({
-      name: '小所厨房',
-      title: '小所厨房申购单',
-      headers,
-      rows,
-    });
+  // 1. 厨房 sheet
+  if (style === 'matrix') {
+    // 样式1：矩阵式（品名×小所）
+    buildMatrixKitchenSheet(sheets, canteens);
+  } else {
+    // 样式2：两两并列（每组完整列）
+    buildPairedKitchenSheets(sheets, canteens);
   }
 
   // 2. 联华按日期（和多食堂模式类似，不并列）
@@ -1117,4 +1092,84 @@ async function exportSmallCanteenOrders(sheets) {
       sheets.push(buildLianhuaSheet(`${canteen}-${date}`, canteen, date, rows, await resolveImages(rows)));
     }
   }
+}
+
+// 样式1：矩阵式（品名×小所）
+function buildMatrixKitchenSheet(sheets, canteens) {
+  const allData = {};
+  const quantities = {};
+
+  for (const canteen of canteens) {
+    quantities[canteen] = {};
+    for (const row of collectRows(`${canteen}-厨房`)) {
+      const key = row.product_name;
+      if (!allData[key]) allData[key] = { spec: row.spec, unit: row.unit, remark: row.remark };
+      quantities[canteen][key] = (quantities[canteen][key] || 0) + (parseFloat(row.quantity) || 0);
+    }
+  }
+
+  const names = Object.keys(allData);
+  if (names.length === 0) return;
+
+  sheets.push({
+    name: '小所厨房',
+    title: '小所厨房申购单',
+    headers: ['序号', '品名', '规格', '单位', ...canteens, '备注'],
+    rows: names.map((name, idx) => ({
+      data: [idx + 1, name, allData[name].spec, allData[name].unit, ...canteens.map(c => quantities[c][name] || 0), allData[name].remark || '']
+    })),
+  });
+}
+
+// 样式2：两两并列（每组完整列）
+function buildPairedKitchenSheets(sheets, canteens) {
+  for (let i = 0; i < canteens.length; i += 2) {
+    const pair = canteens.slice(i, i + 2);
+    buildPairedSheet(sheets, pair);
+  }
+}
+
+function buildPairedSheet(sheets, pair) {
+  // 收集每个小所的数据
+  const canteenRows = {};
+  const allNames = new Set();
+
+  for (const canteen of pair) {
+    const rows = collectRows(`${canteen}-厨房`);
+    canteenRows[canteen] = {};
+    for (const row of rows) {
+      canteenRows[canteen][row.product_name] = row;
+      allNames.add(row.product_name);
+    }
+  }
+
+  if (allNames.size === 0) return;
+
+  // 构建并列表头
+  const pairHeaders = ['序号'];
+  for (const canteen of pair) {
+    pairHeaders.push(`${canteen}品名`, `${canteen}规格`, `${canteen}单位`, `${canteen}数量`, `${canteen}备注`);
+  }
+
+  // 构建行数据
+  const names = [...allNames];
+  const pairRows = names.map((name, idx) => {
+    const rowData = [idx + 1];
+    for (const canteen of pair) {
+      const r = canteenRows[canteen][name];
+      if (r) {
+        rowData.push(r.product_name, r.spec, r.unit, r.quantity, r.remark || '');
+      } else {
+        rowData.push(name, '', '', '', '');
+      }
+    }
+    return { data: rowData };
+  });
+
+  sheets.push({
+    name: pair.join('&'),
+    title: pair.join(' & ') + ' 厨房申购单',
+    headers: pairHeaders,
+    rows: pairRows,
+  });
 }
