@@ -222,23 +222,32 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
 
     for (const sheet of sheets) {
       const ws = wb.addWorksheet(sheet.name);
-      const colCount = sheet.headers.length;
+      // 计算实际列数（取 headers 长度和数据行最大长度）
+      const headerLen = sheet.headers.length;
+      const dataMaxLen = sheet.rows.reduce((max, r) => Math.max(max, r.data.length), 0);
+      const colCount = Math.max(headerLen, dataMaxLen);
 
-      // Row 1: Title (跨列居中, 宋体 15号)
+      // Row 1: Title (合并单元格跨列居中, 宋体 15号)
       const titleRow = ws.addRow([sheet.title]);
       titleRow.font = { name: '宋体', bold: true, size: 15 };
       titleRow.height = 30;
-      titleRow.getCell(1).alignment = { horizontal: 'centerContinuous', vertical: 'middle' };
+      if (colCount > 1) {
+        ws.mergeCells(1, 1, 1, colCount);
+      }
+      titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
 
-      // Row 2: Headers (宋体 15号)
-      const headerRow = ws.addRow(sheet.headers);
-      headerRow.font = { name: '宋体', bold: true, size: 15 };
-      headerRow.height = 50;
-      headerRow.eachCell(cell => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-        cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
-        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-      });
+      // Row 2: Headers (宋体 15号) — 跳过全空的 headers
+      const hasHeaders = sheet.headers.some(h => h !== '' && h !== null && h !== undefined);
+      if (hasHeaders) {
+        const headerRow = ws.addRow(sheet.headers);
+        headerRow.font = { name: '宋体', bold: true, size: 15 };
+        headerRow.height = 50;
+        headerRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+          cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
+          cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        });
+      }
 
       // Data rows
       for (const row of sheet.rows) {
