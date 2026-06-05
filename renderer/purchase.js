@@ -1121,57 +1121,44 @@ function buildMatrixKitchenSheet(sheets, canteens) {
   });
 }
 
-// 样式2：两两并列（每组完整列，垂直排列）
+// 样式2：两两左右并列（同一行上两个完整表格）
 function buildPairedKitchenSheets(sheets, canteens) {
-  // 收集所有小所数据
-  const allCanteenData = {};
-  for (const canteen of canteens) {
-    allCanteenData[canteen] = collectRows(`${canteen}-厨房`);
-  }
-
-  // 按两两分组，垂直排列
-  const allRows = [];
   for (let i = 0; i < canteens.length; i += 2) {
     const pair = canteens.slice(i, i + 2);
-
-    // 添加分组标题行（合并单元格效果）
-    allRows.push({ data: [pair.join('  &  '), '', '', '', ''], isTitle: true });
-
-    // 收集这对小所的所有品名
-    const allNames = new Set();
-    const pairData = {};
-    for (const canteen of pair) {
-      pairData[canteen] = {};
-      for (const row of allCanteenData[canteen]) {
-        pairData[canteen][row.product_name] = row;
-        allNames.add(row.product_name);
-      }
-    }
-
-    // 添加每个品名的行
-    let seq = 0;
-    for (const name of allNames) {
-      seq++;
-      for (const canteen of pair) {
-        const r = pairData[canteen][name];
-        if (r) {
-          allRows.push({ data: [seq, r.product_name, r.spec, r.unit, r.quantity, r.remark || ''] });
-        } else {
-          allRows.push({ data: [seq, name, '', '', '', ''] });
-        }
-      }
-    }
-
-    // 添加空行分隔
-    allRows.push({ data: ['', '', '', '', '', ''] });
+    buildOnePairedSheet(sheets, pair);
   }
+}
 
-  if (allRows.length > 0) {
-    sheets.push({
-      name: '小所厨房',
-      title: '小所厨房申购单（两两并列）',
-      headers: ['序号', '品名', '规格', '单位', '数量', '备注'],
-      rows: allRows,
+function buildOnePairedSheet(sheets, pair) {
+  const [left, right] = pair;
+  const leftRows = collectRows(`${left}-厨房`);
+  const rightRows = collectRows(`${right}-厨房`);
+
+  if (leftRows.length === 0 && rightRows.length === 0) return;
+
+  // 表头：左边6列 + 空列 + 右边6列
+  const sub = ['序号', '品名', '规格', '单位', '数量', '备注'];
+  const headers = [...sub.map(h => `${left}${h}`), '', ...sub.map(h => `${right}${h}`)];
+
+  const maxLen = Math.max(leftRows.length, rightRows.length);
+  const rows = [];
+
+  for (let idx = 0; idx < maxLen; idx++) {
+    const l = leftRows[idx];
+    const r = rightRows[idx];
+    rows.push({
+      data: [
+        l ? idx + 1 : '', l ? l.product_name : '', l ? l.spec : '', l ? l.unit : '', l ? l.quantity : '', l ? (l.remark || '') : '',
+        '',
+        r ? idx + 1 : '', r ? r.product_name : '', r ? r.spec : '', r ? r.unit : '', r ? r.quantity : '', r ? (r.remark || '') : '',
+      ]
     });
   }
+
+  sheets.push({
+    name: pair.join('&'),
+    title: `${left} & ${right} 厨房申购单`,
+    headers,
+    rows,
+  });
 }
