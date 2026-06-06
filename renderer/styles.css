@@ -1100,3 +1100,246 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== 小所食堂矩阵模式 ===== */
+.matrix-date-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.matrix-date-bar label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.matrix-container {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.matrix-table th,
+.matrix-table td {
+  border: 1px solid var(--border);
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.matrix-table thead th {
+  background: var(--bg);
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 8px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.matrix-table thead th:first-child {
+  width: 40px;
+}
+
+.matrix-table thead th.matrix-name-col {
+  width: 180px;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.matrix-table thead th.matrix-qty-col {
+  width: 72px;
+  min-width: 64px;
+}
+
+.matrix-table thead th:last-child {
+  width: 70px;
+}
+
+.matrix-table tbody tr:hover {
+  background: var(--primary-light);
+}
+
+.matrix-table tbody td:first-child {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.matrix-table tbody td.matrix-name-cell {
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+}
+
+.matrix-cell-name {
+  display: block;
+  padding: 6px 8px;
+  min-height: 32px;
+  line-height: 20px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 13px;
+  color: var(--text);
+  cursor: text;
+  border-radius: 0;
+  transition: background 0.15s;
+}
+
+.matrix-cell-name:hover {
+  background: rgba(79, 110, 247, 0.06);
+}
+
+.matrix-cell-name:focus {
+  outline: none;
+  background: var(--primary-light);
+}
+
+.matrix-cell-name.has-value {
+  cursor: pointer;
+}
+
+.matrix-cell-name.has-value:hover {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.matrix-cell-qty {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: var(--text);
+  min-height: 32px;
+  border-radius: 0;
+}
+
+.matrix-cell-qty:focus {
+  outline: none;
+  background: var(--primary-light);
+}
+
+.matrix-cell-qty.has-value {
+  background: rgba(16, 185, 129, 0.08);
+  font-weight: 500;
+}
+
+.matrix-cell-ops {
+  white-space: nowrap;
+  padding: 4px 2px;
+}
+
+.matrix-cell-ops .btn-sm {
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+/* 详情浮窗 */
+.matrix-detail-popover {
+  position: fixed;
+  z-index: 1000;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 12px 16px;
+  min-width: 200px;
+  font-size: 13px;
+}
+
+.matrix-detail-popover .detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 3px 0;
+}
+
+.matrix-detail-popover .detail-label {
+  color: var(--text-muted);
+}
+
+.matrix-detail-popover .detail-value {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* 下拉菜单 */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  min-width: 160px;
+  padding: 4px 0;
+  display: none;
+}
+
+.dropdown-menu.open {
+  display: block;
+}
+
+.dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-menu-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* 小所食堂操作区 */
+#small-canteen-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.small-matrix-actions .btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.dropdown-wrap {
+  position: relative;
+  display: inline-block;
+}

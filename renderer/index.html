@@ -521,13 +521,20 @@
           <!-- 小所食堂模式 Tab -->
           <div id="small-canteen-tabs" class="tab-bar" style="display:none;">
           </div>
-          <!-- 小所食堂模式: 复用按钮 -->
+          <!-- 小所食堂模式: 操作栏 -->
           <div id="small-canteen-actions" style="display:none;margin-bottom:12px;">
-            <button class="btn btn-sm" onclick="showCopyCanteenDialog()">📋 复用单个小所</button>
-            <button class="btn btn-sm" onclick="showSyncAllDialog()">🔄 一键同步到所有小所</button>
+            <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" title="展开/隐藏备注列">💬 备注</button>
+            <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()">📋 复用单个小所</button>
+            <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()">🔄 一键同步到所有小所</button>
+            <div class="dropdown-wrap" style="margin-left:auto;">
+              <button class="btn btn-sm" onclick="toggleDropdown(event)">联华加购 ▾</button>
+              <div class="dropdown-menu" id="lianhua-dropdown"></div>
+            </div>
           </div>
-          <!-- 小所食堂模式: 并排区域 (JS动态创建) -->
+          <!-- 小所食堂模式: 并排区域 (样式1) -->
           <div id="small-canteen-area" style="display:none;"></div>
+          <!-- 小所食堂模式: 矩阵区域 (样式2) -->
+          <div id="small-matrix-area" style="display:none;"></div>
 
           <!-- 洋安/新安模式: 联华 -->
           <div class="purchase-group" id="purchase-lianhua" data-source="联华">
@@ -748,6 +755,13 @@
                 </select>
               </div>
               <div id="small-canteen-config" style="display:none;">
+                <div class="form-group">
+                  <label>采购单填写样式</label>
+                  <select class="form-control" id="setting-small-display-style" onchange="onSmallDisplayStyleChange(this.value)">
+                    <option value="groups">样式1：逐所输入（分页切换）</option>
+                    <option value="matrix">样式2：矩阵输入（品名×所名）</option>
+                  </select>
+                </div>
                 <div class="form-group">
                   <label>小所列表（可拖拽排序）</label>
                   <div id="small-canteen-list"></div>

@@ -13,6 +13,8 @@ const SETTING_KEYS = [
   'current_canteen',
   'small_canteens',
   'small_export_style',
+  'small_display_style',
+  'show_matrix_remarks',
 ];
 
 const SETTING_DEFAULTS = {
@@ -29,6 +31,8 @@ const SETTING_DEFAULTS = {
   current_canteen: '洋安',
   small_canteens: '["寿昌","梅城","大同","大洋","洋溪","三都","乾潭"]',
   small_export_style: 'matrix',
+  small_display_style: 'groups',
+  show_matrix_remarks: 'on',
 };
 
 async function initSettingsPage() {
@@ -62,6 +66,8 @@ async function initSettingsPage() {
     renderSmallCanteenList(settings.small_canteens || SETTING_DEFAULTS.small_canteens);
     const styleEl = document.getElementById('setting-small-export-style');
     if (styleEl) styleEl.value = settings.small_export_style || SETTING_DEFAULTS.small_export_style;
+    const displayStyleEl = document.getElementById('setting-small-display-style');
+    if (displayStyleEl) displayStyleEl.value = settings.small_display_style || SETTING_DEFAULTS.small_display_style;
     toggleSmallCanteenConfig();
   } catch (err) {
     console.error('Load settings error:', err);
@@ -136,6 +142,8 @@ async function loadAppSettings() {
       current_canteen: g('current_canteen') || g('canteen_mode') || '洋安',
       small_canteens: JSON.parse(g('small_canteens')),
       small_export_style: g('small_export_style'),
+      small_display_style: g('small_display_style'),
+      show_matrix_remarks: g('show_matrix_remarks'),
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框
@@ -206,4 +214,15 @@ function toggleSmallCanteenConfig() {
   const mode = document.getElementById('setting-canteen-mode').value;
   const section = document.getElementById('small-canteen-config');
   if (section) section.style.display = mode === 'small' ? 'block' : 'none';
+}
+
+// 切换小所填写样式时提示数据丢失
+function onSmallDisplayStyleChange(newStyle) {
+  const currentStyle = APP_SETTINGS.small_display_style || 'groups';
+  if (newStyle !== currentStyle) {
+    if (!confirm('切换填写样式会清空当前未保存的采购单数据，确定继续？')) {
+      document.getElementById('setting-small-display-style').value = currentStyle;
+      return;
+    }
+  }
 }

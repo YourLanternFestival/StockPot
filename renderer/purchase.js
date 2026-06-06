@@ -40,10 +40,11 @@ function applyCanteenMode() {
     initMultiCanteenMode();
   } else if (mode === 'small') {
     // 小所食堂模式
-    smallTabsEl.style.display = 'flex';
     smallActionsEl.style.display = 'block';
-    smallAreaEl.style.display = 'block';
     initSmallCanteenMode();
+    // 应用保存的填写样式
+    const savedStyle = APP_SETTINGS.small_display_style || 'groups';
+    switchSmallDisplayStyle(savedStyle);
   } else {
     // 默认模式
     lianhuaEl.style.display = 'block';
@@ -182,9 +183,9 @@ function initSmallCanteenMode() {
   }).join('');
 
   if (!smallModeInitialized) {
-    // 为每个小所创建 purchase-group（厨房+联华）
+    // 先创建所有厨房 group，再创建所有联华 group
+    // 这样 .small-parallel 的 grid 两列会把同类型（厨房/厨房）并排显示
     for (const canteen of canteens) {
-      // 厨房
       const kitchenSrc = `${canteen}-厨房`;
       const kitchenGroup = document.createElement('div');
       kitchenGroup.className = 'purchase-group';
@@ -203,8 +204,8 @@ function initSmallCanteenMode() {
       `;
       areaEl.appendChild(kitchenGroup);
       loadPurchaseGroupData(kitchenSrc);
-
-      // 联华
+    }
+    for (const canteen of canteens) {
       const lianhuaSrc = `${canteen}-联华`;
       const lianhuaGroup = document.createElement('div');
       lianhuaGroup.className = 'purchase-group';
@@ -228,8 +229,11 @@ function initSmallCanteenMode() {
     smallModeInitialized = true;
   }
 
-  // 默认显示第一组
-  switchSmallCanteenPage(0);
+  // 样式1（逐所输入）时默认显示第一组
+  // 样式切换由 applyCanteenMode 调用 switchSmallDisplayStyle 处理
+  if ((APP_SETTINGS.small_display_style || 'groups') === 'groups') {
+    switchSmallCanteenPage(0);
+  }
 }
 
 function switchSmallCanteenPage(pageIdx) {
@@ -252,6 +256,250 @@ function switchSmallCanteenPage(pageIdx) {
     areaEl.querySelectorAll(`.purchase-group[data-canteen="${canteen}"]`).forEach(g => {
       g.style.display = 'block';
     });
+  }
+}
+
+// 切换小所食堂的填写样式：groups（逐所输入）/ matrix（矩阵输入）
+function switchSmallDisplayStyle(style) {
+  const groupsArea = document.getElementById('small-canteen-area');
+  const matrixArea = document.getElementById('small-matrix-area');
+  const tabsEl = document.getElementById('small-canteen-tabs');
+  const btnCopy = document.getElementById('btn-copy-canteen');
+  const btnSync = document.getElementById('btn-sync-all');
+  const btnRemarks = document.getElementById('btn-toggle-remarks');
+  const lianhuaDropdown = document.querySelector('#small-canteen-actions .dropdown-wrap');
+
+  if (style === 'matrix') {
+    // 矩阵模式：隐藏分页 tab、复用/同步按钮、联华加购，显示矩阵区域
+    groupsArea.style.display = 'none';
+    matrixArea.style.display = 'block';
+    tabsEl.style.display = 'none';
+    if (btnCopy) btnCopy.style.display = 'none';
+    if (btnSync) btnSync.style.display = 'none';
+    if (btnRemarks) btnRemarks.style.display = '';
+    if (lianhuaDropdown) lianhuaDropdown.style.display = 'none';
+    initSmallMatrixMode();
+  } else {
+    // 逐所模式：显示分页 tab、复用/同步按钮、联华加购，隐藏矩阵区域
+    groupsArea.style.display = '';
+    matrixArea.style.display = 'none';
+    tabsEl.style.display = 'flex';
+    if (btnCopy) btnCopy.style.display = '';
+    if (btnSync) btnSync.style.display = '';
+    if (btnRemarks) btnRemarks.style.display = 'none';
+    if (lianhuaDropdown) lianhuaDropdown.style.display = '';
+    switchSmallCanteenPage(0);
+  }
+}
+
+// 初始化矩阵输入模式
+function initSmallMatrixMode() {
+  const canteens = getSmallCanteens();
+  const area = document.getElementById('small-matrix-area');
+
+  // 从 DB 加载所有小所厨房数据
+  loadAllSmallMatrixData(canteens, area);
+}
+
+async function loadAllSmallMatrixData(canteens, area) {
+  // 收集所有小所的厨房数据
+  const allData = {};  // productName -> { spec, unit, remark, quantities: { canteen: qty } }
+  const dateMap = {};  // productName -> date (取第一个遇到的日期)
+
+  for (const canteen of canteens) {
+    const source = `${canteen}-厨房`;
+    const orders = await window.api.getPurchaseOrders(source);
+    for (const order of orders) {
+      const name = order.product_name;
+      if (!name) continue;
+      if (!allData[name]) {
+        allData[name] = { spec: order.spec || '', unit: order.unit || '', remark: order.remark || '', quantities: {} };
+        dateMap[name] = order.receive_date || '';
+      }
+      allData[name].quantities[canteen] = order.quantity || '';
+    }
+  }
+
+  const productNames = Object.keys(allData);
+  renderSmallMatrix(area, canteens, productNames, allData, dateMap);
+}
+
+function renderSmallMatrix(area, canteens, productNames, allData, dateMap) {
+  const hasRemarks = APP_SETTINGS.show_matrix_remarks !== 'off';
+  const remarkColIdx = hasRemarks ? canteens.length + 4 : -1; // 序号+品名+规格+单位 = 4 col
+
+  let html = `
+    <div class="matrix-date-bar">
+      <label>到货日期：</label>
+      <input type="date" class="form-control" id="matrix-date" value="${getTomorrowStr()}" style="width:160px;">
+    </div>
+    <div class="matrix-container">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th class="matrix-name-col">品名</th>
+            <th>规格</th>
+            <th>单位</th>
+            ${canteens.map(c => `<th class="matrix-qty-col">${c}</th>`).join('')}
+            ${hasRemarks ? '<th>备注</th>' : ''}
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="matrix-tbody">
+  `;
+
+  productNames.forEach((name, idx) => {
+    const d = allData[name];
+    html += `<tr data-product="${name}">`;
+    html += `<td>${idx + 1}</td>`;
+    html += `<td class="matrix-cell-name">${name}</td>`;
+    html += `<td>${d.spec}</td>`;
+    html += `<td>${d.unit}</td>`;
+    for (const c of canteens) {
+      const val = d.quantities[c] || '';
+      html += `<td><input type="text" class="matrix-cell-qty${val ? ' has-value' : ''}" value="${val}" data-canteen="${c}" placeholder="0"></td>`;
+    }
+    if (hasRemarks) {
+      html += `<td><input type="text" class="matrix-cell-qty" value="${d.remark || ''}" data-field="remark" placeholder=""></td>`;
+    }
+    html += `<td class="matrix-cell-ops"><button class="btn btn-sm" onclick="deleteMatrixRow(this)" title="删除行">✕</button></td>`;
+    html += `</tr>`;
+  });
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;">
+      <button class="btn btn-sm" onclick="addMatrixEmptyRow()">+ 添加空白行</button>
+      <button class="btn btn-sm" onclick="addMatrixFromInquiry()">+ 从询价添加</button>
+    </div>
+  `;
+
+  area.innerHTML = html;
+  bindMatrixCellEvents();
+}
+
+function bindMatrixCellEvents() {
+  document.querySelectorAll('#matrix-tbody .matrix-cell-qty').forEach(input => {
+    input.addEventListener('input', () => {
+      input.classList.toggle('has-value', !!input.value.trim());
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const tr = input.closest('tr');
+        const row = Array.from(tr.parentElement.children).indexOf(tr);
+        const col = Array.from(tr.children).indexOf(input.closest('td'));
+        const rows = tr.parentElement.querySelectorAll('tr');
+        if (row < rows.length - 1) {
+          const nextInput = rows[row + 1].children[col]?.querySelector('input');
+          if (nextInput) { nextInput.focus(); nextInput.select(); }
+        }
+      }
+    });
+  });
+}
+
+function addMatrixEmptyRow() {
+  const tbody = document.getElementById('matrix-tbody');
+  const canteens = getSmallCanteens();
+  const hasRemarks = APP_SETTINGS.show_matrix_remarks !== 'off';
+  const idx = tbody.querySelectorAll('tr').length;
+
+  const tr = document.createElement('tr');
+  tr.dataset.product = '';
+  let html = `<td>${idx + 1}</td>`;
+  html += `<td class="matrix-cell-name" contenteditable="true" placeholder="输入品名..."></td>`;
+  html += `<td contenteditable="true"></td>`;
+  html += `<td contenteditable="true"></td>`;
+  for (const c of canteens) {
+    html += `<td><input type="text" class="matrix-cell-qty" data-canteen="${c}" placeholder="0"></td>`;
+  }
+  if (hasRemarks) {
+    html += `<td><input type="text" class="matrix-cell-qty" data-field="remark" placeholder=""></td>`;
+  }
+  html += `<td class="matrix-cell-ops"><button class="btn btn-sm" onclick="deleteMatrixRow(this)" title="删除行">✕</button></td>`;
+  tr.innerHTML = html;
+  tbody.appendChild(tr);
+  bindMatrixCellEvents();
+}
+
+function addMatrixFromInquiry() {
+  // TODO: 弹窗从询价列表选择商品添加到矩阵
+  showToast('功能开发中', 'error');
+}
+
+function deleteMatrixRow(btn) {
+  const tr = btn.closest('tr');
+  tr.remove();
+  // 重新编号
+  document.querySelectorAll('#matrix-tbody tr').forEach((row, idx) => {
+    row.querySelector('td:first-child').textContent = idx + 1;
+  });
+}
+
+function toggleMatrixRemarks() {
+  const current = APP_SETTINGS.show_matrix_remarks !== 'off';
+  APP_SETTINGS.show_matrix_remarks = current ? 'off' : 'on';
+  window.api.setSetting('show_matrix_remarks', APP_SETTINGS.show_matrix_remarks);
+  initSmallMatrixMode();
+}
+
+// 保存矩阵数据到 DB
+async function saveMatrixData() {
+  const canteens = getSmallCanteens();
+  const tbody = document.getElementById('matrix-tbody');
+  if (!tbody) return;
+
+  const dateInput = document.getElementById('matrix-date');
+  const date = dateInput ? dateInput.value : getTomorrowStr();
+
+  // 清空所有小所厨房的旧数据
+  for (const canteen of canteens) {
+    await window.api.clearPurchaseOrders(`${canteen}-厨房`);
+  }
+
+  // 逐行保存
+  const rows = tbody.querySelectorAll('tr');
+  let savedCount = 0;
+  for (const tr of rows) {
+    const nameCell = tr.querySelector('.matrix-cell-name');
+    const productName = (nameCell.value || nameCell.textContent || '').trim();
+    if (!productName) continue;
+
+    const spec = tr.children[2]?.textContent?.trim() || '';
+    const unit = tr.children[3]?.textContent?.trim() || '';
+    const remarkInput = tr.querySelector('[data-field="remark"]');
+    const remark = remarkInput ? (remarkInput.value || '').trim() : '';
+
+    for (const canteen of canteens) {
+      const qtyInput = tr.querySelector(`[data-canteen="${canteen}"]`);
+      const quantity = qtyInput ? qtyInput.value.trim() : '';
+      if (!quantity) continue;
+
+      await window.api.addPurchaseOrder({
+        source: `${canteen}-厨房`,
+        receive_date: date,
+        product_name: productName,
+        spec,
+        unit_price: 0,
+        quantity,
+        unit,
+        amount: 0,
+        remark,
+        sort_order: savedCount,
+      });
+      savedCount++;
+    }
+  }
+
+  showToast(`矩阵数据已保存 ${savedCount} 条`);
+
+  // 同步 .purchase-group DOM，确保导出时 collectRows 能读到最新数据
+  for (const canteen of canteens) {
+    await loadPurchaseGroupData(`${canteen}-厨房`);
   }
 }
 
@@ -923,6 +1171,12 @@ function selectAutocompleteItem(input, item) {
 
 // Save all purchase orders (including 联华)
 async function saveAllPurchaseOrders() {
+  // 矩阵模式：单独处理
+  if (APP_SETTINGS.xiaosuo_mode === 'small' && APP_SETTINGS.small_display_style === 'matrix') {
+    await saveMatrixData();
+    return;
+  }
+
   const allOrders = [];
   const container = document.getElementById('purchase-container');
   // Only process visible date groups
