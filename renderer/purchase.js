@@ -183,6 +183,14 @@ function initSmallCanteenMode() {
   }).join('');
 
   if (!smallModeInitialized) {
+    // 填充联华加购下拉菜单
+    const dropdown = document.getElementById('lianhua-dropdown');
+    if (dropdown) {
+      dropdown.innerHTML = canteens.map(c =>
+        `<div class="dropdown-menu-item" onclick="showAddLianhuaDate('${c}-联华'); document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));">${c}</div>`
+      ).join('');
+    }
+
     // 先创建所有厨房 group，再创建所有联华 group
     // 这样 .small-parallel 的 grid 两列会把同类型（厨房/厨房）并排显示
     for (const canteen of canteens) {
@@ -260,40 +268,53 @@ function switchSmallCanteenPage(pageIdx) {
 }
 
 // 切换小所食堂的填写样式：groups（逐所输入）/ matrix（矩阵输入）
+let _switchingStyle = false;
+
 async function switchSmallDisplayStyle(style) {
-  const groupsArea = document.getElementById('small-canteen-area');
-  const matrixArea = document.getElementById('small-matrix-area');
-  const tabsEl = document.getElementById('small-canteen-tabs');
-  const btnCopy = document.getElementById('btn-copy-canteen');
-  const btnSync = document.getElementById('btn-sync-all');
-  const btnRemarks = document.getElementById('btn-toggle-remarks');
+  if (_switchingStyle) return;
+  _switchingStyle = true;
 
-  // 切换前先保存当前样式的数据到 DB
-  const currentStyle = APP_SETTINGS.small_display_style || 'groups';
-  if (currentStyle === 'matrix' && document.getElementById('matrix-tbody')) {
-    await saveMatrixData();
-  } else if (currentStyle === 'groups') {
-    await saveAllPurchaseOrders();
-  }
+  try {
+    const groupsArea = document.getElementById('small-canteen-area');
+    const matrixArea = document.getElementById('small-matrix-area');
+    const tabsEl = document.getElementById('small-canteen-tabs');
+    const btnCopy = document.getElementById('btn-copy-canteen');
+    const btnSync = document.getElementById('btn-sync-all');
+    const btnRemarks = document.getElementById('btn-toggle-remarks');
 
-  if (style === 'matrix') {
-    // 矩阵模式：隐藏分页 tab、复用/同步按钮，显示矩阵区域（联华加购保留）
-    groupsArea.style.display = 'none';
-    matrixArea.style.display = 'block';
-    tabsEl.style.display = 'none';
-    if (btnCopy) btnCopy.style.display = 'none';
-    if (btnSync) btnSync.style.display = 'none';
-    if (btnRemarks) btnRemarks.style.display = '';
-    initSmallMatrixMode();
-  } else {
-    // 逐所模式：显示分页 tab、复用/同步按钮，隐藏矩阵区域
-    groupsArea.style.display = '';
-    matrixArea.style.display = 'none';
-    tabsEl.style.display = 'flex';
-    if (btnCopy) btnCopy.style.display = '';
-    if (btnSync) btnSync.style.display = '';
-    if (btnRemarks) btnRemarks.style.display = 'none';
-    switchSmallCanteenPage(0);
+    // 切换前先保存当前样式的数据到 DB
+    const currentStyle = APP_SETTINGS.small_display_style || 'groups';
+    if (currentStyle === 'matrix' && document.getElementById('matrix-tbody')) {
+      await saveMatrixData();
+    } else if (currentStyle === 'groups') {
+      await saveAllSmallGroupsData();
+    }
+
+    if (style === 'matrix') {
+      groupsArea.style.display = 'none';
+      matrixArea.style.display = 'block';
+      tabsEl.style.display = 'none';
+      if (btnCopy) btnCopy.style.display = 'none';
+      if (btnSync) btnSync.style.display = 'none';
+      if (btnRemarks) btnRemarks.style.display = '';
+      initSmallMatrixMode();
+    } else {
+      groupsArea.style.display = '';
+      matrixArea.style.display = 'none';
+      tabsEl.style.display = 'flex';
+      if (btnCopy) btnCopy.style.display = '';
+      if (btnSync) btnSync.style.display = '';
+      if (btnRemarks) btnRemarks.style.display = 'none';
+      // 从 DB 重载所有小所数据，确保显示最新
+      const canteens = getSmallCanteens();
+      for (const canteen of canteens) {
+        await loadPurchaseGroupData(`${canteen}-厨房`);
+        await loadPurchaseGroupData(`${canteen}-联华`);
+      }
+      switchSmallCanteenPage(0);
+    }
+  } finally {
+    _switchingStyle = false;
   }
 }
 
@@ -370,8 +391,8 @@ function appendMatrixRow(tbody, idx) {
       <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
       <div class="autocomplete-dropdown" style="display:none;"></div>
     </td>
-    <td><input type="text" class="cell-input cell-editable" value="" data-field="spec" placeholder="规格"></td>
-    <td><input type="text" class="cell-input cell-editable" value="" data-field="unit" placeholder="单位"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
   `;
   for (const c of canteens) {
     html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty" value="" data-canteen="${c}" placeholder="0"></td>`;
@@ -428,8 +449,8 @@ function renderSmallMatrix(area, canteens, productNames, allData) {
         <input type="text" class="cell-input cell-editable" value="${esc(name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input cell-editable" value="${esc(d.spec)}" data-field="spec" placeholder="规格"></td>
-      <td><input type="text" class="cell-input cell-editable" value="${esc(d.unit)}" data-field="unit" placeholder="单位"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(d.spec)}" data-field="spec" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(d.unit)}" data-field="unit" readonly tabindex="-1"></td>
     `;
     for (const c of canteens) {
       const val = d.quantities[c] || '';
@@ -1218,6 +1239,49 @@ function selectAutocompleteItem(input, item) {
   // Focus on quantity input
   const qtyInput = tr.querySelector('[data-field="quantity"]');
   if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+}
+
+// 保存小所食堂所有 groups 数据（厨房+联华，所有小所）
+async function saveAllSmallGroupsData() {
+  const canteens = getSmallCanteens();
+  const allOrders = [];
+
+  for (const canteen of canteens) {
+    for (const suffix of ['厨房', '联华']) {
+      const source = `${canteen}-${suffix}`;
+      const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
+      if (!group) continue;
+
+      group.querySelectorAll('.date-group').forEach(dateGroup => {
+        const date = getDateFromGroup(dateGroup);
+        dateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
+          const data = getRowData(tr);
+          if (!data) return;
+          allOrders.push({
+            source,
+            receive_date: date,
+            product_name: data.product_name,
+            spec: data.spec,
+            unit_price: data.unit_price,
+            quantity: data.quantity,
+            unit: data.unit,
+            amount: data.amount,
+            remark: data.remark,
+            sort_order: idx,
+          });
+        });
+      });
+    }
+  }
+
+  // 清空所有小所相关 source 后写入
+  const sources = canteens.flatMap(c => [`${c}-厨房`, `${c}-联华`]);
+  for (const source of sources) {
+    await window.api.clearPurchaseOrders(source);
+  }
+  for (const order of allOrders) {
+    await window.api.addPurchaseOrder(order);
+  }
 }
 
 // Save all purchase orders (including 联华)
