@@ -67,7 +67,7 @@ function handleLianhuaFileSelected(fileInput) {
           unit: String(row[7] || '包').trim(),
           spec: String(row[8] || '').trim(),
           price: parseFloat(row[5]) || 0, // 盛销折扣后价格
-          split_qty: 1, // Default 1, user can edit later
+          split_qty: parseInt(row[10]) || 1, // 拆分单件
           remark: String(row[9] || '').trim()
         });
       }
