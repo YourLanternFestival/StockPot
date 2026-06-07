@@ -283,6 +283,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
         if (targetInputs[colIdx]) {
           targetInputs[colIdx].value = lines[i];
           targetInputs[colIdx].dispatchEvent(new Event('input', { bubbles: true }));
+          targetInputs[colIdx].dispatchEvent(new Event('blur', { bubbles: true }));
         }
       }
     });

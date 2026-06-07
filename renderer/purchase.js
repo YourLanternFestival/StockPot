@@ -420,22 +420,23 @@ function renderSmallMatrix(area, canteens, productNames, allData) {
 
   productNames.forEach((name, idx) => {
     const d = allData[name];
+    const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const tr = document.createElement('tr');
     let html = `
       <td>${idx + 1}</td>
       <td style="position:relative;">
-        <input type="text" class="cell-input cell-editable" value="${name}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <input type="text" class="cell-input cell-editable" value="${esc(name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input cell-editable" value="${d.spec}" data-field="spec" placeholder="规格"></td>
-      <td><input type="text" class="cell-input cell-editable" value="${d.unit}" data-field="unit" placeholder="单位"></td>
+      <td><input type="text" class="cell-input cell-editable" value="${esc(d.spec)}" data-field="spec" placeholder="规格"></td>
+      <td><input type="text" class="cell-input cell-editable" value="${esc(d.unit)}" data-field="unit" placeholder="单位"></td>
     `;
     for (const c of canteens) {
       const val = d.quantities[c] || '';
-      html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty${val ? ' has-value' : ''}" value="${val}" data-canteen="${c}" placeholder="0"></td>`;
+      html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty${val ? ' has-value' : ''}" value="${esc(val)}" data-canteen="${c}" placeholder="0"></td>`;
     }
     if (hasRemarks) {
-      html += `<td><input type="text" class="cell-input cell-editable" value="${d.remark || ''}" data-field="remark" placeholder="备注"></td>`;
+      html += `<td><input type="text" class="cell-input cell-editable" value="${esc(d.remark)}" data-field="remark" placeholder="备注"></td>`;
     }
     html += `<td style="white-space:nowrap;"><button class="btn-delete-row" onclick="deleteMatrixRow(this)">✕</button></td>`;
     tr.innerHTML = html;
@@ -494,10 +495,11 @@ function renumberMatrixRows() {
   });
 }
 
-function toggleMatrixRemarks() {
+async function toggleMatrixRemarks() {
+  await saveMatrixData();
   const current = APP_SETTINGS.show_matrix_remarks !== 'off';
   APP_SETTINGS.show_matrix_remarks = current ? 'off' : 'on';
-  window.api.setSetting('show_matrix_remarks', APP_SETTINGS.show_matrix_remarks);
+  await window.api.setSetting('show_matrix_remarks', APP_SETTINGS.show_matrix_remarks);
   initSmallMatrixMode();
 }
 
@@ -709,8 +711,8 @@ async function loadPurchaseGroupData(source) {
     const orders = await window.api.getPurchaseOrders(source);
     const byDate = {};
     orders.forEach(o => {
-      if (!byDate[o.order_date]) byDate[o.order_date] = [];
-      byDate[o.order_date].push(o);
+      if (!byDate[o.receive_date]) byDate[o.receive_date] = [];
+      byDate[o.receive_date].push(o);
     });
 
     for (const [date, items] of Object.entries(byDate)) {
