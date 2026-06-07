@@ -267,27 +267,24 @@ function switchSmallDisplayStyle(style) {
   const btnCopy = document.getElementById('btn-copy-canteen');
   const btnSync = document.getElementById('btn-sync-all');
   const btnRemarks = document.getElementById('btn-toggle-remarks');
-  const lianhuaDropdown = document.querySelector('#small-canteen-actions .dropdown-wrap');
 
   if (style === 'matrix') {
-    // 矩阵模式：隐藏分页 tab、复用/同步按钮、联华加购，显示矩阵区域
+    // 矩阵模式：隐藏分页 tab、复用/同步按钮，显示矩阵区域（联华加购保留）
     groupsArea.style.display = 'none';
     matrixArea.style.display = 'block';
     tabsEl.style.display = 'none';
     if (btnCopy) btnCopy.style.display = 'none';
     if (btnSync) btnSync.style.display = 'none';
     if (btnRemarks) btnRemarks.style.display = '';
-    if (lianhuaDropdown) lianhuaDropdown.style.display = 'none';
     initSmallMatrixMode();
   } else {
-    // 逐所模式：显示分页 tab、复用/同步按钮、联华加购，隐藏矩阵区域
+    // 逐所模式：显示分页 tab、复用/同步按钮，隐藏矩阵区域
     groupsArea.style.display = '';
     matrixArea.style.display = 'none';
     tabsEl.style.display = 'flex';
     if (btnCopy) btnCopy.style.display = '';
     if (btnSync) btnSync.style.display = '';
     if (btnRemarks) btnRemarks.style.display = 'none';
-    if (lianhuaDropdown) lianhuaDropdown.style.display = '';
     switchSmallCanteenPage(0);
   }
 }
