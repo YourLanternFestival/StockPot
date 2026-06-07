@@ -126,12 +126,12 @@ function renderInquiryTable(items) {
         <td>${changeHtml}</td>
         <td>${item.remark || ''}</td>
         <td id="${imageCellId}" class="image-cell">
-          <button class="btn btn-sm btn-image-add" onclick="addInquiryImage(this, '${item.name.replace(/'/g, "\\'")}', '${(item.spec || '').replace(/'/g, "\\'")}')" title="添加图片">📷</button>
+          <button class="btn btn-sm btn-image-add" onclick="addInquiryImage(this, '${item.name.replace(/'/g, "\\'")}', '${(item.spec || '').replace(/'/g, "\\'")}')" data-tooltip="为该询价项添加实物照片">📷</button>
         </td>
         <td>
           <button class="btn btn-sm" onclick='editInquiryItem(${JSON.stringify(item).replace(/'/g, "&#39;")})'>编辑</button>
-          <button class="btn btn-sm" onclick='copyInquiryItem(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="复制">📋</button>
-          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInquiryItem(${item.id})" title="删除">✕</button>
+          <button class="btn btn-sm" onclick='copyInquiryItem(${JSON.stringify(item).replace(/'/g, "&#39;")})' data-tooltip="复制该条询价记录">📋</button>
+          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInquiryItem(${item.id})" data-tooltip="删除该条询价记录">✕</button>
         </td>
       </tr>
     `;
@@ -255,7 +255,7 @@ async function loadInquiryImages(items) {
       const imagePath = await window.api.findImage(item.name, item.spec, photoFolder);
       if (imagePath) {
         const imgUrl = 'file:///' + imagePath.replace(/\\/g, '/');
-        cell.innerHTML = `<img src="${imgUrl}" class="inquiry-thumb" onclick="viewImage(this.src)" title="点击查看大图">`;
+        cell.innerHTML = `<img src="${imgUrl}" class="inquiry-thumb" onclick="viewImage(this.src)" data-tooltip="点击查看大图">`;
       }
     } catch (err) {
       console.error('Load image error:', err);
@@ -276,7 +276,7 @@ async function addInquiryImage(btn, name, spec) {
     const cell = btn.closest('td');
     if (cell) {
       const imgUrl = 'file:///' + result.path.replace(/\\/g, '/');
-      cell.innerHTML = `<img src="${imgUrl}" class="inquiry-thumb" onclick="viewImage(this.src)" title="点击查看大图">`;
+      cell.innerHTML = `<img src="${imgUrl}" class="inquiry-thumb" onclick="viewImage(this.src)" data-tooltip="点击查看大图">`;
     }
   } else if (result.error !== '已取消') {
     showToast('添加失败: ' + result.error, 'error');

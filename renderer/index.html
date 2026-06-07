@@ -14,43 +14,43 @@
         <h1>📦 洋安出入库</h1>
       </div>
       <ul class="nav-list">
-        <li class="nav-item active" data-page="dashboard">
+        <li class="nav-item active" data-page="dashboard" data-tooltip="查看库存统计概览、趋势图和预警">
           <span class="nav-icon">📊</span>
           <span class="nav-text">总览</span>
         </li>
-        <li class="nav-item" data-page="inventory">
+        <li class="nav-item" data-page="inventory" data-tooltip="搜索材料库存和查看过期预警">
           <span class="nav-icon">📋</span>
           <span class="nav-text">库存查询</span>
         </li>
-        <li class="nav-item" data-page="inbound">
+        <li class="nav-item" data-page="inbound" data-tooltip="批量录入入库记录">
           <span class="nav-icon">📥</span>
           <span class="nav-text">入库登记</span>
         </li>
-        <li class="nav-item" data-page="outbound">
+        <li class="nav-item" data-page="outbound" data-tooltip="批量登记出库，含库存校验">
           <span class="nav-icon">📤</span>
           <span class="nav-text">出库登记</span>
         </li>
-        <li class="nav-item" data-page="ledger">
+        <li class="nav-item" data-page="ledger" data-tooltip="查看按日分列的月度出入库汇总">
           <span class="nav-icon">📅</span>
           <span class="nav-text">月度台账</span>
         </li>
-        <li class="nav-item" data-page="products">
+        <li class="nav-item" data-page="products" data-tooltip="管理材料清单和保质期信息">
           <span class="nav-icon">🏷️</span>
           <span class="nav-text">产品管理</span>
         </li>
-        <li class="nav-item" data-page="purchase">
+        <li class="nav-item" data-page="purchase" data-tooltip="编制和管理采购订单">
           <span class="nav-icon">📝</span>
           <span class="nav-text">采购单</span>
         </li>
-        <li class="nav-item" data-page="inquiry">
+        <li class="nav-item" data-page="inquiry" data-tooltip="管理询价数据和价格变动">
           <span class="nav-icon">💰</span>
           <span class="nav-text">询价管理</span>
         </li>
-        <li class="nav-item" data-page="settings">
+        <li class="nav-item" data-page="settings" data-tooltip="配置系统参数">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text">设置</span>
         </li>
-        <li class="nav-item" onclick="startTour(0)" style="margin-top:auto;border-top:1px solid var(--border);padding-top:8px;">
+        <li class="nav-item" onclick="startTour(0)" style="margin-top:auto;border-top:1px solid var(--border);padding-top:8px;" data-tooltip="重新查看新手引导">
           <span class="nav-icon">❓</span>
           <span class="nav-text">帮助</span>
         </li>
@@ -66,28 +66,28 @@
           <span class="date-display">2026年6月3日</span>
         </div>
         <div class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card" data-tooltip="当前有库存的材料品种数">
             <div class="stat-icon">📦</div>
             <div class="stat-info">
               <div class="stat-value" id="stat-products">0</div>
               <div class="stat-label">在库品种</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card" data-tooltip="历史入库记录总条数">
             <div class="stat-icon">📥</div>
             <div class="stat-info">
               <div class="stat-value" id="stat-inbound">0</div>
               <div class="stat-label">累计入库笔数</div>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card" data-tooltip="历史出库记录总条数">
             <div class="stat-icon">📤</div>
             <div class="stat-info">
               <div class="stat-value" id="stat-outbound">0</div>
               <div class="stat-label">累计出库笔数</div>
             </div>
           </div>
-          <div class="stat-card warning" style="cursor:pointer;" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')">
+          <div class="stat-card warning" style="cursor:pointer;" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')" data-tooltip="点击跳转到库存查询的过期预警标签页">
             <div class="stat-icon">⚠️</div>
             <div class="stat-info">
               <div class="stat-value" id="stat-alerts">0</div>
@@ -100,7 +100,7 @@
             <div class="card-header">
               <h3>📊 近30天入出库趋势</h3>
             </div>
-            <div class="card-body">
+            <div class="card-body" data-tooltip="近30天每日入库(绿)和出库(红)数量折线图">
               <canvas id="trend-chart" height="250"></canvas>
             </div>
           </div>
@@ -108,7 +108,7 @@
             <div class="card-header">
               <h3>🥧 库存分布 (Top 10)</h3>
             </div>
-            <div class="card-body">
+            <div class="card-body" data-tooltip="按当前库存量排序的前10大品种分布">
               <canvas id="pie-chart" height="250"></canvas>
             </div>
           </div>
@@ -129,12 +129,12 @@
         <div class="page-header">
           <h2>库存管理</h2>
           <div class="header-actions">
-            <button class="btn btn-primary" onclick="exportInventory()">📥 导出 xlsx</button>
+            <button class="btn btn-primary" onclick="exportInventory()" data-tooltip="将当前库存数据导出为 Excel 文件">📥 导出 xlsx</button>
           </div>
         </div>
         <div class="tab-bar">
-          <button class="tab-btn active" data-tab="inv-search" onclick="switchInvTab('inv-search')">📋 库存查询</button>
-          <button class="tab-btn" data-tab="inv-alerts" onclick="switchInvTab('inv-alerts')">
+          <button class="tab-btn active" data-tab="inv-search" onclick="switchInvTab('inv-search')" data-tooltip="按材料查看详细库存和出入库流水">📋 库存查询</button>
+          <button class="tab-btn" data-tab="inv-alerts" onclick="switchInvTab('inv-alerts')" data-tooltip="查看临期和已过期的材料清单">
             ⚠️ 过期预警 <span class="badge" id="alert-badge" style="display:none;">0</span>
           </button>
         </div>
@@ -262,13 +262,13 @@
         <div class="page-header">
           <h2>入库登记</h2>
           <div class="header-actions">
-            <button class="btn btn-primary" onclick="submitInboundBatch()">✓ 批量提交</button>
+            <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录">✓ 批量提交</button>
           </div>
         </div>
         <div class="card">
           <div class="card-header">
             <h3>入库录入</h3>
-            <button class="btn btn-sm" onclick="addInboundRows()">+ 添加行</button>
+            <button class="btn btn-sm" onclick="addInboundRows()" data-tooltip="在表格底部添加更多录入行">+ 添加行</button>
           </div>
           <div class="purchase-table-wrapper">
             <table class="table table-purchase" id="inbound-table">
@@ -310,13 +310,13 @@
         <div class="page-header">
           <h2>出库登记</h2>
           <div class="header-actions">
-            <button class="btn btn-primary" onclick="submitOutboundBatch()">✓ 批量提交</button>
+            <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录">✓ 批量提交</button>
           </div>
         </div>
         <div class="card">
           <div class="card-header">
             <h3>出库录入</h3>
-            <button class="btn btn-sm" onclick="addOutboundRows()">+ 添加行</button>
+            <button class="btn btn-sm" onclick="addOutboundRows()" data-tooltip="在表格底部添加更多录入行">+ 添加行</button>
           </div>
           <div class="purchase-table-wrapper">
             <table class="table table-purchase" id="outbound-table">
@@ -357,16 +357,16 @@
         <div class="page-header">
           <h2>月度台账</h2>
           <div class="header-actions">
-            <select id="ledger-year" class="form-control" style="width:100px;">
+            <select id="ledger-year" class="form-control" style="width:100px;" data-tooltip="选择要查看的年份">
             </select>
-            <select id="ledger-month" class="form-control" style="width:80px;">
+            <select id="ledger-month" class="form-control" style="width:80px;" data-tooltip="选择要查看的月份">
               <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
               <option value="4">4月</option><option value="5">5月</option><option value="6" selected>6月</option>
               <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
               <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
             </select>
-            <button class="btn" onclick="toggleImportPanel()">📥 导入数据</button>
-            <button class="btn btn-primary" onclick="exportLedger()">📤 导出 xlsx</button>
+            <button class="btn" onclick="toggleImportPanel()" data-tooltip="展开导入面板，从 xlsx 文件批量导入产品和出入库数据">📥 导入数据</button>
+            <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件">📤 导出 xlsx</button>
           </div>
         </div>
 
@@ -402,8 +402,8 @@
                 <h4>预览导入数据</h4>
                 <div class="import-stats" id="import-preview-stats"></div>
                 <div style="margin-top:15px;display:flex;gap:10px;">
-                  <button class="btn btn-primary btn-lg" onclick="startImport()">开始导入（覆盖已有数据）</button>
-                  <button class="btn btn-lg" style="color:var(--danger);border-color:var(--danger);" onclick="clearAndReimport()">清空后重新导入</button>
+                  <button class="btn btn-primary btn-lg" onclick="startImport()" data-tooltip="覆盖已有数据并导入新数据，请先备份">开始导入（覆盖已有数据）</button>
+                  <button class="btn btn-lg" style="color:var(--danger);border-color:var(--danger);" onclick="clearAndReimport()" data-tooltip="清除所有现有数据后导入，请谨慎操作">清空后重新导入</button>
                 </div>
               </div>
               <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
@@ -471,14 +471,14 @@
         <div class="page-header">
           <h2>产品管理</h2>
           <div class="header-actions">
-            <select id="prod-status-filter" class="form-control" style="width:120px;" onchange="renderProductTable(document.getElementById('prod-search').value)">
+            <select id="prod-status-filter" class="form-control" style="width:120px;" onchange="renderProductTable(document.getElementById('prod-search').value)" data-tooltip="筛选显示有效/已停用/全部产品">
               <option value="active">有效产品</option>
               <option value="inactive">已停用</option>
               <option value="all">全部</option>
             </select>
-            <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()">🗑 删除选中</button>
-            <input type="text" class="search-input" placeholder="🔍 搜索产品..." id="prod-search">
-            <button class="btn btn-primary" onclick="showAddProduct()">+ 新增产品</button>
+            <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()" data-tooltip="批量停用勾选的产品">🗑 停用选中</button>
+            <input type="text" class="search-input" placeholder="🔍 搜索产品..." id="prod-search" data-tooltip="按材料名称搜索产品">
+            <button class="btn btn-primary" onclick="showAddProduct()" data-tooltip="添加新产品到材料清单">+ 新增产品</button>
           </div>
         </div>
         <div class="card">
@@ -499,9 +499,9 @@
         <div class="page-header">
           <h2>采购单</h2>
           <div class="header-actions">
-            <button class="btn" onclick="exportAllPurchaseOrders()">📤 导出全部</button>
-            <button class="btn" onclick="showImportLianhuaDialog()">📥 导入联华商品</button>
-            <button class="btn btn-primary" onclick="saveAllPurchaseOrders()">💾 保存所有</button>
+            <button class="btn" onclick="exportAllPurchaseOrders()" data-tooltip="将所有采购组导出为 Excel（含实物图片）">📤 导出全部</button>
+            <button class="btn" onclick="showImportLianhuaDialog()" data-tooltip="从 xlsx 文件导入联华超市商品目录">📥 导入联华商品</button>
+            <button class="btn btn-primary" onclick="saveAllPurchaseOrders()" data-tooltip="保存当前所有采购组的数据">💾 保存所有</button>
           </div>
         </div>
         <div class="purchase-container" id="purchase-container">
@@ -525,11 +525,11 @@
           </div>
           <!-- 小所食堂模式: 操作栏 -->
           <div id="small-canteen-actions" style="display:none;margin-bottom:12px;">
-            <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" title="展开/隐藏备注列">💬 备注</button>
-            <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()">📋 复用单个小所</button>
-            <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()">🔄 一键同步到所有小所</button>
+            <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" data-tooltip="展开或隐藏矩阵视图中的备注列">💬 备注</button>
+            <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()" data-tooltip="将当前小所的采购数据复制到另一个小所">📋 复用单个小所</button>
+            <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()" data-tooltip="将当前小所的数据同步覆盖到所有其他小所">🔄 一键同步到所有小所</button>
             <div class="dropdown-wrap" style="margin-left:auto;">
-              <button class="btn btn-sm" onclick="toggleDropdown(event)">联华加购 ▾</button>
+              <button class="btn btn-sm" onclick="toggleDropdown(event)" data-tooltip="快速将联华商品添加到当前小所的采购单">联华加购 ▾</button>
               <div class="dropdown-menu" id="lianhua-dropdown"></div>
             </div>
           </div>
@@ -540,12 +540,12 @@
 
           <!-- 洋安/新安模式: 联华 -->
           <div class="purchase-group" id="purchase-lianhua" data-source="联华">
-            <div class="group-header" onclick="toggleGroup(this)">
+            <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠联华超市采购组">
               <span class="group-toggle">▶</span>
               <h3 id="lianhua-title">联华超市</h3>
               <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate()">+ 添加日期</button>
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()">管理商品</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate()" data-tooltip="为联华采购组添加新的送货日期">+ 添加日期</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()" data-tooltip="查看和编辑联华超市商品目录">管理商品</button>
               </div>
             </div>
             <div class="group-content" style="display:none;"></div>
@@ -553,7 +553,7 @@
 
           <!-- 洋安/新安模式: 厨房 -->
           <div class="purchase-group" id="purchase-kitchen" data-source="">
-            <div class="group-header" onclick="toggleGroup(this)">
+            <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠厨房采购组">
               <span class="group-toggle">▶</span>
               <h3 id="kitchen-title">厨房</h3>
               <div class="group-actions">
@@ -565,7 +565,7 @@
 
           <!-- 洋安/新安模式: 面点房 -->
           <div class="purchase-group" id="purchase-pastry" data-source="">
-            <div class="group-header" onclick="toggleGroup(this)">
+            <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠面点房采购组">
               <span class="group-toggle">▶</span>
               <h3 id="pastry-title">面点房</h3>
               <div class="group-actions">
@@ -582,8 +582,8 @@
         <div class="page-header">
           <h2>询价管理</h2>
           <div class="header-actions">
-            <button class="btn" onclick="showImportInquiryDialog()">📥 导入鉴证表</button>
-            <button class="btn btn-primary" onclick="showAddInquiryItem()">+ 新增单品</button>
+            <button class="btn" onclick="showImportInquiryDialog()" data-tooltip="从 xlsx 文件导入询价鉴证表数据">📥 导入鉴证表</button>
+            <button class="btn btn-primary" onclick="showAddInquiryItem()" data-tooltip="手动添加一条询价记录">+ 新增单品</button>
           </div>
         </div>
 
@@ -591,13 +591,13 @@
         <div class="inquiry-filters">
           <div class="filter-group">
             <label>月份：</label>
-            <select id="inquiry-month" class="form-control" onchange="loadInquiryItems()">
+            <select id="inquiry-month" class="form-control" onchange="loadInquiryItems()" data-tooltip="选择要查看的询价月份">
               <option value="">请选择月份</option>
             </select>
           </div>
           <div class="filter-group">
             <label>分类：</label>
-            <select id="inquiry-category" class="form-control" onchange="loadInquiryItems()">
+            <select id="inquiry-category" class="form-control" onchange="loadInquiryItems()" data-tooltip="按食材分类筛选询价数据">
               <option value="">全部分类</option>
               <option value="米面粮油类">米面粮油类</option>
               <option value="肉禽蛋类">肉禽蛋类</option>
@@ -610,15 +610,15 @@
           </div>
           <div class="filter-group">
             <label>搜索：</label>
-            <input type="text" id="inquiry-search" class="form-control" placeholder="🔍 搜索品名..." oninput="searchInquiry()">
+            <input type="text" id="inquiry-search" class="form-control" placeholder="🔍 搜索品名..." oninput="searchInquiry()" data-tooltip="按品名搜索询价记录">
           </div>
           <div class="filter-group">
             <label>盛销折扣率：</label>
-            <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" readonly tabindex="-1">
+            <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" readonly tabindex="-1" data-tooltip="盛销供应商的折扣率，在设置页修改">
           </div>
           <div class="filter-group">
             <label>优宏折扣率：</label>
-            <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" readonly tabindex="-1">
+            <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" readonly tabindex="-1" data-tooltip="优宏供应商的折扣率，在设置页修改">
           </div>
         </div>
 
@@ -664,15 +664,15 @@
             <div class="card-body form-grid" style="grid-template-columns: repeat(3, 1fr);">
               <div class="form-group">
                 <label>入库添加行数</label>
-                <input type="number" class="form-control" id="setting-inbound-rows" min="1" max="50" value="5">
+                <input type="number" class="form-control" id="setting-inbound-rows" min="1" max="50" value="5" data-tooltip="入库页面每次点击"添加行"时增加的行数">
               </div>
               <div class="form-group">
                 <label>出库添加行数</label>
-                <input type="number" class="form-control" id="setting-outbound-rows" min="1" max="50" value="5">
+                <input type="number" class="form-control" id="setting-outbound-rows" min="1" max="50" value="5" data-tooltip="出库页面每次点击"添加行"时增加的行数">
               </div>
               <div class="form-group">
                 <label>采购单添加行数</label>
-                <input type="number" class="form-control" id="setting-purchase-rows" min="1" max="50" value="10">
+                <input type="number" class="form-control" id="setting-purchase-rows" min="1" max="50" value="10" data-tooltip="采购单页面每次点击"添加行"时增加的行数">
               </div>
             </div>
           </div>
@@ -682,25 +682,25 @@
             <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
               <div class="form-group">
                 <label>入库页面展示历史</label>
-                <select class="form-control" id="setting-inbound-history">
+                <select class="form-control" id="setting-inbound-history" data-tooltip="是否在入库页面底部显示最近入库记录">
                   <option value="on">开启</option>
                   <option value="off">关闭</option>
                 </select>
               </div>
               <div class="form-group">
                 <label>入库历史展示天数</label>
-                <input type="number" class="form-control" id="setting-inbound-history-days" min="1" max="365" value="20">
+                <input type="number" class="form-control" id="setting-inbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
               </div>
               <div class="form-group">
                 <label>出库页面展示历史</label>
-                <select class="form-control" id="setting-outbound-history">
+                <select class="form-control" id="setting-outbound-history" data-tooltip="是否在出库页面底部显示最近出库记录">
                   <option value="on">开启</option>
                   <option value="off">关闭</option>
                 </select>
               </div>
               <div class="form-group">
                 <label>出库历史展示天数</label>
-                <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20">
+                <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
               </div>
             </div>
           </div>
@@ -710,11 +710,11 @@
             <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
               <div class="form-group">
                 <label>短期预警天数</label>
-                <input type="number" class="form-control" id="setting-alert-short-days" min="1" max="365" value="30">
+                <input type="number" class="form-control" id="setting-alert-short-days" min="1" max="365" value="30" data-tooltip="临期预警的短期天数阈值">
               </div>
               <div class="form-group">
                 <label>长期预警天数</label>
-                <input type="number" class="form-control" id="setting-alert-long-days" min="1" max="365" value="60">
+                <input type="number" class="form-control" id="setting-alert-long-days" min="1" max="365" value="60" data-tooltip="临期预警的长期天数阈值">
               </div>
             </div>
           </div>
@@ -724,11 +724,11 @@
             <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
               <div class="form-group">
                 <label>最近入库记录数</label>
-                <input type="number" class="form-control" id="setting-inv-inbound-limit" min="1" max="50" value="5">
+                <input type="number" class="form-control" id="setting-inv-inbound-limit" min="1" max="50" value="5" data-tooltip="库存查询页面中入库记录表格显示的条数">
               </div>
               <div class="form-group">
                 <label>最近出库记录数</label>
-                <input type="number" class="form-control" id="setting-inv-outbound-limit" min="1" max="50" value="10">
+                <input type="number" class="form-control" id="setting-inv-outbound-limit" min="1" max="50" value="10" data-tooltip="库存查询页面中出库记录表格显示的条数">
               </div>
             </div>
           </div>
@@ -738,23 +738,23 @@
             <div class="card-body form-grid" style="grid-template-columns: repeat(2, 1fr);">
               <div class="form-group">
                 <label>折扣一名称</label>
-                <input type="text" class="form-control" id="setting-discount1-name" value="盛销">
+                <input type="text" class="form-control" id="setting-discount1-name" value="盛销" data-tooltip="询价管理中第一个折扣供应商的名称">
               </div>
               <div class="form-group">
                 <label>折扣一折扣率</label>
-                <input type="text" class="form-control" id="setting-discount1-rate" value="0.9008">
+                <input type="text" class="form-control" id="setting-discount1-rate" value="0.9008" data-tooltip="询价管理中第一个折扣供应商的折扣系数">
               </div>
               <div class="form-group">
                 <label>折扣二名称</label>
-                <input type="text" class="form-control" id="setting-discount2-name" value="优宏">
+                <input type="text" class="form-control" id="setting-discount2-name" value="优宏" data-tooltip="询价管理中第二个折扣供应商的名称">
               </div>
               <div class="form-group">
                 <label>折扣二折扣率</label>
-                <input type="text" class="form-control" id="setting-discount2-rate" value="0.9058">
+                <input type="text" class="form-control" id="setting-discount2-rate" value="0.9058" data-tooltip="询价管理中第二个折扣供应商的折扣系数">
               </div>
               <div class="form-group">
                 <label>单价小数位数</label>
-                <input type="number" class="form-control" id="setting-price-decimals" min="0" max="4" value="2">
+                <input type="number" class="form-control" id="setting-price-decimals" min="0" max="4" value="2" data-tooltip="询价管理中价格显示的小数位数">
               </div>
             </div>
           </div>
@@ -764,7 +764,7 @@
             <div class="card-body form-grid" style="grid-template-columns: 1fr;">
               <div class="form-group">
                 <label>运行模式</label>
-                <select class="form-control" id="setting-canteen-mode" onchange="toggleSmallCanteenConfig()">
+                <select class="form-control" id="setting-canteen-mode" onchange="toggleSmallCanteenConfig()" data-tooltip="切换采购单的食堂模式，影响采购单页的布局和功能">
                   <option value="default">默认模式（洋安/新安，采购单页可切换）</option>
                   <option value="multi">多食堂分页（下涯/制杆厂/白南山）</option>
                   <option value="small">小所食堂</option>
@@ -773,19 +773,19 @@
               <div id="small-canteen-config" style="display:none;">
                 <div class="form-group">
                   <label>采购单填写样式</label>
-                  <select class="form-control" id="setting-small-display-style" onchange="onSmallDisplayStyleChange(this.value)">
+                  <select class="form-control" id="setting-small-display-style" onchange="onSmallDisplayStyleChange(this.value)" data-tooltip="小所模式下：逐所分页输入或品名x所名矩阵输入">
                     <option value="groups">样式1：逐所输入（分页切换）</option>
                     <option value="matrix">样式2：矩阵输入（品名×所名）</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label>小所列表（可拖拽排序）</label>
-                  <div id="small-canteen-list"></div>
+                  <div id="small-canteen-list" data-tooltip="配置小所名称和显示顺序"></div>
                   <button class="btn btn-sm" onclick="addSmallCanteen()" style="margin-top:8px;">+ 添加小所</button>
                 </div>
                 <div class="form-group">
                   <label>厨房导出样式</label>
-                  <select class="form-control" id="setting-small-export-style">
+                  <select class="form-control" id="setting-small-export-style" data-tooltip="小所模式导出 Excel 时的排版样式">
                     <option value="matrix">样式1：矩阵式（品名×小所，紧凑）</option>
                     <option value="paired">样式2：两两并列（每组完整列）</option>
                   </select>
@@ -799,7 +799,7 @@
             <div class="card-body form-grid" style="grid-template-columns: 1fr;">
               <div class="form-group">
                 <label>回车键导航模式</label>
-                <select class="form-control" id="setting-enter-mode">
+                <select class="form-control" id="setting-enter-mode" data-tooltip="回车后跳到下一行同列还是下一行首格，可用 Ctrl+Enter 快速切换">
                   <option value="next-row">跳到下一行同列</option>
                   <option value="next-cell">跳到下一行首格</option>
                 </select>
@@ -813,7 +813,7 @@
               <div class="form-group">
                 <label>照片文件夹路径</label>
                 <div style="display:flex;gap:8px;">
-                  <input type="text" class="form-control" id="setting-photo-folder" placeholder="选择存放实物图片的文件夹路径" style="flex:1;">
+                  <input type="text" class="form-control" id="setting-photo-folder" placeholder="选择存放实物图片的文件夹路径" style="flex:1;" data-tooltip="存放询价实物图片的文件夹路径，建议使用内网共享文件夹">
                   <button class="btn" onclick="selectPhotoFolder()">浏览...</button>
                 </div>
                 <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block;">建议使用内网共享文件夹，图片按"品名_规格.ext"命名</small>
@@ -822,8 +822,8 @@
           </div>
         </div>
         <div style="text-align:right;margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
-          <button class="btn" onclick="startTour(0)">📖 查看新手引导</button>
-          <button class="btn btn-primary btn-lg" onclick="saveSettings()">💾 保存设置</button>
+          <button class="btn" onclick="startTour(0)" data-tooltip="重新播放新手引导教程">📖 查看新手引导</button>
+          <button class="btn btn-primary btn-lg" onclick="saveSettings()" data-tooltip="保存所有配置项并立即生效">💾 保存设置</button>
         </div>
       </div>
     </main>

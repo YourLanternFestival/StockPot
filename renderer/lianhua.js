@@ -357,7 +357,7 @@ function doSaveLianhuaFromModal(source) {
       <td><input type="text" class="cell-input cell-readonly" value="${getData('unit')}" data-field="unit" readonly tabindex="-1"></td>
       <td class="amount-cell cell-readonly">${tr.querySelector('.amount-cell')?.textContent || ''}</td>
       <td><input type="text" class="cell-input cell-editable" value="${getData('remark')}" data-field="remark" placeholder="备注"></td>
-      <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+      <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" data-tooltip="复制当前行数据到新行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
     `;
     targetTbody.appendChild(newTr);
     attachLianhuaCellEvents(newTr, targetTbody);
@@ -469,7 +469,7 @@ function appendLianhuaRow(tbody, idx) {
     <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
     <td class="amount-cell cell-readonly"></td>
     <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
-    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" data-tooltip="复制当前行数据到新行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
   `;
   tbody.appendChild(tr);
   attachLianhuaCellEvents(tr, tbody);
