@@ -1499,13 +1499,28 @@ async function exportSmallCanteenOrders(sheets) {
   const canteens = getSmallCanteens();
   const style = APP_SETTINGS.small_export_style || 'matrix';
 
+  // 获取导出日期：优先从矩阵日期输入，否则从第一个日期分组，最后用明天
+  let exportDate = '';
+  const matrixDate = document.getElementById('matrix-date');
+  if (matrixDate && matrixDate.value) {
+    exportDate = matrixDate.value;
+  } else {
+    // 从第一个小所的第一个日期分组获取
+    for (const canteen of canteens) {
+      const groups = getLianhuaDateGroups(`${canteen}-厨房`);
+      if (groups.length > 0) {
+        exportDate = getDateFromGroup(groups[0]);
+        break;
+      }
+    }
+    if (!exportDate) exportDate = getTomorrowStr();
+  }
+
   // 1. 厨房 sheet
   if (style === 'matrix') {
-    // 样式1：矩阵式（品名×小所）
-    buildMatrixKitchenSheet(sheets, canteens);
+    buildMatrixKitchenSheet(sheets, canteens, exportDate);
   } else {
-    // 样式2：两两并列（每组完整列）
-    buildPairedKitchenSheets(sheets, canteens);
+    buildPairedKitchenSheets(sheets, canteens, exportDate);
   }
 
   // 2. 联华按日期（和多食堂模式类似，不并列）
@@ -1520,7 +1535,7 @@ async function exportSmallCanteenOrders(sheets) {
 }
 
 // 样式1：矩阵式（品名×小所）
-function buildMatrixKitchenSheet(sheets, canteens) {
+function buildMatrixKitchenSheet(sheets, canteens, exportDate) {
   const allData = {};
   const quantities = {};
 
@@ -1536,9 +1551,10 @@ function buildMatrixKitchenSheet(sheets, canteens) {
   const names = Object.keys(allData);
   if (names.length === 0) return;
 
+  const dateStr = exportDate ? exportDate.replace(/-/g, '年').replace(/年(\d+)$/, '月$1日') : '小所';
   sheets.push({
     name: '小所厨房',
-    title: '小所厨房申购单',
+    title: `${dateStr}厨房申购单`,
     headers: ['序号', '品名', '规格', '单位', ...canteens, '备注'],
     rows: names.map((name, idx) => ({
       data: [idx + 1, name, allData[name].spec, allData[name].unit, ...canteens.map(c => quantities[c][name] || 0), allData[name].remark || '']
@@ -1547,7 +1563,7 @@ function buildMatrixKitchenSheet(sheets, canteens) {
 }
 
 // 样式2：两两左右并列（同一个sheet内，垂直排列多组）
-function buildPairedKitchenSheets(sheets, canteens) {
+function buildPairedKitchenSheets(sheets, canteens, exportDate) {
   const allRows = [];
   const sub = ['序号', '品名', '规格', '单位', '数量', '备注'];
 
@@ -1592,11 +1608,10 @@ function buildPairedKitchenSheets(sheets, canteens) {
   }
 
   if (allRows.length > 0) {
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+    const dateStr = exportDate ? exportDate.replace(/-/g, '年').replace(/年(\d+)$/, '月$1日') : '小所';
     sheets.push({
       name: '小所厨房',
-      title: `${dateStr}小所厨房申购单`,
+      title: `${dateStr}厨房申购单`,
       headers: ['', '', '', '', '', '', '', '', '', '', '', '', ''],
       rows: allRows,
       // 序号8 品名30 规格20 单位8 数量8 备注12 分割2
