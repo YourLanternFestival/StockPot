@@ -18,7 +18,7 @@ function getPastrySource() {
   return `${canteen}面点房`;
 }
 
-function applyCanteenMode() {
+async function applyCanteenMode() {
   const mode = APP_SETTINGS.xiaosuo_mode;
   const tabsEl = document.getElementById('multi-canteen-tabs');
   const switchEl = document.getElementById('canteen-switch');
@@ -44,7 +44,7 @@ function applyCanteenMode() {
     initSmallCanteenMode();
     // 应用保存的填写样式
     const savedStyle = APP_SETTINGS.small_display_style || 'groups';
-    switchSmallDisplayStyle(savedStyle);
+    await switchSmallDisplayStyle(savedStyle);
   } else {
     // 默认模式
     lianhuaEl.style.display = 'block';
@@ -260,13 +260,21 @@ function switchSmallCanteenPage(pageIdx) {
 }
 
 // 切换小所食堂的填写样式：groups（逐所输入）/ matrix（矩阵输入）
-function switchSmallDisplayStyle(style) {
+async function switchSmallDisplayStyle(style) {
   const groupsArea = document.getElementById('small-canteen-area');
   const matrixArea = document.getElementById('small-matrix-area');
   const tabsEl = document.getElementById('small-canteen-tabs');
   const btnCopy = document.getElementById('btn-copy-canteen');
   const btnSync = document.getElementById('btn-sync-all');
   const btnRemarks = document.getElementById('btn-toggle-remarks');
+
+  // 切换前先保存当前样式的数据到 DB
+  const currentStyle = APP_SETTINGS.small_display_style || 'groups';
+  if (currentStyle === 'matrix' && document.getElementById('matrix-tbody')) {
+    await saveMatrixData();
+  } else if (currentStyle === 'groups') {
+    await saveAllPurchaseOrders();
+  }
 
   if (style === 'matrix') {
     // 矩阵模式：隐藏分页 tab、复用/同步按钮，显示矩阵区域（联华加购保留）
@@ -289,19 +297,104 @@ function switchSmallDisplayStyle(style) {
   }
 }
 
+// ===== 矩阵输入模式 =====
+
+// 矩阵专用：自动补全选中（不设 unit_price/amount）
+function selectMatrixAutocompleteItem(input, item) {
+  const tr = input.closest('tr');
+  input.value = item.dataset.name;
+  const specInput = tr.querySelector('[data-field="spec"]');
+  const unitInput = tr.querySelector('[data-field="unit"]');
+  if (specInput) specInput.value = item.dataset.spec || '';
+  if (unitInput) unitInput.value = item.dataset.unit || '';
+  hideAutocomplete();
+  const firstQty = tr.querySelector('.matrix-cell-qty');
+  if (firstQty) { firstQty.focus(); firstQty.select(); }
+}
+
+// 矩阵专用：失焦自动匹配（不设 price）
+async function handleMatrixProductBlur(input) {
+  if (!input.isConnected) return;
+  const tr = input.closest('tr');
+  const keyword = input.value.trim();
+  if (!keyword) return;
+  const existingSpec = tr.querySelector('[data-field="spec"]')?.value;
+  if (existingSpec) return;
+  try {
+    let currentMonth = document.getElementById('inquiry-month')?.value;
+    if (!currentMonth) {
+      const months = await window.api.getInquiryMonths();
+      currentMonth = months.length > 0 ? months[0].month : null;
+    }
+    const results = await window.api.searchInquiryItems(keyword, currentMonth);
+    const match = results.find(r => r.name.toLowerCase() === keyword.toLowerCase()) || results[0];
+    if (match) {
+      const specInput = tr.querySelector('[data-field="spec"]');
+      const unitInput = tr.querySelector('[data-field="unit"]');
+      if (specInput) specInput.value = match.spec || '';
+      if (unitInput) unitInput.value = match.unit || '';
+    }
+  } catch (err) {
+    console.error('Matrix product blur match error:', err);
+  }
+}
+
+// 矩阵专用：绑定行事件（复用 bindTableRowEvents）
+function bindMatrixRowEvents(tr, tbody) {
+  bindTableRowEvents(tr, tbody, {
+    onSelect: selectMatrixAutocompleteItem,
+    onAutocomplete: handleProductAutocomplete,
+    onProductSelect: selectMatrixAutocompleteItem,
+    onProductBlur: handleMatrixProductBlur,
+    onQtyChange: null,
+    onFieldChange: null,
+    onAppendRow: appendMatrixRow,
+  });
+  tr.querySelectorAll('.matrix-cell-qty').forEach(input => {
+    input.addEventListener('input', () => {
+      input.classList.toggle('has-value', !!input.value.trim());
+    });
+  });
+}
+
+// 矩阵专用：追加空行（复用 cell-editable 结构）
+function appendMatrixRow(tbody, idx) {
+  const canteens = getSmallCanteens();
+  const hasRemarks = APP_SETTINGS.show_matrix_remarks !== 'off';
+  if (idx === undefined) idx = tbody.querySelectorAll('tr').length;
+
+  const tr = document.createElement('tr');
+  let html = `
+    <td>${idx + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="spec" placeholder="规格"></td>
+    <td><input type="text" class="cell-input cell-editable" value="" data-field="unit" placeholder="单位"></td>
+  `;
+  for (const c of canteens) {
+    html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty" value="" data-canteen="${c}" placeholder="0"></td>`;
+  }
+  if (hasRemarks) {
+    html += `<td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>`;
+  }
+  html += `<td style="white-space:nowrap;"><button class="btn-delete-row" onclick="deleteMatrixRow(this)">✕</button></td>`;
+  tr.innerHTML = html;
+  tbody.appendChild(tr);
+  bindMatrixRowEvents(tr, tbody);
+  return tr;
+}
+
 // 初始化矩阵输入模式
 function initSmallMatrixMode() {
   const canteens = getSmallCanteens();
   const area = document.getElementById('small-matrix-area');
-
-  // 从 DB 加载所有小所厨房数据
   loadAllSmallMatrixData(canteens, area);
 }
 
 async function loadAllSmallMatrixData(canteens, area) {
-  // 收集所有小所的厨房数据
-  const allData = {};  // productName -> { spec, unit, remark, quantities: { canteen: qty } }
-  const dateMap = {};  // productName -> date (取第一个遇到的日期)
+  const allData = {};
 
   for (const canteen of canteens) {
     const source = `${canteen}-厨房`;
@@ -311,21 +404,50 @@ async function loadAllSmallMatrixData(canteens, area) {
       if (!name) continue;
       if (!allData[name]) {
         allData[name] = { spec: order.spec || '', unit: order.unit || '', remark: order.remark || '', quantities: {} };
-        dateMap[name] = order.receive_date || '';
       }
       allData[name].quantities[canteen] = order.quantity || '';
     }
   }
 
   const productNames = Object.keys(allData);
-  renderSmallMatrix(area, canteens, productNames, allData, dateMap);
+  renderSmallMatrix(area, canteens, productNames, allData);
 }
 
-function renderSmallMatrix(area, canteens, productNames, allData, dateMap) {
+function renderSmallMatrix(area, canteens, productNames, allData) {
   const hasRemarks = APP_SETTINGS.show_matrix_remarks !== 'off';
-  const remarkColIdx = hasRemarks ? canteens.length + 4 : -1; // 序号+品名+规格+单位 = 4 col
+  const tbody = document.createElement('tbody');
+  tbody.id = 'matrix-tbody';
 
-  let html = `
+  productNames.forEach((name, idx) => {
+    const d = allData[name];
+    const tr = document.createElement('tr');
+    let html = `
+      <td>${idx + 1}</td>
+      <td style="position:relative;">
+        <input type="text" class="cell-input cell-editable" value="${name}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <div class="autocomplete-dropdown" style="display:none;"></div>
+      </td>
+      <td><input type="text" class="cell-input cell-editable" value="${d.spec}" data-field="spec" placeholder="规格"></td>
+      <td><input type="text" class="cell-input cell-editable" value="${d.unit}" data-field="unit" placeholder="单位"></td>
+    `;
+    for (const c of canteens) {
+      const val = d.quantities[c] || '';
+      html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty${val ? ' has-value' : ''}" value="${val}" data-canteen="${c}" placeholder="0"></td>`;
+    }
+    if (hasRemarks) {
+      html += `<td><input type="text" class="cell-input cell-editable" value="${d.remark || ''}" data-field="remark" placeholder="备注"></td>`;
+    }
+    html += `<td style="white-space:nowrap;"><button class="btn-delete-row" onclick="deleteMatrixRow(this)">✕</button></td>`;
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+    bindMatrixRowEvents(tr, tbody);
+  });
+
+  if (productNames.length === 0) {
+    appendMatrixRow(tbody, 0);
+  }
+
+  area.innerHTML = `
     <div class="matrix-date-bar">
       <label>到货日期：</label>
       <input type="date" class="form-control" id="matrix-date" value="${getTomorrowStr()}" style="width:160px;">
@@ -343,95 +465,30 @@ function renderSmallMatrix(area, canteens, productNames, allData, dateMap) {
             <th>操作</th>
           </tr>
         </thead>
-        <tbody id="matrix-tbody">
-  `;
-
-  productNames.forEach((name, idx) => {
-    const d = allData[name];
-    html += `<tr data-product="${name}">`;
-    html += `<td>${idx + 1}</td>`;
-    html += `<td class="matrix-cell-name">${name}</td>`;
-    html += `<td>${d.spec}</td>`;
-    html += `<td>${d.unit}</td>`;
-    for (const c of canteens) {
-      const val = d.quantities[c] || '';
-      html += `<td><input type="text" class="matrix-cell-qty${val ? ' has-value' : ''}" value="${val}" data-canteen="${c}" placeholder="0"></td>`;
-    }
-    if (hasRemarks) {
-      html += `<td><input type="text" class="matrix-cell-qty" value="${d.remark || ''}" data-field="remark" placeholder=""></td>`;
-    }
-    html += `<td class="matrix-cell-ops"><button class="btn btn-sm" onclick="deleteMatrixRow(this)" title="删除行">✕</button></td>`;
-    html += `</tr>`;
-  });
-
-  html += `
-        </tbody>
       </table>
     </div>
     <div style="margin-top:8px;">
       <button class="btn btn-sm" onclick="addMatrixEmptyRow()">+ 添加空白行</button>
-      <button class="btn btn-sm" onclick="addMatrixFromInquiry()">+ 从询价添加</button>
     </div>
   `;
 
-  area.innerHTML = html;
-  bindMatrixCellEvents();
-}
-
-function bindMatrixCellEvents() {
-  document.querySelectorAll('#matrix-tbody .matrix-cell-qty').forEach(input => {
-    input.addEventListener('input', () => {
-      input.classList.toggle('has-value', !!input.value.trim());
-    });
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const tr = input.closest('tr');
-        const row = Array.from(tr.parentElement.children).indexOf(tr);
-        const col = Array.from(tr.children).indexOf(input.closest('td'));
-        const rows = tr.parentElement.querySelectorAll('tr');
-        if (row < rows.length - 1) {
-          const nextInput = rows[row + 1].children[col]?.querySelector('input');
-          if (nextInput) { nextInput.focus(); nextInput.select(); }
-        }
-      }
-    });
-  });
+  const table = area.querySelector('.matrix-table');
+  table.appendChild(tbody);
 }
 
 function addMatrixEmptyRow() {
   const tbody = document.getElementById('matrix-tbody');
-  const canteens = getSmallCanteens();
-  const hasRemarks = APP_SETTINGS.show_matrix_remarks !== 'off';
-  const idx = tbody.querySelectorAll('tr').length;
-
-  const tr = document.createElement('tr');
-  tr.dataset.product = '';
-  let html = `<td>${idx + 1}</td>`;
-  html += `<td class="matrix-cell-name" contenteditable="true" placeholder="输入品名..."></td>`;
-  html += `<td contenteditable="true"></td>`;
-  html += `<td contenteditable="true"></td>`;
-  for (const c of canteens) {
-    html += `<td><input type="text" class="matrix-cell-qty" data-canteen="${c}" placeholder="0"></td>`;
-  }
-  if (hasRemarks) {
-    html += `<td><input type="text" class="matrix-cell-qty" data-field="remark" placeholder=""></td>`;
-  }
-  html += `<td class="matrix-cell-ops"><button class="btn btn-sm" onclick="deleteMatrixRow(this)" title="删除行">✕</button></td>`;
-  tr.innerHTML = html;
-  tbody.appendChild(tr);
-  bindMatrixCellEvents();
-}
-
-function addMatrixFromInquiry() {
-  // TODO: 弹窗从询价列表选择商品添加到矩阵
-  showToast('功能开发中', 'error');
+  appendMatrixRow(tbody);
+  renumberMatrixRows();
 }
 
 function deleteMatrixRow(btn) {
   const tr = btn.closest('tr');
   tr.remove();
-  // 重新编号
+  renumberMatrixRows();
+}
+
+function renumberMatrixRows() {
   document.querySelectorAll('#matrix-tbody tr').forEach((row, idx) => {
     row.querySelector('td:first-child').textContent = idx + 1;
   });
@@ -453,23 +510,19 @@ async function saveMatrixData() {
   const dateInput = document.getElementById('matrix-date');
   const date = dateInput ? dateInput.value : getTomorrowStr();
 
-  // 清空所有小所厨房的旧数据
   for (const canteen of canteens) {
     await window.api.clearPurchaseOrders(`${canteen}-厨房`);
   }
 
-  // 逐行保存
   const rows = tbody.querySelectorAll('tr');
   let savedCount = 0;
   for (const tr of rows) {
-    const nameCell = tr.querySelector('.matrix-cell-name');
-    const productName = (nameCell.value || nameCell.textContent || '').trim();
+    const productName = tr.querySelector('[data-field="product_name"]')?.value?.trim();
     if (!productName) continue;
 
-    const spec = tr.children[2]?.textContent?.trim() || '';
-    const unit = tr.children[3]?.textContent?.trim() || '';
-    const remarkInput = tr.querySelector('[data-field="remark"]');
-    const remark = remarkInput ? (remarkInput.value || '').trim() : '';
+    const spec = tr.querySelector('[data-field="spec"]')?.value?.trim() || '';
+    const unit = tr.querySelector('[data-field="unit"]')?.value?.trim() || '';
+    const remark = tr.querySelector('[data-field="remark"]')?.value?.trim() || '';
 
     for (const canteen of canteens) {
       const qtyInput = tr.querySelector(`[data-canteen="${canteen}"]`);
@@ -494,7 +547,6 @@ async function saveMatrixData() {
 
   showToast(`矩阵数据已保存 ${savedCount} 条`);
 
-  // 同步 .purchase-group DOM，确保导出时 collectRows 能读到最新数据
   for (const canteen of canteens) {
     await loadPurchaseGroupData(`${canteen}-厨房`);
   }
