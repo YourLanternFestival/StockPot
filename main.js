@@ -123,6 +123,9 @@ ipcMain.handle('purchaseOrders:add', (e, data) => db.addPurchaseOrder(data));
 ipcMain.handle('purchaseOrders:update', (e, id, data) => db.updatePurchaseOrder(id, data));
 ipcMain.handle('purchaseOrders:delete', (e, id) => db.deletePurchaseOrder(id));
 ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(source));
+ipcMain.handle('purchaseOrders:getByDate', (e, date) => db.getPurchaseOrdersByDate(date));
+ipcMain.handle('purchaseOrders:historyDates', () => db.getPurchaseHistoryDates());
+ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
 
 // Inquiry Items
 ipcMain.handle('inquiry:get', (e, { month, category } = {}) => db.getInquiryItems(month, category));

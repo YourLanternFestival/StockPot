@@ -42,6 +42,10 @@
           <span class="nav-icon">📝</span>
           <span class="nav-text">采购单</span>
         </li>
+        <li class="nav-item" data-page="history" data-tooltip="查看最近3天的采购单历史记录">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">历史采购</span>
+        </li>
         <li class="nav-item" data-page="inquiry" data-tooltip="管理询价数据和价格变动">
           <span class="nav-icon">💰</span>
           <span class="nav-text">询价管理</span>
@@ -577,6 +581,27 @@
         </div>
       </div>
 
+      <!-- Purchase History -->
+      <div class="page" id="page-history">
+        <div class="page-header">
+          <h2>📋 历史采购记录</h2>
+          <div class="header-actions">
+            <span style="color:var(--text-muted);font-size:13px;">保留最近3天的采购数据</span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="font-weight:500;">选择日期：</span>
+            <div id="history-dates" style="display:flex;gap:8px;">
+              <span style="color:var(--text-muted);">加载中...</span>
+            </div>
+          </div>
+        </div>
+        <div id="history-content">
+          <div style="text-align:center;padding:40px;color:var(--text-muted);">请选择日期查看历史记录</div>
+        </div>
+      </div>
+
       <!-- Inquiry Management -->
       <div class="page" id="page-inquiry">
         <div class="page-header">
@@ -856,6 +881,7 @@
   <script src="data-io.js"></script>
   <script src="purchase.js"></script>
   <script src="lianhua.js"></script>
+  <script src="history.js"></script>
   <script src="inquiry.js"></script>
   <script src="inventory.js"></script>
   <script src="ledger.js"></script>

@@ -4,6 +4,15 @@ let autocompleteDropdown = null;
 // Initialize purchase page
 async function initPurchasePage() {
   await loadLianhuaItems();
+
+  // Check if we should load data or start fresh
+  const today = todayStr();
+  const lastDate = APP_SETTINGS.last_purchase_date || '';
+  const shouldLoadData = (lastDate === today);
+
+  // Store the flag for use in applyCanteenMode
+  window._purchaseShouldLoadData = shouldLoadData;
+
   applyCanteenMode();
 }
 
@@ -417,16 +426,19 @@ function initSmallMatrixMode() {
 async function loadAllSmallMatrixData(canteens, area) {
   const allData = {};
 
-  for (const canteen of canteens) {
-    const source = `${canteen}-厨房`;
-    const orders = await window.api.getPurchaseOrders(source);
-    for (const order of orders) {
-      const name = order.product_name;
-      if (!name) continue;
-      if (!allData[name]) {
-        allData[name] = { spec: order.spec || '', unit: order.unit || '', remark: order.remark || '', quantities: {} };
+  // Only load data if same day
+  if (window._purchaseShouldLoadData) {
+    for (const canteen of canteens) {
+      const source = `${canteen}-厨房`;
+      const orders = await window.api.getPurchaseOrders(source);
+      for (const order of orders) {
+        const name = order.product_name;
+        if (!name) continue;
+        if (!allData[name]) {
+          allData[name] = { spec: order.spec || '', unit: order.unit || '', remark: order.remark || '', quantities: {} };
+        }
+        allData[name].quantities[canteen] = order.quantity || '';
       }
-      allData[name].quantities[canteen] = order.quantity || '';
     }
   }
 
@@ -567,6 +579,10 @@ async function saveMatrixData() {
       savedCount++;
     }
   }
+
+  // Record the save date
+  const today = todayStr();
+  await window.api.setSetting('last_purchase_date', today);
 
   showToast(`矩阵数据已保存 ${savedCount} 条`);
 
@@ -728,6 +744,9 @@ async function loadPurchaseGroupData(source) {
     const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
     if (!groupContent) return;
     groupContent.innerHTML = '';
+
+    // Only load data if same day
+    if (!window._purchaseShouldLoadData) return;
 
     const orders = await window.api.getPurchaseOrders(source);
     const byDate = {};
@@ -1342,6 +1361,11 @@ async function saveAllPurchaseOrders() {
     for (const order of allOrders) {
       await window.api.addPurchaseOrder(order);
     }
+
+    // Record the save date
+    const today = todayStr();
+    await window.api.setSetting('last_purchase_date', today);
+
     showToast(`已保存 ${allOrders.length} 条采购记录`);
   } catch (err) {
     showToast('保存失败: ' + err.message, 'error');

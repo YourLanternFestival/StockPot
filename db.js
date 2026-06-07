@@ -615,6 +615,27 @@ function clearPurchaseOrders(source) {
   save();
 }
 
+function getPurchaseOrdersByDate(date) {
+  return queryAll(
+    `SELECT * FROM purchase_orders WHERE date(created_at) = ? ORDER BY source, sort_order, id`,
+    [date]
+  );
+}
+
+function getPurchaseHistoryDates() {
+  return queryAll(
+    `SELECT DISTINCT date(created_at) as date FROM purchase_orders ORDER BY date DESC LIMIT 5`
+  );
+}
+
+function cleanOldPurchaseOrders(daysToKeep = 3) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysToKeep);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  run('DELETE FROM purchase_orders WHERE date(created_at) < ?', [cutoffStr]);
+  save();
+}
+
 // ===== Inquiry Items =====
 function getInquiryItems(month, category) {
   let sql = 'SELECT * FROM inquiry_items WHERE 1=1';
@@ -806,6 +827,7 @@ module.exports = {
   getDashboardStats,
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
+  getPurchaseOrdersByDate, getPurchaseHistoryDates, cleanOldPurchaseOrders,
   // Inquiry Items
   getInquiryItems, searchInquiryItems, addInquiryItem, updateInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName, deleteInquiryItem,
   // Remark Memory

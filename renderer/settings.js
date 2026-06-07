@@ -16,6 +16,7 @@ const SETTING_KEYS = [
   'small_display_style',
   'show_matrix_remarks',
   'alert_short_days', 'alert_long_days',
+  'last_purchase_date',
 ];
 
 const SETTING_DEFAULTS = {
@@ -36,6 +37,7 @@ const SETTING_DEFAULTS = {
   show_matrix_remarks: 'on',
   alert_short_days: '30',
   alert_long_days: '60',
+  last_purchase_date: '',
 };
 
 async function initSettingsPage() {

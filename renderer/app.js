@@ -29,6 +29,7 @@ function navigateTo(page) {
     case 'ledger': loadLedger(); break;
     case 'products': loadProducts(); break;
     case 'purchase': initPurchasePage(); break;
+    case 'history': initHistoryPage(); break;
     case 'inquiry': initInquiryPage(); break;
     case 'inbound': initInboundPage(); break;
     case 'outbound': initOutboundPage(); break;
@@ -96,6 +97,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load all app settings into cache
   await loadAppSettings();
+
+  // Clean old purchase orders (keep 3 days)
+  await window.api.cleanOldPurchaseOrders(3);
 
   // Check if first launch and start tutorial
   checkAndStartTour();
