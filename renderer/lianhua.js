@@ -226,28 +226,126 @@ async function deleteLianhuaItem(id) {
   showManageLianhuaItems();
 }
 
-// Show add lianhua date dialog
+// Show add lianhua date dialog — 弹窗内直接填写
 function showAddLianhuaDate(source) {
   source = source || '联华';
-  // 优先用矩阵日期输入，否则用明天
   const matrixDate = document.getElementById('matrix-date');
   const defaultDate = (matrixDate && matrixDate.value) ? matrixDate.value : getTomorrowStr();
-  openModal('选择联华订单日期', `
-    <div class="form-group">
+  const canteenName = source.replace('-联华', '');
+
+  openModal(`${canteenName} 联华加购`, `
+    <div class="form-group" style="margin-bottom:12px;">
       <label>发货日期</label>
-      <input type="date" class="form-control" id="new-lianhua-date" value="${defaultDate}">
+      <input type="date" class="form-control" id="modal-lianhua-date" value="${defaultDate}" style="width:160px;">
     </div>
+    <div class="purchase-table-wrapper">
+      <table class="table table-purchase" id="modal-lianhua-table">
+        <thead>
+          <tr>
+            <th style="width:40px;">序号</th>
+            <th style="width:200px;">品名</th>
+            <th style="width:100px;">规格</th>
+            <th style="width:70px;">单价</th>
+            <th style="width:70px;">数量</th>
+            <th style="width:50px;">单位</th>
+            <th style="width:70px;">金额</th>
+            <th style="width:120px;">备注</th>
+            <th style="width:40px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="modal-lianhua-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-sm" style="margin-top:8px;" onclick="modalLianhuaAddRows()">+ 添加行</button>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
-    <button class="btn btn-primary" onclick="doAddLianhuaDate('${source}')">确定</button>
+    <button class="btn btn-primary" onclick="doSaveLianhuaFromModal('${source}')">保存</button>
   `);
+
+  // 添加 5 行空行
+  const tbody = document.getElementById('modal-lianhua-tbody');
+  for (let i = 0; i < 5; i++) {
+    appendLianhuaRow(tbody, i);
+  }
 }
 
-function doAddLianhuaDate(source) {
-  const date = document.getElementById('new-lianhua-date').value;
+function modalLianhuaAddRows() {
+  const tbody = document.getElementById('modal-lianhua-tbody');
+  const current = tbody.querySelectorAll('tr').length;
+  for (let i = 0; i < 5; i++) {
+    appendLianhuaRow(tbody, current + i);
+  }
+}
+
+function doSaveLianhuaFromModal(source) {
+  const date = document.getElementById('modal-lianhua-date').value;
   if (!date) { showToast('请选择日期', 'error'); return; }
+
+  const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
+  if (!groupContent) { showToast('未找到联华分组', 'error'); return; }
+
+  const dateId = `lianhua-date-${source}-${date}`.replace(/[\s-]/g, '_');
+  let dateGroup = document.getElementById(dateId);
+
+  // 如果该日期分组不存在，创建一个
+  if (!dateGroup) {
+    addLianhuaDateGroup(date, source);
+    dateGroup = document.getElementById(dateId);
+  }
+  if (!dateGroup) { showToast('创建日期分组失败', 'error'); return; }
+
+  // 将弹窗中的数据追加到日期分组的 tbody
+  const targetTbody = dateGroup.querySelector('tbody');
+  const modalRows = document.querySelectorAll('#modal-lianhua-tbody tr');
+  let addedCount = 0;
+
+  modalRows.forEach(tr => {
+    const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+    const productName = getData('product_name').trim();
+    if (!productName) return;
+
+    const newTr = document.createElement('tr');
+    newTr.innerHTML = `
+      <td>0</td>
+      <td style="position:relative;">
+        <input type="text" class="cell-input cell-editable" value="${productName}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <div class="autocomplete-dropdown" style="display:none;"></div>
+      </td>
+      <td><input type="text" class="cell-input cell-readonly" value="${getData('spec')}" data-field="spec" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${getData('unit_price')}" data-field="unit_price" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-editable" value="${getData('quantity')}" data-field="quantity" placeholder="数量"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${getData('unit')}" data-field="unit" readonly tabindex="-1"></td>
+      <td class="amount-cell cell-readonly">${tr.querySelector('.amount-cell')?.textContent || ''}</td>
+      <td><input type="text" class="cell-input cell-editable" value="${getData('remark')}" data-field="remark" placeholder="备注"></td>
+      <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+    `;
+    targetTbody.appendChild(newTr);
+    attachLianhuaCellEvents(newTr, targetTbody);
+    addedCount++;
+  });
+
+  // 重新编号
+  targetTbody.querySelectorAll('tr').forEach((row, idx) => {
+    row.querySelector('td:first-child').textContent = idx + 1;
+  });
+
+  // 更新 summary
+  const summary = dateGroup.querySelector('.date-summary');
+  if (summary) {
+    const total = targetTbody.querySelectorAll('tr').length;
+    summary.textContent = `${total} 项`;
+  }
+
+  // 展开父分组
+  const groupHeader = groupContent.previousElementSibling;
+  if (groupHeader && !groupHeader.classList.contains('expanded')) {
+    toggleGroup(groupHeader);
+  }
+
   closeModal();
-  addLianhuaDateGroup(date, source);
+  if (addedCount > 0) {
+    showToast(`已添加 ${addedCount} 条联华订单`);
+  }
 }
 
 // Add lianhua date group - supports custom source for multi-canteen mode

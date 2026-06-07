@@ -799,7 +799,9 @@ function appendPurchaseRowWithData(tbody, item, idx) {
   const tr = document.createElement('tr');
   if (item.id) tr.dataset.id = item.id;
 
-  const amount = (parseFloat(item.unit_price) || 0) * (parseFloat(item.quantity) || 0);
+  const price = item.unit_price != null ? parseFloat(item.unit_price) || 0 : 0;
+  const qty = parseFloat(item.quantity) || 0;
+  const amount = price * qty;
 
   tr.innerHTML = `
     <td>${idx + 1}</td>
@@ -808,7 +810,7 @@ function appendPurchaseRowWithData(tbody, item, idx) {
       <div class="autocomplete-dropdown" style="display:none;"></div>
     </td>
     <td><input type="text" class="cell-input cell-readonly" value="${item.spec || ''}" data-field="spec" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${item.unit_price || ''}" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${price || ''}" data-field="unit_price" readonly tabindex="-1"></td>
     <td><input type="text" class="cell-input cell-editable" value="${item.quantity || ''}" data-field="quantity" placeholder="数量"></td>
     <td><input type="text" class="cell-input cell-readonly" value="${item.unit || ''}" data-field="unit" readonly tabindex="-1"></td>
     <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(1) : ''}</td>
