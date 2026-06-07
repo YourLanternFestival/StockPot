@@ -1429,6 +1429,36 @@ function buildLianhuaSheet(title, canteen, date, rows, images) {
   };
 }
 
+// 合并所有小所联华到一张表
+function buildMergedLianhuaSheet(canteens, exportDate, allRows) {
+  const dateStr = exportDate ? exportDate.replace(/-/g, '.') : '';
+  const displayDate = exportDate ? exportDate.replace(/-/g, '年').replace(/年(\d+)$/, '月$1日') : '小所';
+  const rows = allRows.map((row, idx) => ({
+    data: [
+      idx + 1,
+      row.canteen,
+      row.date ? row.date.replace(/-/g, '.') : dateStr,
+      row.code,
+      row.product_name,
+      row.unit,
+      row.spec,
+      row.unit_price,
+      row.quantity,
+      row.amount,
+      row.split_qty,
+      row.remark,
+      '',
+    ]
+  }));
+
+  return {
+    name: '联华超市',
+    title: `${displayDate}联华超市`,
+    headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
+    rows,
+  };
+}
+
 function getLianhuaDateGroups(source) {
   const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
   return group ? group.querySelectorAll('.date-group') : [];
@@ -1523,14 +1553,20 @@ async function exportSmallCanteenOrders(sheets) {
     buildPairedKitchenSheets(sheets, canteens, exportDate);
   }
 
-  // 2. 联华按日期（和多食堂模式类似，不并列）
+  // 2. 联华合并到一张表
+  const allLianhuaRows = [];
   for (const canteen of canteens) {
     for (const dateGroup of getLianhuaDateGroups(`${canteen}-联华`)) {
-      const date = getDateFromGroup(dateGroup);
+      let date = getDateFromGroup(dateGroup);
+      if (!date) date = exportDate;
       const rows = collectLianhuaRows(dateGroup);
-      if (rows.length === 0) continue;
-      sheets.push(buildLianhuaSheet(`${canteen}-${date}`, canteen, date, rows, await resolveImages(rows)));
+      for (const row of rows) {
+        allLianhuaRows.push({ ...row, canteen, date });
+      }
     }
+  }
+  if (allLianhuaRows.length > 0) {
+    sheets.push(buildMergedLianhuaSheet(canteens, exportDate, allLianhuaRows));
   }
 }
 

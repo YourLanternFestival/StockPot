@@ -229,11 +229,13 @@ async function deleteLianhuaItem(id) {
 // Show add lianhua date dialog
 function showAddLianhuaDate(source) {
   source = source || '联华';
-  const tomorrow = getTomorrowStr();
+  // 优先用矩阵日期输入，否则用明天
+  const matrixDate = document.getElementById('matrix-date');
+  const defaultDate = (matrixDate && matrixDate.value) ? matrixDate.value : getTomorrowStr();
   openModal('选择联华订单日期', `
     <div class="form-group">
       <label>发货日期</label>
-      <input type="date" class="form-control" id="new-lianhua-date" value="${tomorrow}">
+      <input type="date" class="form-control" id="new-lianhua-date" value="${defaultDate}">
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
