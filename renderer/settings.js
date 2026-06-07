@@ -15,14 +15,15 @@ const SETTING_KEYS = [
   'small_export_style',
   'small_display_style',
   'show_matrix_remarks',
+  'alert_short_days', 'alert_long_days',
 ];
 
 const SETTING_DEFAULTS = {
   inbound_rows: '5', outbound_rows: '5', purchase_rows: '10',
   inbound_history: 'on', inbound_history_days: '20',
   outbound_history: 'on', outbound_history_days: '20',
-  discount1_name: '盛销', discount1_rate: '0.9008',
-  discount2_name: '优宏', discount2_rate: '0.9058',
+  discount1_name: '盛销', discount1_rate: '0.92',
+  discount2_name: '优宏', discount2_rate: '0.90',
   price_decimals: '2',
   enter_mode: 'next-row',
   photo_folder: '',
@@ -33,6 +34,8 @@ const SETTING_DEFAULTS = {
   small_export_style: 'matrix',
   small_display_style: 'groups',
   show_matrix_remarks: 'on',
+  alert_short_days: '30',
+  alert_long_days: '60',
 };
 
 async function initSettingsPage() {
@@ -52,6 +55,8 @@ async function initSettingsPage() {
     document.getElementById('setting-price-decimals').value = settings.price_decimals || SETTING_DEFAULTS.price_decimals;
     document.getElementById('setting-enter-mode').value = settings.enter_mode || SETTING_DEFAULTS.enter_mode;
     document.getElementById('setting-photo-folder').value = settings.photo_folder || SETTING_DEFAULTS.photo_folder;
+    document.getElementById('setting-alert-short-days').value = settings.alert_short_days || SETTING_DEFAULTS.alert_short_days;
+    document.getElementById('setting-alert-long-days').value = settings.alert_long_days || SETTING_DEFAULTS.alert_long_days;
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
     // 食堂模式：兼容旧格式
@@ -144,6 +149,8 @@ async function loadAppSettings() {
       small_export_style: g('small_export_style'),
       small_display_style: g('small_display_style'),
       show_matrix_remarks: g('show_matrix_remarks'),
+      alert_short_days: parseInt(g('alert_short_days')) || 30,
+      alert_long_days: parseInt(g('alert_long_days')) || 60,
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框

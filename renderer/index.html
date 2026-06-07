@@ -50,6 +50,10 @@
           <span class="nav-icon">⚙️</span>
           <span class="nav-text">设置</span>
         </li>
+        <li class="nav-item" onclick="startTour(0)" style="margin-top:auto;border-top:1px solid var(--border);padding-top:8px;">
+          <span class="nav-icon">❓</span>
+          <span class="nav-text">帮助</span>
+        </li>
       </ul>
     </nav>
 
@@ -83,7 +87,7 @@
               <div class="stat-label">累计出库笔数</div>
             </div>
           </div>
-          <div class="stat-card warning">
+          <div class="stat-card warning" style="cursor:pointer;" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')">
             <div class="stat-icon">⚠️</div>
             <div class="stat-info">
               <div class="stat-value" id="stat-alerts">0</div>
@@ -114,15 +118,8 @@
             <h3>⚠️ 临期预警</h3>
             <button class="btn btn-sm" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')">查看全部</button>
           </div>
-          <div class="card-body">
-            <table class="table">
-              <thead>
-                <tr><th>材料名称</th><th>规格</th><th>数量</th><th>到期日</th><th>状态</th></tr>
-              </thead>
-              <tbody id="dashboard-alerts-body">
-                <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</td></tr>
-              </tbody>
-            </table>
+          <div class="card-body" style="text-align:center;padding:20px;color:var(--text-muted);">
+            点击"查看全部"跳转到库存查询的过期预警标签页查看详情
           </div>
         </div>
       </div>
@@ -232,11 +229,11 @@
             </div>
             <div class="alert-card alert-warning">
               <div class="alert-count" id="alert-soon-count">0</div>
-              <div class="alert-label">30天内到期</div>
+              <div class="alert-label" id="alert-soon-label">30天内到期</div>
             </div>
             <div class="alert-card alert-info">
               <div class="alert-count" id="alert-upcoming-count">0</div>
-              <div class="alert-label">60天内到期</div>
+              <div class="alert-label" id="alert-upcoming-label">60天内到期</div>
             </div>
           </div>
           <div class="card">
@@ -361,7 +358,6 @@
           <h2>月度台账</h2>
           <div class="header-actions">
             <select id="ledger-year" class="form-control" style="width:100px;">
-              <option value="2026">2026年</option>
             </select>
             <select id="ledger-month" class="form-control" style="width:80px;">
               <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
@@ -461,6 +457,7 @@
                   <th class="day-header" data-day="28">28日</th>
                   <th class="day-header" data-day="29">29日</th>
                   <th class="day-header" data-day="30">30日</th>
+                  <th class="day-header" data-day="31">31日</th>
                 </tr>
               </thead>
               <tbody id="ledger-body"></tbody>
@@ -474,6 +471,11 @@
         <div class="page-header">
           <h2>产品管理</h2>
           <div class="header-actions">
+            <select id="prod-status-filter" class="form-control" style="width:120px;" onchange="renderProductTable(document.getElementById('prod-search').value)">
+              <option value="active">有效产品</option>
+              <option value="inactive">已停用</option>
+              <option value="all">全部</option>
+            </select>
             <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()">🗑 删除选中</button>
             <input type="text" class="search-input" placeholder="🔍 搜索产品..." id="prod-search">
             <button class="btn btn-primary" onclick="showAddProduct()">+ 新增产品</button>
@@ -612,11 +614,11 @@
           </div>
           <div class="filter-group">
             <label>盛销折扣率：</label>
-            <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" onchange="saveDiscount()">
+            <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" readonly tabindex="-1">
           </div>
           <div class="filter-group">
             <label>优宏折扣率：</label>
-            <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" onchange="saveDiscount()">
+            <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" readonly tabindex="-1">
           </div>
         </div>
 
@@ -699,6 +701,20 @@
               <div class="form-group">
                 <label>出库历史展示天数</label>
                 <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20">
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>⚠️ 过期预警</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="form-group">
+                <label>短期预警天数</label>
+                <input type="number" class="form-control" id="setting-alert-short-days" min="1" max="365" value="30">
+              </div>
+              <div class="form-group">
+                <label>长期预警天数</label>
+                <input type="number" class="form-control" id="setting-alert-long-days" min="1" max="365" value="60">
               </div>
             </div>
           </div>
@@ -805,7 +821,8 @@
             </div>
           </div>
         </div>
-        <div style="text-align:right;margin-top:16px;">
+        <div style="text-align:right;margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
+          <button class="btn" onclick="startTour(0)">📖 查看新手引导</button>
           <button class="btn btn-primary btn-lg" onclick="saveSettings()">💾 保存设置</button>
         </div>
       </div>
@@ -842,5 +859,6 @@
   <script src="inquiry.js"></script>
   <script src="inventory.js"></script>
   <script src="ledger.js"></script>
+  <script src="tour.js"></script>
 </body>
 </html>

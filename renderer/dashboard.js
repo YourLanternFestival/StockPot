@@ -12,7 +12,7 @@ async function loadDashboard() {
     document.getElementById('stat-outbound').textContent = stats.totalOut.toLocaleString();
 
     // Alert count
-    const alerts = await window.api.getAlerts(30);
+    const alerts = await window.api.getAlerts(APP_SETTINGS.alert_short_days || 30);
     document.getElementById('stat-alerts').textContent = alerts.length;
     document.getElementById('alert-badge').textContent = alerts.length;
     document.getElementById('alert-badge').style.display = alerts.length > 0 ? 'inline' : 'none';
@@ -22,9 +22,6 @@ async function loadDashboard() {
 
     // Pie chart
     renderPieChart(stats.top10);
-
-    // Recent alerts
-    renderDashboardAlerts(alerts.slice(0, 5));
   } catch (err) {
     console.error('Dashboard load error:', err);
   }

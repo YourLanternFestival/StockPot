@@ -1,4 +1,18 @@
 // ===== Ledger =====
+function initLedgerYearSelector() {
+  const yearSelect = document.getElementById('ledger-year');
+  if (!yearSelect) return;
+  const currentYear = new Date().getFullYear();
+  yearSelect.innerHTML = '';
+  for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y + '年';
+    if (y === currentYear) opt.selected = true;
+    yearSelect.appendChild(opt);
+  }
+}
+
 async function loadLedger() {
   try {
     const year = parseInt(document.getElementById('ledger-year').value);
@@ -40,9 +54,13 @@ async function loadLedger() {
         <tr class="ledger-detail-row" id="ledger-detail-${idx}">
           <td colspan="${7 + daysInMonth}" class="ledger-detail-cell">
             <div style="padding:10px;">
-              <strong>${p.name}</strong> - ${year}年${month}月明细
+              <strong>${p.name}</strong> - ${year}年${month}月汇总
               <div style="margin-top:8px;font-size:13px;color:#64748b;">
                 上月结存: ${p.prevStock} | 本月入库: ${p.monthIn} | 本月出库: ${p.monthOut} | 当前库存: ${p.currentStock}
+              </div>
+              <div style="margin-top:12px;font-size:13px;">
+                <strong>每日明细：</strong>
+                ${generateDailyDetail(p.daily, daysInMonth)}
               </div>
             </div>
           </td>
@@ -52,6 +70,20 @@ async function loadLedger() {
   } catch (err) {
     console.error('Ledger load error:', err);
   }
+}
+
+function generateDailyDetail(daily, daysInMonth) {
+  const details = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayData = daily[d];
+    if (dayData && (dayData.in > 0 || dayData.out > 0)) {
+      const parts = [];
+      if (dayData.in > 0) parts.push(`<span style="color:var(--success);">入:${dayData.in}</span>`);
+      if (dayData.out > 0) parts.push(`<span style="color:var(--danger);">出:${dayData.out}</span>`);
+      details.push(`${d}日(${parts.join('/')})`);
+    }
+  }
+  return details.length > 0 ? details.join(' | ') : '无出入库记录';
 }
 
 function toggleLedgerDetail(idx) {

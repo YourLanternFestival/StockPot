@@ -104,7 +104,7 @@ function handleInboundProductAutocomplete(input) {
   }
 
   dropdown.innerHTML = results.map((item, idx) => `
-    <div class="autocomplete-item" data-index="${idx}" data-id="${item.id}" data-name="${item.name}" data-spec="${item.spec || ''}" data-unit="${item.unit || ''}" data-shelf-days="${item.shelf_days || 0}">
+    <div class="autocomplete-item" data-index="${idx}" data-id="${item.id}" data-name="${item.name}" data-spec="${item.spec || ''}" data-unit="${item.unit || ''}" data-shelf-months="${item.shelf_months || 0}" data-shelf-days="${item.shelf_days || 0}">
       <span class="item-name">${item.name}</span>
       <span class="item-spec">${item.spec || ''} | ${item.unit || ''}</span>
     </div>
@@ -127,6 +127,7 @@ function selectInboundProduct(input, item) {
   tr.querySelector('[data-field="spec"]').value = item.dataset.spec;
   tr.querySelector('[data-field="unit"]').value = item.dataset.unit;
   tr.dataset.productId = item.dataset.id;
+  tr.dataset.shelfMonths = item.dataset.shelfMonths;
   tr.dataset.shelfDays = item.dataset.shelfDays;
   hideAutocomplete();
   calcRowExpiry(tr);
@@ -138,11 +139,13 @@ function selectInboundProduct(input, item) {
 
 function calcRowExpiry(tr) {
   const prodDate = tr.querySelector('[data-field="production_date"]').value;
+  const shelfMonths = parseInt(tr.dataset.shelfMonths) || 0;
   const shelfDays = parseInt(tr.dataset.shelfDays) || 0;
+  const totalDays = shelfMonths * 30 + shelfDays;
   const expiryInput = tr.querySelector('[data-field="expiry_date"]');
-  if (prodDate && shelfDays > 0) {
+  if (prodDate && totalDays > 0) {
     const d = new Date(prodDate);
-    d.setDate(d.getDate() + shelfDays);
+    d.setDate(d.getDate() + totalDays);
     expiryInput.value = toLocalDateStr(d);
   } else {
     expiryInput.value = '';

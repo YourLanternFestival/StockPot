@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Set current month on ledger selector
   const now = new Date();
-  document.getElementById('ledger-year').value = now.getFullYear();
+  initLedgerYearSelector();
   document.getElementById('ledger-month').value = now.getMonth() + 1;
 
   // Load initial data
@@ -96,6 +96,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load all app settings into cache
   await loadAppSettings();
+
+  // Check if first launch and start tutorial
+  checkAndStartTour();
 
   // Ctrl+Enter 切换回车导航模式
   document.addEventListener('keydown', (e) => {

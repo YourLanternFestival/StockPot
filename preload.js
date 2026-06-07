@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   updateProduct: (id, data) => ipcRenderer.invoke('products:update', id, data),
   deleteProduct: (id) => ipcRenderer.invoke('products:delete', id),
   batchDeleteProducts: (ids) => ipcRenderer.invoke('products:batchDelete', ids),
+  restoreProduct: (id) => ipcRenderer.invoke('products:restore', id),
 
   // Inbound
   getInbound: (filters) => ipcRenderer.invoke('inbound:get', filters),
@@ -54,6 +55,7 @@ contextBridge.exposeInMainWorld('api', {
   getInquiryItems: (month, category) => ipcRenderer.invoke('inquiry:get', { month, category }),
   searchInquiryItems: (keyword, month) => ipcRenderer.invoke('inquiry:search', { keyword, month }),
   addInquiryItem: (data) => ipcRenderer.invoke('inquiry:add', data),
+  updateInquiryItem: (id, data) => ipcRenderer.invoke('inquiry:update', id, data),
   importInquiryItems: (month, items) => ipcRenderer.invoke('inquiry:import', { month, items }),
   getInquiryMonths: () => ipcRenderer.invoke('inquiry:months'),
   getLatestCategoryForName: (name) => ipcRenderer.invoke('inquiry:latestCategory', name),
@@ -77,6 +79,10 @@ contextBridge.exposeInMainWorld('api', {
   getSetting: (key) => ipcRenderer.invoke('settings:get', key),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   getAllSettings: () => ipcRenderer.invoke('settings:getAll'),
+
+  // Remark Memory
+  getRemarksByName: (productName) => ipcRenderer.invoke('remark:getByName', productName),
+  addRemarkMemory: (productName, remark) => ipcRenderer.invoke('remark:add', { productName, remark }),
 
   // Dialogs
   openFile: () => ipcRenderer.invoke('dialog:openFile'),

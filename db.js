@@ -112,7 +112,7 @@ async function init() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       item_id INTEGER,
       order_date TEXT NOT NULL,
-      quantity INTEGER DEFAULT 0,
+      quantity REAL DEFAULT 0,
       amount REAL DEFAULT 0,
       remark TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now','localtime'))
@@ -131,6 +131,19 @@ async function init() {
   try {
     db.run('ALTER TABLE products ADD COLUMN opening_stock REAL DEFAULT 0');
   } catch (e) { /* column already exists */ }
+
+  // Create remark_memory table for 备注记忆
+  db.run(`
+    CREATE TABLE IF NOT EXISTS remark_memory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_name TEXT NOT NULL,
+      remark TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now','localtime'))
+    )
+  `);
+  try {
+    db.run('CREATE INDEX IF NOT EXISTS idx_remark_name ON remark_memory(product_name)');
+  } catch (e) { /* index may already exist */ }
 
   // Seed default recipients
   const count = queryOne('SELECT COUNT(*) as c FROM recipients').c;
@@ -198,14 +211,25 @@ function updateProduct(id, { name, spec, unit, shelf_months, shelf_days, unit_pr
 }
 
 function deleteProduct(id) {
-  run('DELETE FROM products WHERE id = ?', [id]);
+  run('UPDATE products SET active = 0 WHERE id = ?', [id]);
   save();
 }
 
 function batchDeleteProducts(ids) {
   for (const id of ids) {
-    run('DELETE FROM products WHERE id = ?', [id]);
+    run('UPDATE products SET active = 0 WHERE id = ?', [id]);
   }
+  save();
+}
+
+function restoreProduct(id) {
+  run('UPDATE products SET active = 1 WHERE id = ?', [id]);
+  save();
+}
+
+function updateInquiryItem(id, data) {
+  run(`UPDATE inquiry_items SET category=?, name=?, price=?, unit=?, spec=?, remark=? WHERE id=?`,
+    [data.category, data.name, data.price || null, data.unit || '', data.spec || '', data.remark || '', id]);
   save();
 }
 
@@ -656,6 +680,20 @@ function deleteInquiryItem(id) {
   save();
 }
 
+// ===== Remark Memory =====
+function getRemarksByName(productName) {
+  return queryAll('SELECT DISTINCT remark FROM remark_memory WHERE product_name = ? ORDER BY id DESC LIMIT 10', [productName]);
+}
+
+function addRemarkMemory(productName, remark) {
+  if (!remark || !remark.trim()) return;
+  // Avoid exact duplicates
+  const existing = queryOne('SELECT id FROM remark_memory WHERE product_name = ? AND remark = ?', [productName, remark.trim()]);
+  if (existing) return;
+  run('INSERT INTO remark_memory (product_name, remark) VALUES (?, ?)', [productName, remark.trim()]);
+  save();
+}
+
 // ===== Settings =====
 function getSetting(key) {
   const row = queryOne('SELECT value FROM settings WHERE key = ?', [key]);
@@ -758,7 +796,7 @@ function clearLianhuaOrders(orderDate) {
 
 module.exports = {
   init, save, getDb: () => db,
-  getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts,
+  getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts, restoreProduct,
   getInboundRecords, addInbound, updateInbound, deleteInbound,
   getOutboundRecords, addOutbound, updateOutbound, deleteOutbound,
   getRecipients, addRecipient,
@@ -769,7 +807,9 @@ module.exports = {
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
   // Inquiry Items
-  getInquiryItems, searchInquiryItems, addInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName, deleteInquiryItem,
+  getInquiryItems, searchInquiryItems, addInquiryItem, updateInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName, deleteInquiryItem,
+  // Remark Memory
+  getRemarksByName, addRemarkMemory,
   // Settings
   getSetting, setSetting, getAllSettings,
   // Lianhua

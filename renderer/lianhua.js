@@ -219,6 +219,46 @@ async function doAddLianhuaItem() {
   showManageLianhuaItems();
 }
 
+function editLianhuaItem(id) {
+  const item = lianhuaItems.find(i => i.id === id);
+  if (!item) return;
+
+  openModal('编辑联华商品', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group"><label>编码</label><input type="text" class="form-control" id="edit-lianhua-code" value="${item.code || ''}"></div>
+      <div class="form-group"><label>品名 <span class="required">*</span></label><input type="text" class="form-control" id="edit-lianhua-name" value="${item.name}"></div>
+      <div class="form-group"><label>单位</label><input type="text" class="form-control" id="edit-lianhua-unit" value="${item.unit}"></div>
+      <div class="form-group"><label>规格</label><input type="text" class="form-control" id="edit-lianhua-spec" value="${item.spec}"></div>
+      <div class="form-group"><label>整件单价</label><input type="number" class="form-control" id="edit-lianhua-price" value="${item.price}" step="0.1"></div>
+      <div class="form-group"><label>拆分单件数</label><input type="number" class="form-control" id="edit-lianhua-split" value="${item.split_qty}" min="1"></div>
+      <div class="form-group" style="grid-column:1/-1;"><label>备注</label><input type="text" class="form-control" id="edit-lianhua-remark" value="${item.remark || ''}"></div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doEditLianhuaItem(${id})">保存</button>
+  `);
+}
+
+async function doEditLianhuaItem(id) {
+  const name = document.getElementById('edit-lianhua-name').value.trim();
+  if (!name) { showToast('请输入品名', 'error'); return; }
+
+  await window.api.updateLianhuaItem(id, {
+    code: document.getElementById('edit-lianhua-code').value.trim(),
+    name: name,
+    unit: document.getElementById('edit-lianhua-unit').value.trim(),
+    spec: document.getElementById('edit-lianhua-spec').value.trim(),
+    price: parseFloat(document.getElementById('edit-lianhua-price').value) || 0,
+    split_qty: parseInt(document.getElementById('edit-lianhua-split').value) || 1,
+    remark: document.getElementById('edit-lianhua-remark').value.trim()
+  });
+
+  showToast('已更新');
+  await loadLianhuaItems();
+  closeModal();
+  showManageLianhuaItems();
+}
+
 async function deleteLianhuaItem(id) {
   if (!confirm('确定删除？')) return;
   await window.api.deleteLianhuaItem(id);

@@ -5,7 +5,53 @@ const db = require('./db');
 
 let mainWindow;
 
+// ===== 单实例限制 =====
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+// ===== 数据备份 =====
+function backupDatabase() {
+  try {
+    const dbPath = path.join(app.getPath('userData'), 'inventory.db');
+    if (!fs.existsSync(dbPath)) return;
+
+    const backupDir = path.join(app.getPath('userData'), 'backups');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const backupPath = path.join(backupDir, `inventory_${today}.db`);
+    fs.copyFileSync(dbPath, backupPath);
+
+    // Clean old backups (keep 3 days)
+    const files = fs.readdirSync(backupDir).filter(f => f.endsWith('.db'));
+    const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    for (const file of files) {
+      const filePath = path.join(backupDir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.mtimeMs < cutoff) {
+        fs.unlinkSync(filePath);
+      }
+    }
+  } catch (err) {
+    console.error('Backup error:', err);
+  }
+}
+
 async function createWindow() {
+  // Backup database before init
+  backupDatabase();
+
   // Initialize DB before creating window
   await db.init();
 
@@ -35,6 +81,7 @@ ipcMain.handle('products:add', (e, data) => db.addProduct(data));
 ipcMain.handle('products:update', (e, id, data) => db.updateProduct(id, data));
 ipcMain.handle('products:delete', (e, id) => db.deleteProduct(id));
 ipcMain.handle('products:batchDelete', (e, ids) => db.batchDeleteProducts(ids));
+ipcMain.handle('products:restore', (e, id) => db.restoreProduct(id));
 
 // Inbound
 ipcMain.handle('inbound:get', (e, filters) => db.getInboundRecords(filters || {}));
@@ -81,6 +128,7 @@ ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(sou
 ipcMain.handle('inquiry:get', (e, { month, category } = {}) => db.getInquiryItems(month, category));
 ipcMain.handle('inquiry:search', (e, { keyword, month }) => db.searchInquiryItems(keyword, month));
 ipcMain.handle('inquiry:add', (e, data) => db.addInquiryItem(data));
+ipcMain.handle('inquiry:update', (e, id, data) => db.updateInquiryItem(id, data));
 ipcMain.handle('inquiry:import', (e, { month, items }) => db.importInquiryItems(month, items));
 ipcMain.handle('inquiry:months', () => db.getInquiryMonths());
 ipcMain.handle('inquiry:latestCategory', (e, name) => db.getLatestCategoryForName(name));
@@ -104,6 +152,10 @@ ipcMain.handle('lianhua:orders:clear', (e, orderDate) => db.clearLianhuaOrders(o
 ipcMain.handle('settings:get', (e, key) => db.getSetting(key));
 ipcMain.handle('settings:set', (e, key, value) => db.setSetting(key, value));
 ipcMain.handle('settings:getAll', () => db.getAllSettings());
+
+// Remark Memory
+ipcMain.handle('remark:getByName', (e, productName) => db.getRemarksByName(productName));
+ipcMain.handle('remark:add', (e, { productName, remark }) => db.addRemarkMemory(productName, remark));
 
 // File dialog
 ipcMain.handle('dialog:openFile', async () => {
@@ -379,7 +431,9 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  if (gotTheLock) createWindow();
+});
 
 function setupCloseHandler() {
   let forceQuit = false;

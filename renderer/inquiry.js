@@ -90,16 +90,18 @@ function renderInquiryTable(items) {
     const priceSX = item.price ? Math.round(item.price * discountSX * factor) / factor : null;
     const priceYH = item.price ? Math.round(item.price * discountYH * factor) / factor : null;
 
-    // Calculate price change using name + spec as key
+    // Calculate price change using discounted price (第一折扣价)
     const key = `${item.name}|${item.spec || ''}`;
     const prevPrice = prevMonthData[key];
     let changeHtml = '';
     if (prevPrice && item.price) {
-      const diff = Math.round((item.price - prevPrice) * 10) / 10;
+      const currentDiscounted = Math.round(item.price * discountSX * factor) / factor;
+      const prevDiscounted = Math.round(prevPrice * discountSX * factor) / factor;
+      const diff = Math.round((currentDiscounted - prevDiscounted) * factor) / factor;
       if (diff > 0) {
-        changeHtml = `<span class="price-up">↑${diff}</span>`;
+        changeHtml = `<span class="price-up">↑${diff.toFixed(dec)}</span>`;
       } else if (diff < 0) {
-        changeHtml = `<span class="price-down">↓${Math.abs(diff)}</span>`;
+        changeHtml = `<span class="price-down">↓${Math.abs(diff).toFixed(dec)}</span>`;
       } else {
         changeHtml = '<span class="price-same">-</span>';
       }
@@ -127,6 +129,7 @@ function renderInquiryTable(items) {
           <button class="btn btn-sm btn-image-add" onclick="addInquiryImage(this, '${item.name.replace(/'/g, "\\'")}', '${(item.spec || '').replace(/'/g, "\\'")}')" title="添加图片">📷</button>
         </td>
         <td>
+          <button class="btn btn-sm" onclick='editInquiryItem(${JSON.stringify(item).replace(/'/g, "&#39;")})'>编辑</button>
           <button class="btn btn-sm" onclick='copyInquiryItem(${JSON.stringify(item).replace(/'/g, "&#39;")})' title="复制">📋</button>
           <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInquiryItem(${item.id})" title="删除">✕</button>
         </td>
@@ -136,6 +139,73 @@ function renderInquiryTable(items) {
 
   // Load images asynchronously
   loadInquiryImages(items);
+}
+
+function editInquiryItem(item) {
+  openModal('编辑询价记录', `
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="form-group">
+        <label>分类</label>
+        <select class="form-control" id="edit-inquiry-category">
+          <option value="米面粮油类" ${item.category === '米面粮油类' ? 'selected' : ''}>米面粮油类</option>
+          <option value="肉禽蛋类" ${item.category === '肉禽蛋类' ? 'selected' : ''}>肉禽蛋类</option>
+          <option value="水果蔬菜及豆制品类" ${item.category === '水果蔬菜及豆制品类' ? 'selected' : ''}>水果蔬菜及豆制品类</option>
+          <option value="速冻食品类" ${item.category === '速冻食品类' ? 'selected' : ''}>速冻食品类</option>
+          <option value="乳品饮料类" ${item.category === '乳品饮料类' ? 'selected' : ''}>乳品饮料类</option>
+          <option value="海鲜水产类" ${item.category === '海鲜水产类' ? 'selected' : ''}>海鲜水产类</option>
+          <option value="干货调料及腌制品类" ${item.category === '干货调料及腌制品类' ? 'selected' : ''}>干货调料及腌制品类</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>品名</label>
+        <input type="text" class="form-control" id="edit-inquiry-name" value="${item.name}">
+      </div>
+      <div class="form-group">
+        <label>评估价格</label>
+        <input type="number" class="form-control" id="edit-inquiry-price" value="${item.price || ''}" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>单位</label>
+        <input type="text" class="form-control" id="edit-inquiry-unit" value="${item.unit || ''}">
+      </div>
+      <div class="form-group">
+        <label>规格</label>
+        <input type="text" class="form-control" id="edit-inquiry-spec" value="${item.spec || ''}">
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <input type="text" class="form-control" id="edit-inquiry-remark" value="${item.remark || ''}">
+      </div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doEditInquiryItem(${item.id})">保存</button>
+  `);
+}
+
+async function doEditInquiryItem(id) {
+  const data = {
+    category: document.getElementById('edit-inquiry-category').value,
+    name: document.getElementById('edit-inquiry-name').value.trim(),
+    price: parseFloat(document.getElementById('edit-inquiry-price').value) || null,
+    unit: document.getElementById('edit-inquiry-unit').value.trim(),
+    spec: document.getElementById('edit-inquiry-spec').value.trim(),
+    remark: document.getElementById('edit-inquiry-remark').value.trim()
+  };
+
+  if (!data.name) {
+    showToast('请输入品名', 'error');
+    return;
+  }
+
+  try {
+    await window.api.updateInquiryItem(id, data);
+    closeModal();
+    showToast('已更新');
+    await loadInquiryItems();
+  } catch (err) {
+    showToast('更新失败: ' + err.message, 'error');
+  }
 }
 
 async function copyInquiryItem(item) {

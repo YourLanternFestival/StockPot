@@ -178,15 +178,23 @@ function renderInvDetail(detail) {
 // ===== Alerts =====
 async function loadAlerts() {
   try {
-    const alerts = await window.api.getAlerts(60);
+    const shortDays = APP_SETTINGS.alert_short_days || 30;
+    const longDays = APP_SETTINGS.alert_long_days || 60;
+    const alerts = await window.api.getAlerts(longDays);
     const today = todayStr();
     const tbody = document.getElementById('alerts-body');
+
+    // Update labels
+    const soonLabel = document.getElementById('alert-soon-label');
+    const upcomingLabel = document.getElementById('alert-upcoming-label');
+    if (soonLabel) soonLabel.textContent = `${shortDays}天内到期`;
+    if (upcomingLabel) upcomingLabel.textContent = `${longDays}天内到期`;
 
     let expired = 0, soon = 0, upcoming = 0;
     alerts.forEach(a => {
       const days = daysBetween(today, a.expiry_date);
       if (days < 0) expired++;
-      else if (days <= 30) soon++;
+      else if (days <= shortDays) soon++;
       else upcoming++;
     });
 
@@ -198,14 +206,14 @@ async function loadAlerts() {
     const filtered = alerts.filter(a => {
       const days = daysBetween(today, a.expiry_date);
       if (filter === 'expired') return days < 0;
-      if (filter === 'soon') return days >= 0 && days <= 30;
+      if (filter === 'soon') return days >= 0 && days <= shortDays;
       return true;
     });
 
     tbody.innerHTML = filtered.map(a => {
       const days = daysBetween(today, a.expiry_date);
-      const tagClass = days < 0 ? 'tag-danger' : days <= 30 ? 'tag-warning' : 'tag-info';
-      const statusText = days < 0 ? '已过期' : days <= 30 ? '即将到期' : '临期';
+      const tagClass = days < 0 ? 'tag-danger' : days <= shortDays ? 'tag-warning' : 'tag-info';
+      const statusText = days < 0 ? '已过期' : days <= shortDays ? '即将到期' : '临期';
       return `<tr>
         <td>${a.product_name}</td><td>${a.spec}</td><td>${a.quantity}${a.unit}</td>
         <td>${formatDate(a.production_date)}</td><td>${formatDate(a.expiry_date)}</td>

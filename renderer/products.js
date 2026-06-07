@@ -12,18 +12,29 @@ async function loadProducts(filter = '') {
 
 function renderProductTable(filter = '') {
   const tbody = document.getElementById('products-body');
-  const filtered = PRODUCTS.filter(p =>
+  const statusFilter = document.getElementById('prod-status-filter')?.value || 'active';
+
+  let filtered = PRODUCTS.filter(p =>
     p.name.toLowerCase().includes(filter.toLowerCase())
   );
 
+  if (statusFilter === 'active') {
+    filtered = filtered.filter(p => p.active === 1);
+  } else if (statusFilter === 'inactive') {
+    filtered = filtered.filter(p => p.active === 0);
+  }
+
   tbody.innerHTML = filtered.map((p, i) => `
-    <tr>
+    <tr style="${p.active === 0 ? 'opacity:0.6;' : ''}">
       <td><input type="checkbox" class="prod-cb" data-id="${p.id}" ${selectedProductIds.has(p.id) ? 'checked' : ''} onchange="toggleProductSelect(${p.id}, this.checked)"></td>
       <td>${i + 1}</td><td>${p.name}</td><td>${p.spec}</td><td>${p.unit}</td>
       <td>${p.shelf_months}</td><td>${p.shelf_days}</td>
       <td>
-        <button class="btn btn-sm" onclick="editProduct(${p.id})">编辑</button>
-        <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteProduct(${p.id})">删除</button>
+        ${p.active === 1
+          ? `<button class="btn btn-sm" onclick="editProduct(${p.id})">编辑</button>
+             <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteProduct(${p.id})">停用</button>`
+          : `<button class="btn btn-sm" style="color:var(--success);border-color:var(--success);" onclick="restoreProduct(${p.id})">恢复</button>`
+        }
       </td>
     </tr>
   `).join('');
@@ -74,8 +85,9 @@ function showAddProduct() {
       <div class="form-group"><label>材料名称</label><input type="text" class="form-control" id="np-name" placeholder="请输入材料名称"></div>
       <div class="form-group"><label>规格</label><input type="text" class="form-control" id="np-spec" placeholder="如: 500克/瓶"></div>
       <div class="form-group"><label>单位</label><input type="text" class="form-control" id="np-unit" placeholder="如: 瓶、包、桶"></div>
-      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="np-months" min="0" value="0" onchange="document.getElementById('np-days').value=this.value*30"></div>
-      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="np-days" min="0" value="0" placeholder="填写月数自动换算"></div>
+      <div class="form-group"><label>单价</label><input type="number" class="form-control" id="np-price" placeholder="可选" step="0.01"></div>
+      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="np-months" min="0" value="0"></div>
+      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="np-days" min="0" value="0" placeholder="额外天数"></div>
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
@@ -87,15 +99,20 @@ async function doAddProduct() {
   const name = document.getElementById('np-name').value.trim();
   const unit = document.getElementById('np-unit').value.trim();
   if (!name || !unit) { showToast('名称和单位必填', 'error'); return; }
-  await window.api.addProduct({
-    name, spec: document.getElementById('np-spec').value.trim(), unit,
-    shelf_months: parseInt(document.getElementById('np-months').value) || 0,
-    shelf_days: parseInt(document.getElementById('np-days').value) || 0,
-  });
-  closeModal();
-  showToast('产品已添加');
-  loadProducts();
-  refreshProductSelects();
+  try {
+    await window.api.addProduct({
+      name, spec: document.getElementById('np-spec').value.trim(), unit,
+      shelf_months: parseInt(document.getElementById('np-months').value) || 0,
+      shelf_days: parseInt(document.getElementById('np-days').value) || 0,
+      unit_price: parseFloat(document.getElementById('np-price').value) || null,
+    });
+    closeModal();
+    showToast('产品已添加');
+    loadProducts();
+    refreshProductSelects();
+  } catch (err) {
+    showToast('添加失败: ' + (err.message || err), 'error');
+  }
 }
 
 function editProduct(id) {
@@ -106,8 +123,9 @@ function editProduct(id) {
       <div class="form-group"><label>材料名称</label><input type="text" class="form-control" id="ep-name" value="${p.name}"></div>
       <div class="form-group"><label>规格</label><input type="text" class="form-control" id="ep-spec" value="${p.spec}"></div>
       <div class="form-group"><label>单位</label><input type="text" class="form-control" id="ep-unit" value="${p.unit}"></div>
-      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="ep-months" value="${p.shelf_months}" onchange="document.getElementById('ep-days').value=this.value*30"></div>
-      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="ep-days" value="${p.shelf_days}" placeholder="填写月数自动换算"></div>
+      <div class="form-group"><label>单价</label><input type="number" class="form-control" id="ep-price" value="${p.unit_price || ''}" step="0.01"></div>
+      <div class="form-group"><label>保质期(月)</label><input type="number" class="form-control" id="ep-months" value="${p.shelf_months}"></div>
+      <div class="form-group"><label>保质期(日)</label><input type="number" class="form-control" id="ep-days" value="${p.shelf_days}" placeholder="额外天数"></div>
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
@@ -124,6 +142,7 @@ async function doEditProduct(id) {
       name, spec: document.getElementById('ep-spec').value.trim(), unit,
       shelf_months: parseInt(document.getElementById('ep-months').value) || 0,
       shelf_days: parseInt(document.getElementById('ep-days').value) || 0,
+      unit_price: parseFloat(document.getElementById('ep-price').value) || null,
     });
     closeModal();
     showToast('已保存');
@@ -151,7 +170,14 @@ async function doDeleteProduct(id) {
   await window.api.deleteProduct(id);
   selectedProductIds.delete(id);
   closeModal();
-  showToast('产品已删除');
+  showToast('产品已停用');
+  loadProducts();
+  refreshProductSelects();
+}
+
+async function restoreProduct(id) {
+  await window.api.restoreProduct(id);
+  showToast('产品已恢复');
   loadProducts();
   refreshProductSelects();
 }
