@@ -27,6 +27,60 @@ function getPastrySource() {
   return `${canteen}面点房`;
 }
 
+// ===== Shared HTML Builders =====
+function buildDateGroupHTML(date, summaryText) {
+  return `
+    <div class="date-header expanded" onclick="toggleDateGroup(this)">
+      <span class="date-toggle">▶</span>
+      <span class="date-label">${date} 收货</span>
+      <span class="date-summary">${summaryText}</span>
+      <div class="date-actions">
+        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
+        <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
+      </div>
+    </div>
+    <div class="date-content expanded">
+      <div class="purchase-table-wrapper">
+        <table class="table table-purchase">
+          <thead>
+            <tr>
+              <th style="width:40px;">序号</th>
+              <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
+              <th style="width:120px;">规格</th>
+              <th style="width:80px;">单价</th>
+              <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
+              <th style="width:60px;">单位</th>
+              <th style="width:80px;">金额</th>
+              <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
+              <th style="width:50px;">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function buildPurchaseRowHTML(idx, values, amountText) {
+  const v = values || {};
+  const amt = amountText || '';
+  return `
+    <td>${idx + 1}</td>
+    <td style="position:relative;">
+      <input type="text" class="cell-input cell-editable" value="${v.product_name || ''}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <div class="autocomplete-dropdown" style="display:none;"></div>
+    </td>
+    <td><input type="text" class="cell-input cell-readonly" value="${v.spec || ''}" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${v.unit_price || ''}" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="${v.quantity || ''}" data-field="quantity" placeholder="数量"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${v.unit || ''}" data-field="unit" readonly tabindex="-1"></td>
+    <td class="amount-cell cell-readonly">${amt}</td>
+    <td><input type="text" class="cell-input cell-editable" value="${v.remark || ''}" data-field="remark" placeholder="备注"></td>
+    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+  `;
+}
+
 async function applyCanteenMode() {
   const mode = APP_SETTINGS.xiaosuo_mode;
   const tabsEl = document.getElementById('multi-canteen-tabs');
@@ -35,12 +89,13 @@ async function applyCanteenMode() {
   const smallTabsEl = document.getElementById('small-canteen-tabs');
   const smallActionsEl = document.getElementById('small-canteen-actions');
   const smallAreaEl = document.getElementById('small-canteen-area');
+  const smallMatrixEl = document.getElementById('small-matrix-area');
   const lianhuaEl = document.getElementById('purchase-lianhua');
   const kitchenEl = document.getElementById('purchase-kitchen');
   const pastryEl = document.getElementById('purchase-pastry');
 
   // 隐藏所有
-  [tabsEl, switchEl, multiArea, smallTabsEl, smallActionsEl, smallAreaEl, lianhuaEl, kitchenEl, pastryEl].forEach(el => { if (el) el.style.display = 'none'; });
+  [tabsEl, switchEl, multiArea, smallTabsEl, smallActionsEl, smallAreaEl, smallMatrixEl, lianhuaEl, kitchenEl, pastryEl].forEach(el => { if (el) el.style.display = 'none'; });
 
   if (mode === 'on') {
     // 多食堂模式
@@ -681,37 +736,7 @@ function copyKitchenData(fromCanteen, toCanteen) {
     const newDateGroup = document.createElement('div');
     newDateGroup.className = 'date-group';
     newDateGroup.id = dateId;
-    newDateGroup.innerHTML = `
-      <div class="date-header expanded" onclick="toggleDateGroup(this)">
-        <span class="date-toggle">▶</span>
-        <span class="date-label">${date} 收货</span>
-        <span class="date-summary">0 项</span>
-        <div class="date-actions">
-          <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
-          <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
-        </div>
-      </div>
-      <div class="date-content expanded">
-        <div class="purchase-table-wrapper">
-          <table class="table table-purchase">
-            <thead>
-              <tr>
-                <th style="width:40px;">序号</th>
-                <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-                <th style="width:120px;">规格</th>
-                <th style="width:80px;">单价</th>
-                <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-                <th style="width:60px;">单位</th>
-                <th style="width:80px;">金额</th>
-                <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-                <th style="width:50px;">操作</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    `;
+    newDateGroup.innerHTML = buildDateGroupHTML(date, '0 项');
     toContent.appendChild(newDateGroup);
 
     const toTbody = newDateGroup.querySelector('tbody');
@@ -774,37 +799,7 @@ function addDateGroupToPage(source, date, items) {
   dateGroup.className = 'date-group';
   dateGroup.id = dateId;
 
-  dateGroup.innerHTML = `
-    <div class="date-header expanded" onclick="toggleDateGroup(this)">
-      <span class="date-toggle">▶</span>
-      <span class="date-label">${date} 收货</span>
-      <span class="date-summary">${items.length} 项</span>
-      <div class="date-actions">
-        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
-        <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
-      </div>
-    </div>
-    <div class="date-content expanded">
-      <div class="purchase-table-wrapper">
-        <table class="table table-purchase">
-          <thead>
-            <tr>
-              <th style="width:40px;">序号</th>
-              <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-              <th style="width:120px;">规格</th>
-              <th style="width:80px;">单价</th>
-              <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-              <th style="width:60px;">单位</th>
-              <th style="width:80px;">金额</th>
-              <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-              <th style="width:50px;">操作</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  dateGroup.innerHTML = buildDateGroupHTML(date, `${items.length} 项`);
 
   groupContent.appendChild(dateGroup);
 
@@ -821,21 +816,16 @@ function appendPurchaseRowWithData(tbody, item, idx) {
   const price = item.unit_price != null ? parseFloat(item.unit_price) || 0 : 0;
   const qty = parseFloat(item.quantity) || 0;
   const amount = price * qty;
+  const amountText = amount > 0 ? '¥' + amount.toFixed(1) : '';
 
-  tr.innerHTML = `
-    <td>${idx + 1}</td>
-    <td style="position:relative;">
-      <input type="text" class="cell-input cell-editable" value="${item.product_name || ''}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
-      <div class="autocomplete-dropdown" style="display:none;"></div>
-    </td>
-    <td><input type="text" class="cell-input cell-readonly" value="${item.spec || ''}" data-field="spec" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${price || ''}" data-field="unit_price" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-editable" value="${item.quantity || ''}" data-field="quantity" placeholder="数量"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${item.unit || ''}" data-field="unit" readonly tabindex="-1"></td>
-    <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(1) : ''}</td>
-    <td><input type="text" class="cell-input cell-editable" value="${item.remark || ''}" data-field="remark" placeholder="备注"></td>
-    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
-  `;
+  tr.innerHTML = buildPurchaseRowHTML(idx, {
+    product_name: item.product_name || '',
+    spec: item.spec || '',
+    unit_price: price || '',
+    quantity: item.quantity || '',
+    unit: item.unit || '',
+    remark: item.remark || '',
+  }, amountText);
 
   tbody.appendChild(tr);
   // Use lianhua autocomplete for lianhua sources
@@ -939,37 +929,7 @@ function addDateGroup(source, date) {
   dateGroup.className = 'date-group';
   dateGroup.id = dateId;
 
-  dateGroup.innerHTML = `
-    <div class="date-header expanded" onclick="toggleDateGroup(this)">
-      <span class="date-toggle">▶</span>
-      <span class="date-label">${date} 收货</span>
-      <span class="date-summary">0 项</span>
-      <div class="date-actions">
-        <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
-        <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
-      </div>
-    </div>
-    <div class="date-content expanded">
-      <div class="purchase-table-wrapper">
-        <table class="table table-purchase">
-          <thead>
-            <tr>
-              <th style="width:40px;">序号</th>
-              <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-              <th style="width:120px;">规格</th>
-              <th style="width:80px;">单价</th>
-              <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-              <th style="width:60px;">单位</th>
-              <th style="width:80px;">金额</th>
-              <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
-              <th style="width:50px;">操作</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  dateGroup.innerHTML = buildDateGroupHTML(date, '0 项');
 
   groupContent.appendChild(dateGroup);
 
@@ -1017,22 +977,7 @@ function addPurchaseRows(btn) {
 /** 仅用于厨房/面点房。联华请使用 appendLianhuaRow */
 function appendPurchaseRow(tbody, idx) {
   const tr = document.createElement('tr');
-
-  tr.innerHTML = `
-    <td>${idx + 1}</td>
-    <td style="position:relative;">
-      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
-      <div class="autocomplete-dropdown" style="display:none;"></div>
-    </td>
-    <td><input type="text" class="cell-input cell-readonly" value="" data-field="spec" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit_price" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-editable" value="" data-field="quantity" placeholder="数量"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
-    <td class="amount-cell cell-readonly"></td>
-    <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
-    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
-  `;
-
+  tr.innerHTML = buildPurchaseRowHTML(idx, {}, '');
   tbody.appendChild(tr);
   attachCellEvents(tr, tbody);
 }
@@ -1044,20 +989,14 @@ function copyPurchaseRow(btn) {
 
   // 在当前行之后插入新行
   const newTr = document.createElement('tr');
-  newTr.innerHTML = `
-    <td>0</td>
-    <td style="position:relative;">
-      <input type="text" class="cell-input cell-editable" value="${getData('product_name')}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
-      <div class="autocomplete-dropdown" style="display:none;"></div>
-    </td>
-    <td><input type="text" class="cell-input cell-readonly" value="${getData('spec')}" data-field="spec" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${getData('unit_price')}" data-field="unit_price" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-editable" value="${getData('quantity')}" data-field="quantity" placeholder="数量"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${getData('unit')}" data-field="unit" readonly tabindex="-1"></td>
-    <td class="amount-cell cell-readonly">${tr.querySelector('.amount-cell')?.textContent || ''}</td>
-    <td><input type="text" class="cell-input cell-editable" value="${getData('remark')}" data-field="remark" placeholder="备注"></td>
-    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
-  `;
+  newTr.innerHTML = buildPurchaseRowHTML(0, {
+    product_name: getData('product_name'),
+    spec: getData('spec'),
+    unit_price: getData('unit_price'),
+    quantity: getData('quantity'),
+    unit: getData('unit'),
+    remark: getData('remark'),
+  }, tr.querySelector('.amount-cell')?.textContent || '');
   tr.after(newTr);
 
   // 绑定事件
@@ -1311,10 +1250,13 @@ async function saveAllSmallGroupsData() {
 }
 
 // Save all purchase orders (including 联华)
-async function saveAllPurchaseOrders() {
+// opts.silent: no toast, no reload (used for auto-save on page switch)
+async function saveAllPurchaseOrders(opts = {}) {
+  const silent = opts.silent || false;
+
   // 矩阵模式：单独处理
   if (APP_SETTINGS.xiaosuo_mode === 'small' && APP_SETTINGS.small_display_style === 'matrix') {
-    await saveMatrixData();
+    await saveMatrixData(silent);
     return;
   }
 
@@ -1371,53 +1313,15 @@ async function saveAllPurchaseOrders() {
     const today = todayStr();
     await window.api.setSetting('last_purchase_date', today);
 
-    showToast(`已保存 ${allOrders.length} 条采购记录`);
+    if (!silent) showToast(`已保存 ${allOrders.length} 条采购记录`);
   } catch (err) {
-    showToast('保存失败: ' + err.message, 'error');
+    if (!silent) showToast('保存失败: ' + err.message, 'error');
   }
 }
 
 // 静默保存（无 toast，用于页面切换时自动保存）
-async function silentSavePurchaseOrders() {
-  if (APP_SETTINGS.xiaosuo_mode === 'small' && APP_SETTINGS.small_display_style === 'matrix') {
-    await saveMatrixData(true);
-    return;
-  }
-
-  const allOrders = [];
-  const container = document.getElementById('purchase-container');
-  const dateGroups = [...container.querySelectorAll('.date-group')].filter(dg => dg.offsetParent !== null);
-
-  dateGroups.forEach(dateGroup => {
-    const purchaseGroup = dateGroup.closest('.purchase-group');
-    const source = purchaseGroup.dataset.source;
-    const dateLabel = dateGroup.querySelector('.date-label').textContent;
-    const receiveDate = dateLabel.replace(' 收货', '').replace(' 发货', '').trim();
-    dateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
-      const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
-      const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
-      const productName = getData('product_name').trim();
-      if (!productName) return;
-      allOrders.push({
-        source, receive_date: receiveDate, product_name: productName,
-        spec: getData('spec'), unit_price: parseFloat(getData('unit_price')) || 0,
-        quantity: getData('quantity'), unit: getData('unit'),
-        amount: parseFloat(amountText.replace('¥', '')) || 0,
-        remark: getData('remark'), sort_order: idx
-      });
-    });
-  });
-
-  const currentSources = [...document.querySelectorAll('#purchase-container .purchase-group[data-source]')]
-    .filter(g => g.offsetParent !== null || g.dataset.source.includes('联华'))
-    .map(g => g.dataset.source).filter(s => s);
-  for (const source of currentSources) {
-    await window.api.clearPurchaseOrders(source);
-  }
-  for (const order of allOrders) {
-    await window.api.addPurchaseOrder(order);
-  }
-  await window.api.setSetting('last_purchase_date', todayStr());
+function silentSavePurchaseOrders() {
+  return saveAllPurchaseOrders({ silent: true });
 }
 
 // Export all purchase orders — helper functions

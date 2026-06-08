@@ -222,10 +222,17 @@ function deleteProduct(id) {
 }
 
 function batchDeleteProducts(ids) {
-  for (const id of ids) {
-    run('UPDATE products SET active = 0 WHERE id = ?', [id]);
+  run('BEGIN');
+  try {
+    for (const id of ids) {
+      run('UPDATE products SET active = 0 WHERE id = ?', [id]);
+    }
+    run('COMMIT');
+    save();
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
 }
 
 function restoreProduct(id) {
@@ -322,10 +329,17 @@ function deleteRecipient(id) {
 }
 
 function updateRecipientOrder(orderedNames) {
-  for (let i = 0; i < orderedNames.length; i++) {
-    run('UPDATE recipients SET sort_order = ? WHERE name = ?', [i, orderedNames[i]]);
+  run('BEGIN');
+  try {
+    for (let i = 0; i < orderedNames.length; i++) {
+      run('UPDATE recipients SET sort_order = ? WHERE name = ?', [i, orderedNames[i]]);
+    }
+    run('COMMIT');
+    save();
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
 }
 
 // ===== Inventory =====
@@ -414,64 +428,56 @@ function getInventoryByMonth(year, month) {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
-  const products = queryAll('SELECT * FROM products WHERE active = 1 ORDER BY id');
+  // Single query: products + previous balance + monthly totals (was 6N+1 queries)
+  const products = queryAll(`
+    SELECT p.*,
+      COALESCE(pi.prev_in, 0) as prev_in,
+      COALESCE(po.prev_out, 0) as prev_out,
+      COALESCE(mi.month_in, 0) as month_in,
+      COALESCE(mo.month_out, 0) as month_out
+    FROM products p
+    LEFT JOIN (SELECT product_id, SUM(quantity) as prev_in FROM inbound_records WHERE date < ? GROUP BY product_id) pi ON pi.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as prev_out FROM outbound_records WHERE date < ? GROUP BY product_id) po ON po.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as month_in FROM inbound_records WHERE date >= ? AND date <= ? GROUP BY product_id) mi ON mi.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as month_out FROM outbound_records WHERE date >= ? AND date <= ? GROUP BY product_id) mo ON mo.product_id = p.id
+    WHERE p.active = 1
+    ORDER BY p.id
+  `, [startDate, startDate, startDate, endDate, startDate, endDate]);
+
+  // Single query for all daily breakdowns (was 2N queries)
+  const dailyRows = queryAll(`
+    SELECT product_id, substr(date, 9, 2) as day, SUM(quantity) as qty, 'in' as direction
+    FROM inbound_records WHERE date >= ? AND date <= ?
+    GROUP BY product_id, substr(date, 9, 2)
+    UNION ALL
+    SELECT product_id, substr(date, 9, 2) as day, SUM(quantity) as qty, 'out' as direction
+    FROM outbound_records WHERE date >= ? AND date <= ?
+    GROUP BY product_id, substr(date, 9, 2)
+  `, [startDate, endDate, startDate, endDate]);
+
+  // Group daily data by product_id
+  const dailyByProduct = {};
+  for (const r of dailyRows) {
+    if (!dailyByProduct[r.product_id]) dailyByProduct[r.product_id] = {};
+    const day = parseInt(r.day);
+    if (!dailyByProduct[r.product_id][day]) dailyByProduct[r.product_id][day] = { in: 0, out: 0 };
+    if (r.direction === 'in') dailyByProduct[r.product_id][day].in = r.qty;
+    else dailyByProduct[r.product_id][day].out = r.qty;
+  }
 
   return products.map(p => {
-    const prevIn = queryOne(
-      "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ? AND date < ?",
-      [p.id, startDate]
-    ).v;
-    const prevOut = queryOne(
-      "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ? AND date < ?",
-      [p.id, startDate]
-    ).v;
-    const prevStock = (p.opening_stock || 0) + prevIn - prevOut;
-
-    const monthIn = queryOne(
-      "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ? AND date >= ? AND date <= ?",
-      [p.id, startDate, endDate]
-    ).v;
-    const monthOut = queryOne(
-      "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ? AND date >= ? AND date <= ?",
-      [p.id, startDate, endDate]
-    ).v;
-
-    const dailyIn = queryAll(`
-      SELECT substr(date, 9, 2) as day, SUM(quantity) as qty
-      FROM inbound_records
-      WHERE product_id = ? AND date >= ? AND date <= ?
-      GROUP BY substr(date, 9, 2)
-    `, [p.id, startDate, endDate]);
-
-    const dailyOut = queryAll(`
-      SELECT substr(date, 9, 2) as day, SUM(quantity) as qty
-      FROM outbound_records
-      WHERE product_id = ? AND date >= ? AND date <= ?
-      GROUP BY substr(date, 9, 2)
-    `, [p.id, startDate, endDate]);
-
-    const daily = {};
-    for (const r of dailyIn) {
-      const day = parseInt(r.day);
-      if (!daily[day]) daily[day] = { in: 0, out: 0 };
-      daily[day].in = r.qty;
-    }
-    for (const r of dailyOut) {
-      const day = parseInt(r.day);
-      if (!daily[day]) daily[day] = { in: 0, out: 0 };
-      daily[day].out = r.qty;
-    }
-
-    const currentStock = prevStock + monthIn - monthOut;
+    const prevStock = (p.opening_stock || 0) + p.prev_in - p.prev_out;
+    const currentStock = prevStock + p.month_in - p.month_out;
+    const daily = dailyByProduct[p.id] || {};
 
     return {
       ...p,
       prevStock,
-      monthIn,
-      monthOut,
+      monthIn: p.month_in,
+      monthOut: p.month_out,
       currentStock,
       daily,
-      hasActivity: monthIn > 0 || monthOut > 0 || currentStock > 0,
+      hasActivity: p.month_in > 0 || p.month_out > 0 || currentStock > 0,
     };
   });
 }
@@ -488,15 +494,15 @@ function getExpiryAlerts(daysAhead = 60) {
     SELECT r.*, p.name as product_name, p.spec, p.unit
     FROM inbound_records r
     JOIN products p ON r.product_id = p.id
+    JOIN (
+      SELECT p2.id,
+        p2.opening_stock + COALESCE(i2.s, 0) - COALESCE(o2.s, 0) as stock
+      FROM products p2
+      LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM inbound_records GROUP BY product_id) i2 ON i2.product_id = p2.id
+      LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM outbound_records GROUP BY product_id) o2 ON o2.product_id = p2.id
+      WHERE p2.active = 1
+    ) s ON s.id = p.id AND s.stock > 0
     WHERE r.expiry_date IS NOT NULL AND r.expiry_date <= ?
-      AND p.id IN (
-        SELECT p2.id FROM products p2
-        LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM inbound_records GROUP BY product_id) i2 ON i2.product_id = p2.id
-        LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM outbound_records GROUP BY product_id) o2 ON o2.product_id = p2.id
-        WHERE p2.active = 1
-        GROUP BY p2.id
-        HAVING p2.opening_stock + COALESCE(i2.s, 0) - COALESCE(o2.s, 0) > 0
-      )
     ORDER BY r.expiry_date ASC
   `, [future]);
 }
@@ -505,36 +511,57 @@ function getExpiryAlerts(daysAhead = 60) {
 function importProducts(products) {
   const existing = queryAll('SELECT name FROM products').map(r => r.name);
   let imported = 0, skipped = 0;
-  for (const p of products) {
-    if (existing.includes(p.name)) { skipped++; continue; }
-    run('INSERT INTO products (name, spec, unit, shelf_months, shelf_days, opening_stock) VALUES (?, ?, ?, ?, ?, ?)',
-      [p.name, p.spec || '', p.unit || '', p.shelfMonths || 0, p.shelfDays || 0, p.openingStock || 0]);
-    imported++;
+  run('BEGIN');
+  try {
+    for (const p of products) {
+      if (existing.includes(p.name)) { skipped++; continue; }
+      run('INSERT INTO products (name, spec, unit, shelf_months, shelf_days, opening_stock) VALUES (?, ?, ?, ?, ?, ?)',
+        [p.name, p.spec || '', p.unit || '', p.shelfMonths || 0, p.shelfDays || 0, p.openingStock || 0]);
+      imported++;
+    }
+    run('COMMIT');
+    save();
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
   return { imported, skipped };
 }
 
 function importOpeningStock(openingStockMap) {
   // openingStockMap: { productName: number }
-  for (const [name, stock] of Object.entries(openingStockMap)) {
-    run('UPDATE products SET opening_stock = ? WHERE name = ?', [stock, name]);
+  run('BEGIN');
+  try {
+    for (const [name, stock] of Object.entries(openingStockMap)) {
+      run('UPDATE products SET opening_stock = ? WHERE name = ?', [stock, name]);
+    }
+    run('COMMIT');
+    save();
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
 }
 
 function importRecords(sqlFn, records) {
   const productMap = {};
   queryAll('SELECT id, name FROM products').forEach(p => { productMap[p.name] = p.id; });
   let imported = 0, skipped = 0;
-  for (const r of records) {
-    const pid = productMap[r.name];
-    if (!pid) { skipped++; continue; }
-    const [sql, params] = sqlFn(r, pid);
-    run(sql, params);
-    imported++;
+  run('BEGIN');
+  try {
+    for (const r of records) {
+      const pid = productMap[r.name];
+      if (!pid) { skipped++; continue; }
+      const [sql, params] = sqlFn(r, pid);
+      run(sql, params);
+      imported++;
+    }
+    run('COMMIT');
+    save();
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
   return { imported, skipped };
 }
 
@@ -553,16 +580,23 @@ function importOutbound(records) {
 }
 
 function clearAllData() {
-  run('DELETE FROM outbound_records');
-  run('DELETE FROM inbound_records');
-  run('DELETE FROM products');
-  // Also clear recipients to reset
-  run('DELETE FROM recipients');
-  // Re-seed default recipients
-  for (const name of ['厨房', '小食堂', '面点房', '烧饭', '明档']) {
-    run('INSERT OR IGNORE INTO recipients (name) VALUES (?)', [name]);
+  run('BEGIN');
+  try {
+    run('DELETE FROM outbound_records');
+    run('DELETE FROM inbound_records');
+    run('DELETE FROM products');
+    // Also clear recipients to reset
+    run('DELETE FROM recipients');
+    // Re-seed default recipients
+    for (const name of ['厨房', '小食堂', '面点房', '烧饭', '明档']) {
+      run('INSERT OR IGNORE INTO recipients (name) VALUES (?)', [name]);
+    }
+    run('COMMIT');
+    save();
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
 }
 
 // ===== Stats =====
@@ -571,16 +605,38 @@ function getDashboardStats() {
   const totalIn = queryOne('SELECT COUNT(*) as c FROM inbound_records').c;
   const totalOut = queryOne('SELECT COUNT(*) as c FROM outbound_records').c;
 
+  // 30-day trend: single query instead of 60
   const today = new Date();
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 29);
+  const startStr = toLocalDateStr(startDate);
+  const endStr = toLocalDateStr(today);
+
+  const dailyRows = queryAll(`
+    SELECT date, SUM(quantity) as qty, 'in' as direction
+    FROM inbound_records WHERE date >= ? AND date <= ?
+    GROUP BY date
+    UNION ALL
+    SELECT date, SUM(quantity) as qty, 'out' as direction
+    FROM outbound_records WHERE date >= ? AND date <= ?
+    GROUP BY date
+  `, [startStr, endStr, startStr, endStr]);
+
+  const dailyMap = {};
+  for (const r of dailyRows) {
+    if (!dailyMap[r.date]) dailyMap[r.date] = { inQty: 0, outQty: 0 };
+    if (r.direction === 'in') dailyMap[r.date].inQty = r.qty;
+    else dailyMap[r.date].outQty = r.qty;
+  }
+
   const days = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = toLocalDateStr(d);
     const dayLabel = `${d.getMonth() + 1}/${d.getDate()}`;
-    const inQty = queryOne("SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE date = ?", [dateStr]).v;
-    const outQty = queryOne("SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE date = ?", [dateStr]).v;
-    days.push({ label: dayLabel, inQty, outQty });
+    const data = dailyMap[dateStr] || { inQty: 0, outQty: 0 };
+    days.push({ label: dayLabel, inQty: data.inQty, outQty: data.outQty });
   }
 
   const top10 = queryAll(`
@@ -697,16 +753,23 @@ function addInquiryItem(data) {
 
 function importInquiryItems(month, items) {
   // 覆盖式导入：先删除同月份数据
-  run('DELETE FROM inquiry_items WHERE month = ?', [month]);
-  let imported = 0;
-  for (const item of items) {
-    run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec, remark)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [month, item.category, item.name, item.price || null, item.unit || '', item.spec || '', item.remark || '']);
-    imported++;
+  run('BEGIN');
+  try {
+    run('DELETE FROM inquiry_items WHERE month = ?', [month]);
+    let imported = 0;
+    for (const item of items) {
+      run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec, remark)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [month, item.category, item.name, item.price || null, item.unit || '', item.spec || '', item.remark || '']);
+      imported++;
+    }
+    run('COMMIT');
+    save();
+    return { imported };
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
-  return { imported };
 }
 
 function getInquiryMonths() {
@@ -784,16 +847,23 @@ function deleteLianhuaItem(id) {
 
 function importLianhuaItems(items) {
   // Clear existing and import
-  run('DELETE FROM lianhua_items');
-  let imported = 0;
-  for (const item of items) {
-    run(`INSERT INTO lianhua_items (code, name, unit, spec, price, split_qty, remark)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [item.code || '', item.name, item.unit || '件', item.spec || '', item.price || 0, item.split_qty || 1, item.remark || '']);
-    imported++;
+  run('BEGIN');
+  try {
+    run('DELETE FROM lianhua_items');
+    let imported = 0;
+    for (const item of items) {
+      run(`INSERT INTO lianhua_items (code, name, unit, spec, price, split_qty, remark)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [item.code || '', item.name, item.unit || '件', item.spec || '', item.price || 0, item.split_qty || 1, item.remark || '']);
+      imported++;
+    }
+    run('COMMIT');
+    save();
+    return { imported };
+  } catch (e) {
+    run('ROLLBACK');
+    throw e;
   }
-  save();
-  return { imported };
 }
 
 // ===== Lianhua Orders =====

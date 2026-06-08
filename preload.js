@@ -9,6 +9,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onWindowStateChanged: (callback) => {
     ipcRenderer.on('window-state-changed', (event, state) => callback(state));
   },
+  // Bidirectional close-check: renderer registers handler, main triggers it
+  registerCloseCheck: (checkHandler, saveHandler) => {
+    ipcRenderer.on('close-check', async () => {
+      try {
+        ipcRenderer.send('close-check-result', await checkHandler());
+      } catch (err) {
+        ipcRenderer.send('close-check-result', { hasUnsaved: false });
+      }
+    });
+    ipcRenderer.on('save-before-close', async () => {
+      try {
+        await saveHandler();
+      } catch (err) { /* save failed, still signal done */ }
+      ipcRenderer.send('save-before-close-done');
+    });
+  },
 });
 
 contextBridge.exposeInMainWorld('api', {

@@ -290,15 +290,42 @@ function hasTableData(tbodyId) {
   return false;
 }
 
-function hasUnsavedData() {
-  return hasTableData('inbound-tbody') || hasTableData('outbound-tbody');
+function hasPurchaseData() {
+  // Check if current purchase order page has any unsaved data
+  const activePage = document.querySelector('.page.active');
+  if (!activePage || activePage.id !== 'page-purchase') return false;
+  const tbodies = document.querySelectorAll('#page-purchase tbody');
+  for (const tbody of tbodies) {
+    for (const tr of tbody.querySelectorAll('tr')) {
+      const name = tr.querySelector('[data-field="product_name"]');
+      if (name && name.value.trim()) return true;
+    }
+  }
+  return false;
 }
 
-function submitCurrentPage() {
+function hasUnsavedData() {
+  return hasTableData('inbound-tbody') || hasTableData('outbound-tbody') || hasPurchaseData();
+}
+
+async function submitCurrentPage() {
   const activePage = document.querySelector('.page.active');
   if (!activePage) return;
   const id = activePage.id;
-  if (id === 'page-inbound') submitInboundBatch();
-  else if (id === 'page-outbound') submitOutboundBatch();
+  if (id === 'page-inbound') await submitInboundBatch();
+  else if (id === 'page-outbound') await submitOutboundBatch();
+  else if (id === 'page-purchase' && typeof silentSavePurchaseOrders === 'function') {
+    await silentSavePurchaseOrders();
+  }
+}
+
+// Register close-check handler via IPC (replaces executeJavaScript coupling)
+if (window.electronAPI?.registerCloseCheck) {
+  window.electronAPI.registerCloseCheck(
+    // Check: report whether there's unsaved data
+    async () => ({ hasUnsaved: hasUnsavedData() }),
+    // Save: save current page before close (must await all async saves)
+    async () => { await submitCurrentPage(); }
+  );
 }
 

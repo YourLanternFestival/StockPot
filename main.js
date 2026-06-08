@@ -112,21 +112,27 @@ ipcMain.handle('window:resize', (e, direction) => {
   const [width, height] = mainWindow.getSize();
   const [x, y] = mainWindow.getPosition();
   const minSize = { width: 1100, height: 700 };
+  const delta = 10;
 
-  // 根据方向调整大小
   switch(direction) {
-    case 'top':
-      // 向上调整大小（需要移动窗口位置）
+    case 'top': {
+      const newHeight = Math.max(height + delta, minSize.height);
+      mainWindow.setPosition(x, y - (newHeight - height));
+      mainWindow.setSize(width, newHeight);
       break;
+    }
     case 'right':
-      mainWindow.setSize(Math.max(width + 10, minSize.width), height);
+      mainWindow.setSize(Math.max(width + delta, minSize.width), height);
       break;
     case 'bottom':
-      mainWindow.setSize(width, Math.max(height + 10, minSize.height));
+      mainWindow.setSize(width, Math.max(height + delta, minSize.height));
       break;
-    case 'left':
-      // 向左调整大小（需要移动窗口位置）
+    case 'left': {
+      const newWidth = Math.max(width + delta, minSize.width);
+      mainWindow.setPosition(x - (newWidth - width), y);
+      mainWindow.setSize(newWidth, height);
       break;
+    }
   }
 });
 
@@ -499,36 +505,56 @@ app.whenReady().then(() => {
 
 function setupCloseHandler() {
   let forceQuit = false;
+  let closeInProgress = false;
+
+  // IPC with timeout to prevent hanging if renderer crashes
+  function ipcRequest(channel, responseChannel, timeoutMs = 3000) {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), timeoutMs);
+      ipcMain.once(responseChannel, (_e, data) => {
+        clearTimeout(timer);
+        resolve(data);
+      });
+      mainWindow.webContents.send(channel);
+    });
+  }
 
   mainWindow.on('close', async (e) => {
     if (forceQuit) return;
+    if (closeInProgress) { e.preventDefault(); return; }
+    closeInProgress = true;
     e.preventDefault();
     try {
-      const hasUnsaved = await mainWindow.webContents.executeJavaScript('hasUnsavedData()');
-      if (hasUnsaved) {
-        const { response } = await dialog.showMessageBox(mainWindow, {
-          type: 'warning',
-          buttons: ['保存并退出', '直接退出', '取消'],
-          defaultId: 0,
-          cancelId: 2,
-          title: '未保存的数据',
-          message: '检测到有未保存的录入数据，是否保存后退出？',
-        });
-        if (response === 0) {
-          await mainWindow.webContents.executeJavaScript('submitCurrentPage()');
-          forceQuit = true;
-          mainWindow.close();
-        } else if (response === 1) {
-          forceQuit = true;
-          mainWindow.close();
-        }
-      } else {
+      const result = await ipcRequest('close-check', 'close-check-result');
+
+      // If renderer didn't respond (crashed/closed), just quit
+      if (!result || !result.hasUnsaved) {
+        forceQuit = true;
+        mainWindow.close();
+        return;
+      }
+
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type: 'warning',
+        buttons: ['保存并退出', '直接退出', '取消'],
+        defaultId: 0,
+        cancelId: 2,
+        title: '未保存的数据',
+        message: '检测到有未保存的录入数据，是否保存后退出？',
+      });
+      if (response === 0) {
+        await ipcRequest('save-before-close', 'save-before-close-done', 10000);
+        forceQuit = true;
+        mainWindow.close();
+      } else if (response === 1) {
         forceQuit = true;
         mainWindow.close();
       }
     } catch (err) {
       forceQuit = true;
       mainWindow.close();
+    } finally {
+      closeInProgress = false;
     }
   });
 }
