@@ -55,16 +55,13 @@ async function createWindow() {
   // Initialize DB before creating window
   await db.init();
 
-  console.log('Creating BrowserWindow with frame: false');
-
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1100,
     minHeight: 700,
     frame: false, // 隐藏原生边框和标题栏
-    titleBarStyle: 'hidden', // 隐藏标题栏
-    transparent: false, // 不透明背景
+    autoHideMenuBar: true, // 隐藏菜单栏
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -72,11 +69,6 @@ async function createWindow() {
     },
     title: '食堂出入库管理系统',
   });
-
-  // 强制刷新窗口
-  mainWindow.setMenuBarVisibility(false);
-
-  console.log('BrowserWindow created, frame:', mainWindow.frame);
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
