@@ -5,6 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "build": "electron-builder --win",
+    "build:update": "node scripts/build-update.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -19,8 +21,10 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
+    "archiver": "^8.0.0",
     "electron": "^42.3.1",
-    "electron-builder": "^26.15.2"
+    "electron-builder": "^26.15.2",
+    "jszip": "^3.10.1"
   },
   "build": {
     "appId": "com.yang-an.inventory",
