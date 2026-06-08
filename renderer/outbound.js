@@ -280,3 +280,154 @@ async function refreshRecipientSelects() {
     sel.value = val;
   });
 }
+
+// ===== 管理领取人弹窗 =====
+function showManageRecipients() {
+  const recipientsHtml = RECIPIENTS.map((r, idx) => `
+    <div class="recipient-item" data-id="${r.id}" data-name="${r.name}" draggable="true">
+      <div class="recipient-drag-handle">⠿</div>
+      <span class="recipient-name">${r.name}</span>
+      <div class="recipient-actions">
+        <button class="btn btn-sm" onclick="editRecipient(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="编辑">✏️</button>
+        <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteRecipient(${r.id}, '${r.name.replace(/'/g, "\\'")}')" title="删除">×</button>
+      </div>
+    </div>
+  `).join('');
+
+  openModal('管理领取人', `
+    <div class="recipient-manager">
+      <div class="recipient-add-row">
+        <input type="text" class="form-control" id="new-recipient-input" placeholder="输入新领取人名称..." onkeydown="if(event.key==='Enter')addNewRecipient()">
+        <button class="btn btn-primary" onclick="addNewRecipient()">添加</button>
+      </div>
+      <div class="recipient-list" id="recipient-list">
+        ${recipientsHtml}
+      </div>
+      <div class="recipient-hint">
+        <small class="text-muted">💡 拖拽可调整顺序，修改后自动保存</small>
+      </div>
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">关闭</button>
+  `);
+
+  // 初始化拖拽排序
+  initRecipientDragSort();
+}
+
+// 添加新领取人
+async function addNewRecipient() {
+  const input = document.getElementById('new-recipient-input');
+  const name = input.value.trim();
+  if (!name) return;
+
+  // 检查是否已存在
+  if (RECIPIENTS.some(r => r.name === name)) {
+    showToast('该领取人已存在', 'error');
+    return;
+  }
+
+  await window.api.addRecipient(name);
+  await refreshRecipientSelects();
+  input.value = '';
+  showToast(`已添加: ${name}`);
+
+  // 刷新弹窗内容
+  showManageRecipients();
+}
+
+// 编辑领取人
+function editRecipient(id, oldName) {
+  openModal('编辑领取人', `
+    <div class="form-group">
+      <label>领取人名称</label>
+      <input type="text" class="form-control" id="edit-recipient-name" value="${oldName}">
+    </div>
+  `, `
+    <button class="btn" onclick="showManageRecipients()">取消</button>
+    <button class="btn btn-primary" onclick="doEditRecipient(${id})">保存</button>
+  `);
+}
+
+async function doEditRecipient(id) {
+  const newName = document.getElementById('edit-recipient-name').value.trim();
+  if (!newName) return;
+
+  await window.api.updateRecipient(id, newName);
+  await refreshRecipientSelects();
+  showToast('已更新');
+  showManageRecipients();
+}
+
+// 删除领取人
+function deleteRecipient(id, name) {
+  openModal('确认删除', `<p>确定要删除领取人 "<strong>${name}</strong>" 吗？</p>`, `
+    <button class="btn" onclick="showManageRecipients()">取消</button>
+    <button class="btn" style="background:var(--danger);color:#fff;border-color:var(--danger);" onclick="doDeleteRecipient(${id})">确认删除</button>
+  `);
+}
+
+async function doDeleteRecipient(id) {
+  await window.api.deleteRecipient(id);
+  await refreshRecipientSelects();
+  showToast('已删除');
+  showManageRecipients();
+}
+
+// 拖拽排序
+function initRecipientDragSort() {
+  const list = document.getElementById('recipient-list');
+  if (!list) return;
+
+  let dragItem = null;
+
+  list.querySelectorAll('.recipient-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      dragItem = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', () => {
+      if (dragItem) dragItem.classList.remove('dragging');
+      dragItem = null;
+      // 保存新顺序
+      saveRecipientOrder();
+    });
+
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const afterElement = getDragAfterElement(list, e.clientY);
+      if (afterElement == null) {
+        list.appendChild(dragItem);
+      } else {
+        list.insertBefore(dragItem, afterElement);
+      }
+    });
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.recipient-item:not(.dragging)')];
+
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+async function saveRecipientOrder() {
+  const list = document.getElementById('recipient-list');
+  const items = list.querySelectorAll('.recipient-item');
+  const order = Array.from(items).map(item => item.dataset.name);
+
+  await window.api.updateRecipientOrder(order);
+  await refreshRecipientSelects();
+  showToast('顺序已保存');
+}

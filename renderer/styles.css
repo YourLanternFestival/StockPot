@@ -1732,3 +1732,122 @@ body {
 .help-section[id] {
   scroll-margin-top: 20px;
 }
+
+/* Back to TOC floating button */
+.back-to-toc-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 4px 12px rgba(79, 110, 247, 0.4);
+  transition: all 0.3s ease;
+  z-index: 9999;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.back-to-toc-btn.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.back-to-toc-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(79, 110, 247, 0.5);
+}
+
+.back-to-toc-btn span:first-child {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.back-to-toc-btn .btn-text {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* Recipient Manager */
+.recipient-manager {
+  min-width: 350px;
+}
+
+.recipient-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.recipient-add-row .form-control {
+  flex: 1;
+}
+
+.recipient-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.recipient-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  cursor: move;
+  transition: background 0.15s;
+}
+
+.recipient-item:last-child {
+  border-bottom: none;
+}
+
+.recipient-item:hover {
+  background: var(--primary-light);
+}
+
+.recipient-item.dragging {
+  opacity: 0.5;
+  background: var(--primary-light);
+}
+
+.recipient-drag-handle {
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: move;
+  user-select: none;
+}
+
+.recipient-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.recipient-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.recipient-item:hover .recipient-actions {
+  opacity: 1;
+}
+
+.recipient-hint {
+  margin-top: 12px;
+  text-align: center;
+}

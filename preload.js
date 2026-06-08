@@ -35,6 +35,9 @@ contextBridge.exposeInMainWorld('api', {
   // Recipients
   getRecipients: () => ipcRenderer.invoke('recipients:get'),
   addRecipient: (name) => ipcRenderer.invoke('recipients:add', name),
+  updateRecipient: (id, name) => ipcRenderer.invoke('recipients:update', id, name),
+  deleteRecipient: (id) => ipcRenderer.invoke('recipients:delete', id),
+  updateRecipientOrder: (order) => ipcRenderer.invoke('recipients:updateOrder', order),
 
   // Inventory
   getInventory: () => ipcRenderer.invoke('inventory:get'),

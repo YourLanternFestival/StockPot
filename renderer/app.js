@@ -147,6 +147,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateMaximizeButton(state.isMaximized);
   });
 
+  // 帮助页面滚动时显示/隐藏返回目录按钮
+  const mainContent = document.querySelector('.main-content');
+  const backToTocBtn = document.getElementById('back-to-toc-btn');
+
+  if (mainContent && backToTocBtn) {
+    mainContent.addEventListener('scroll', () => {
+      const activePage = document.querySelector('.page.active');
+      if (activePage && activePage.id === 'page-help') {
+        // 在帮助页面，滚动超过目录区域时显示按钮
+        const tocSection = document.getElementById('help-toc');
+        if (tocSection) {
+          const tocBottom = tocSection.offsetTop + tocSection.offsetHeight;
+          if (mainContent.scrollTop > tocBottom) {
+            backToTocBtn.style.display = 'flex';
+            setTimeout(() => backToTocBtn.classList.add('visible'), 10);
+          } else {
+            backToTocBtn.classList.remove('visible');
+            setTimeout(() => backToTocBtn.style.display = 'none', 300);
+          }
+        }
+      } else {
+        backToTocBtn.classList.remove('visible');
+        setTimeout(() => backToTocBtn.style.display = 'none', 300);
+      }
+    });
+  }
+
   // Ctrl+Enter 切换回车导航模式
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key === 'Enter') {

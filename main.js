@@ -129,6 +129,9 @@ ipcMain.handle('outbound:delete', (e, id) => db.deleteOutbound(id));
 // Recipients
 ipcMain.handle('recipients:get', () => db.getRecipients());
 ipcMain.handle('recipients:add', (e, name) => db.addRecipient(name));
+ipcMain.handle('recipients:update', (e, id, name) => db.updateRecipient(id, name));
+ipcMain.handle('recipients:delete', (e, id) => db.deleteRecipient(id));
+ipcMain.handle('recipients:updateOrder', (e, order) => db.updateRecipientOrder(order));
 
 // Inventory
 ipcMain.handle('inventory:get', () => db.getInventory());

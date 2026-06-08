@@ -338,6 +338,7 @@
         <div class="page-header">
           <h2>出库登记</h2>
           <div class="header-actions">
+            <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序">👥 管理领取人</button>
             <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录">✓ 批量提交</button>
           </div>
         </div>
@@ -1060,9 +1061,15 @@
               <h4>库存校验</h4>
               <p>系统会在提交前检查库存是否充足。如果出库数量超过当前库存，系统会显示警告，防止超领。</p>
 
-              <div class="help-tip">
-                <strong>💡 提示：</strong>领取人列表可以在数据库中扩展，如需添加新的领取人，请联系管理员。
-              </div>
+              <h4>管理领取人</h4>
+              <p>点击页面右上角的<strong>"👥 管理领取人"</strong>按钮，可以：</p>
+              <ul>
+                <li><strong>新增</strong>：添加新的领取人名称</li>
+                <li><strong>编辑</strong>：修改现有领取人名称</li>
+                <li><strong>删除</strong>：移除不需要的领取人</li>
+                <li><strong>排序</strong>：拖拽调整领取人的显示顺序</li>
+              </ul>
+              <p>默认领取人有：厨房、小食堂、面点房、烧饭、明档。您可以根据实际情况自由调整。</p>
             </div>
           </div>
 
@@ -1360,6 +1367,12 @@
 
   <!-- Toast notification -->
   <div class="toast-container" id="toast-container"></div>
+
+  <!-- 返回目录悬浮按钮 -->
+  <button class="back-to-toc-btn" id="back-to-toc-btn" onclick="scrollToHelpSection('help-toc')" title="返回目录" style="display:none;">
+    <span>📑</span>
+    <span class="btn-text">目录</span>
+  </button>
 
   <!-- Modal -->
   <div class="modal-overlay" id="modal-overlay">

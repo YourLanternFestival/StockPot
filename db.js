@@ -61,7 +61,8 @@ async function init() {
 
     CREATE TABLE IF NOT EXISTS recipients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE
+      name TEXT NOT NULL UNIQUE,
+      sort_order INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS purchase_orders (
@@ -130,6 +131,11 @@ async function init() {
   // Migration: add opening_stock column if missing
   try {
     db.run('ALTER TABLE products ADD COLUMN opening_stock REAL DEFAULT 0');
+  } catch (e) { /* column already exists */ }
+
+  // Migration: add sort_order column to recipients if missing
+  try {
+    db.run('ALTER TABLE recipients ADD COLUMN sort_order INTEGER DEFAULT 0');
   } catch (e) { /* column already exists */ }
 
   // Create remark_memory table for 备注记忆
@@ -295,11 +301,30 @@ function deleteOutbound(id) {
 
 // ===== Recipients =====
 function getRecipients() {
-  return queryAll('SELECT * FROM recipients ORDER BY id');
+  return queryAll('SELECT * FROM recipients ORDER BY sort_order, id');
 }
 
 function addRecipient(name) {
-  run('INSERT OR IGNORE INTO recipients (name) VALUES (?)', [name]);
+  // 获取当前最大的sort_order
+  const maxOrder = queryOne('SELECT COALESCE(MAX(sort_order), 0) as max_order FROM recipients').max_order;
+  run('INSERT INTO recipients (name, sort_order) VALUES (?, ?)', [name, maxOrder + 1]);
+  save();
+}
+
+function updateRecipient(id, name) {
+  run('UPDATE recipients SET name = ? WHERE id = ?', [name, id]);
+  save();
+}
+
+function deleteRecipient(id) {
+  run('DELETE FROM recipients WHERE id = ?', [id]);
+  save();
+}
+
+function updateRecipientOrder(orderedNames) {
+  for (let i = 0; i < orderedNames.length; i++) {
+    run('UPDATE recipients SET sort_order = ? WHERE name = ?', [i, orderedNames[i]]);
+  }
   save();
 }
 
@@ -820,7 +845,7 @@ module.exports = {
   getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts, restoreProduct,
   getInboundRecords, addInbound, updateInbound, deleteInbound,
   getOutboundRecords, addOutbound, updateOutbound, deleteOutbound,
-  getRecipients, addRecipient,
+  getRecipients, addRecipient, updateRecipient, deleteRecipient, updateRecipientOrder,
   getInventory, getProductStockDetail, getInventoryByMonth,
   getExpiryAlerts,
   importProducts, importInbound, importOutbound, importOpeningStock, clearAllData,
