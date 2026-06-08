@@ -490,11 +490,11 @@ function renderSmallMatrix(area, canteens, productNames, allData) {
         <thead>
           <tr>
             <th>序号</th>
-            <th class="matrix-name-col">品名</th>
+            <th class="matrix-name-col">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
             <th>规格</th>
             <th>单位</th>
-            ${canteens.map(c => `<th class="matrix-qty-col">${c}</th>`).join('')}
-            ${hasRemarks ? '<th>备注</th>' : ''}
+            ${canteens.map(c => `<th class="matrix-qty-col">${c} <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>`).join('')}
+            ${hasRemarks ? '<th>备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>' : ''}
             <th>操作</th>
           </tr>
         </thead>
@@ -697,13 +697,13 @@ function copyKitchenData(fromCanteen, toCanteen) {
             <thead>
               <tr>
                 <th style="width:40px;">序号</th>
-                <th style="width:200px;">品名</th>
+                <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
                 <th style="width:120px;">规格</th>
                 <th style="width:80px;">单价</th>
-                <th style="width:80px;">数量</th>
+                <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
                 <th style="width:60px;">单位</th>
                 <th style="width:80px;">金额</th>
-                <th style="width:150px;">备注</th>
+                <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
                 <th style="width:50px;">操作</th>
               </tr>
             </thead>
@@ -790,13 +790,13 @@ function addDateGroupToPage(source, date, items) {
           <thead>
             <tr>
               <th style="width:40px;">序号</th>
-              <th style="width:200px;">品名</th>
+              <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
               <th style="width:120px;">规格</th>
               <th style="width:80px;">单价</th>
-              <th style="width:80px;">数量</th>
+              <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
               <th style="width:60px;">单位</th>
               <th style="width:80px;">金额</th>
-              <th style="width:150px;">备注</th>
+              <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
               <th style="width:50px;">操作</th>
             </tr>
           </thead>
@@ -955,13 +955,13 @@ function addDateGroup(source, date) {
           <thead>
             <tr>
               <th style="width:40px;">序号</th>
-              <th style="width:200px;">品名</th>
+              <th style="width:200px;">品名 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
               <th style="width:120px;">规格</th>
               <th style="width:80px;">单价</th>
-              <th style="width:80px;">数量</th>
+              <th style="width:80px;">数量 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
               <th style="width:60px;">单位</th>
               <th style="width:80px;">金额</th>
-              <th style="width:150px;">备注</th>
+              <th style="width:150px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
               <th style="width:50px;">操作</th>
             </tr>
           </thead>

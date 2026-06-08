@@ -252,38 +252,51 @@ function bindTableRowEvents(tr, tbody, options = {}) {
       handleCellKeydown(e, input, tbody, onAppendRow);
     });
 
-    // Excel 列粘贴：多行文本按列向下填充
+    // 粘贴：支持单列和多列（TSV）粘贴
     input.addEventListener('paste', (e) => {
       const text = (e.clipboardData || window.clipboardData).getData('text');
       if (!text) return;
       const lines = text.split(/\r?\n/).filter(l => l.length > 0);
-      if (lines.length <= 1) return; // 单行粘贴走默认行为
+      if (lines.length === 0) return;
+      const isTSV = lines[0].includes('\t');
+      if (!isTSV && lines.length <= 1) return; // 单行纯文本走默认行为
 
       e.preventDefault();
-      input.value = lines[0];
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-
       const currentTr = input.closest('tr');
       const currentTbody = currentTr.closest('tbody');
-      const rows = Array.from(currentTbody.querySelectorAll('tr'));
-      const startRowIdx = rows.indexOf(currentTr);
-      const colIdx = Array.from(currentTr.querySelectorAll('.cell-editable')).indexOf(input);
+      const allRows = Array.from(currentTbody.querySelectorAll('tr'));
+      const startRowIdx = allRows.indexOf(currentTr);
+      const startColIdx = Array.from(currentTr.querySelectorAll('.cell-editable')).indexOf(input);
 
-      // 填充后续行
-      for (let i = 1; i < lines.length; i++) {
-        let targetRow = rows[startRowIdx + i];
+      for (let i = 0; i < lines.length; i++) {
+        // 获取或追加目标行
+        let targetRow = allRows[startRowIdx + i];
         if (!targetRow) {
-          // 自动追加行
           const appendFn = currentTbody._appendRowFn || onAppendRow || appendPurchaseRow;
-          appendFn(currentTbody, rows.length + i - 1);
-          const newRows = Array.from(currentTbody.querySelectorAll('tr'));
-          targetRow = newRows[newRows.length - 1];
+          appendFn(currentTbody, allRows.length + i);
+          allRows.length = 0;
+          allRows.push(...currentTbody.querySelectorAll('tr'));
+          targetRow = allRows[allRows.length - 1];
         }
-        const targetInputs = targetRow.querySelectorAll('.cell-editable');
-        if (targetInputs[colIdx]) {
-          targetInputs[colIdx].value = lines[i];
-          targetInputs[colIdx].dispatchEvent(new Event('input', { bubbles: true }));
-          targetInputs[colIdx].dispatchEvent(new Event('blur', { bubbles: true }));
+        const editableInputs = targetRow.querySelectorAll('.cell-editable');
+
+        if (isTSV) {
+          // 多列粘贴：按列顺序映射，自动截断多余列，缺失列保持原样
+          const cells = lines[i].split('\t');
+          for (let j = 0; j < cells.length; j++) {
+            const targetIdx = startColIdx + j;
+            if (targetIdx >= editableInputs.length) break; // 截断
+            editableInputs[targetIdx].value = cells[j];
+            editableInputs[targetIdx].dispatchEvent(new Event('input', { bubbles: true }));
+            editableInputs[targetIdx].dispatchEvent(new Event('blur', { bubbles: true }));
+          }
+        } else {
+          // 单列粘贴：按当前列向下填充
+          if (editableInputs[startColIdx]) {
+            editableInputs[startColIdx].value = lines[i];
+            editableInputs[startColIdx].dispatchEvent(new Event('input', { bubbles: true }));
+            editableInputs[startColIdx].dispatchEvent(new Event('blur', { bubbles: true }));
+          }
         }
       }
     });
@@ -301,5 +314,36 @@ function renumberRows(tbodyId) {
   const tbody = document.getElementById(tbodyId);
   tbody.querySelectorAll('tr').forEach((tr, idx) => {
     tr.querySelector('.row-num').textContent = idx + 1;
+  });
+}
+
+// 列复制：点击表头 📋 按钮，将整列数据写入剪贴板
+function copyColumnToClipboard(btn) {
+  const th = btn.closest('th');
+  const thead = th.closest('thead');
+  const table = thead.closest('table');
+  const colIdx = Array.from(thead.querySelector('tr').children).indexOf(th);
+  const tbody = table.querySelector('tbody');
+  if (!tbody) return;
+
+  const values = [];
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const td = tr.children[colIdx];
+    if (!td) return;
+    const input = td.querySelector('.cell-editable');
+    const val = input ? input.value.trim() : td.textContent.trim();
+    if (val) values.push(val);
+  });
+
+  if (values.length === 0) {
+    btn.textContent = '⊘';
+    setTimeout(() => { btn.textContent = '📋'; }, 1000);
+    return;
+  }
+
+  navigator.clipboard.writeText(values.join('\n')).then(() => {
+    btn.textContent = '✅';
+    btn.title = `已复制 ${values.length} 行`;
+    setTimeout(() => { btn.textContent = '📋'; btn.title = '复制整列'; }, 1500);
   });
 }
