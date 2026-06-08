@@ -63,6 +63,7 @@ async function createWindow() {
     minWidth: 1100,
     minHeight: 700,
     frame: false, // 隐藏原生边框和标题栏
+    transparent: false, // 不透明背景
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -70,6 +71,9 @@ async function createWindow() {
     },
     title: '食堂出入库管理系统',
   });
+
+  // 强制刷新窗口
+  mainWindow.setMenuBarVisibility(false);
 
   console.log('BrowserWindow created, frame:', mainWindow.frame);
 
