@@ -536,7 +536,7 @@ async function toggleMatrixRemarks() {
 }
 
 // 保存矩阵数据到 DB
-async function saveMatrixData() {
+async function saveMatrixData(silent) {
   const canteens = getSmallCanteens();
   const tbody = document.getElementById('matrix-tbody');
   if (!tbody) return;
@@ -583,10 +583,11 @@ async function saveMatrixData() {
   const today = todayStr();
   await window.api.setSetting('last_purchase_date', today);
 
-  showToast(`矩阵数据已保存 ${savedCount} 条`);
-
-  for (const canteen of canteens) {
-    await loadPurchaseGroupData(`${canteen}-厨房`);
+  if (!silent) {
+    showToast(`矩阵数据已保存 ${savedCount} 条`);
+    for (const canteen of canteens) {
+      await loadPurchaseGroupData(`${canteen}-厨房`);
+    }
   }
 }
 
@@ -1374,6 +1375,49 @@ async function saveAllPurchaseOrders() {
   } catch (err) {
     showToast('保存失败: ' + err.message, 'error');
   }
+}
+
+// 静默保存（无 toast，用于页面切换时自动保存）
+async function silentSavePurchaseOrders() {
+  if (APP_SETTINGS.xiaosuo_mode === 'small' && APP_SETTINGS.small_display_style === 'matrix') {
+    await saveMatrixData(true);
+    return;
+  }
+
+  const allOrders = [];
+  const container = document.getElementById('purchase-container');
+  const dateGroups = [...container.querySelectorAll('.date-group')].filter(dg => dg.offsetParent !== null);
+
+  dateGroups.forEach(dateGroup => {
+    const purchaseGroup = dateGroup.closest('.purchase-group');
+    const source = purchaseGroup.dataset.source;
+    const dateLabel = dateGroup.querySelector('.date-label').textContent;
+    const receiveDate = dateLabel.replace(' 收货', '').replace(' 发货', '').trim();
+    dateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
+      const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
+      const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
+      const productName = getData('product_name').trim();
+      if (!productName) return;
+      allOrders.push({
+        source, receive_date: receiveDate, product_name: productName,
+        spec: getData('spec'), unit_price: parseFloat(getData('unit_price')) || 0,
+        quantity: getData('quantity'), unit: getData('unit'),
+        amount: parseFloat(amountText.replace('¥', '')) || 0,
+        remark: getData('remark'), sort_order: idx
+      });
+    });
+  });
+
+  const currentSources = [...document.querySelectorAll('#purchase-container .purchase-group[data-source]')]
+    .filter(g => g.offsetParent !== null || g.dataset.source.includes('联华'))
+    .map(g => g.dataset.source).filter(s => s);
+  for (const source of currentSources) {
+    await window.api.clearPurchaseOrders(source);
+  }
+  for (const order of allOrders) {
+    await window.api.addPurchaseOrder(order);
+  }
+  await window.api.setSetting('last_purchase_date', todayStr());
 }
 
 // Export all purchase orders — helper functions

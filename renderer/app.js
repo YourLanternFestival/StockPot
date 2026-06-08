@@ -67,7 +67,9 @@ async function navigateTo(page) {
   // 离开采购单页面时静默保存
   const currentPage = document.querySelector('.page.active');
   if (currentPage && currentPage.id === 'page-purchase' && typeof saveAllPurchaseOrders === 'function') {
-    try { await saveAllPurchaseOrders(); } catch (e) { /* 静默保存不打扰用户 */ }
+    try {
+      await silentSavePurchaseOrders();
+    } catch (e) { /* 静默保存不打扰用户 */ }
   }
 
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -94,7 +96,10 @@ async function navigateTo(page) {
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {
-  item.addEventListener('click', () => navigateTo(item.dataset.page));
+  item.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await navigateTo(item.dataset.page);
+  });
 });
 
 // ===== Toast =====
