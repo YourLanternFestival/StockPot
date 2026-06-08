@@ -63,7 +63,13 @@ let APP_SETTINGS = {
 };
 
 // ===== Navigation =====
-function navigateTo(page) {
+async function navigateTo(page) {
+  // 离开采购单页面时静默保存
+  const currentPage = document.querySelector('.page.active');
+  if (currentPage && currentPage.id === 'page-purchase' && typeof saveAllPurchaseOrders === 'function') {
+    try { await saveAllPurchaseOrders(); } catch (e) { /* 静默保存不打扰用户 */ }
+  }
+
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);

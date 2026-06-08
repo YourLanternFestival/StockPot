@@ -1542,7 +1542,7 @@ async function exportAllPurchaseOrders() {
 
     const now = new Date();
     const month = `${now.getMonth() + 1}月`;
-    const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.canteen_mode || '洋安'));
+    const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.current_canteen || '洋安'));
     const result = await window.api.exportPurchaseOrder(sheets, `${month}${modeLabel}采购单.xlsx`);
     if (result.success) {
       showToast('导出成功！');
