@@ -989,32 +989,27 @@ body {
   opacity: 1;
 }
 
-/* Remark memory slots */
+/* Remark memory dropdown */
 .remark-dropdown {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  overflow: hidden;
 }
 .remark-slot {
-  flex: 1;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-input);
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: none;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: left;
 }
 .remark-slot:hover {
   background: var(--primary-light);
-  border-color: var(--primary);
 }
 
 /* Autocomplete dropdown */
