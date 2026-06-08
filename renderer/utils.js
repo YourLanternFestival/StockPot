@@ -307,6 +307,11 @@ function bindTableRowEvents(tr, tbody, options = {}) {
 
     if (onFieldChange) input.addEventListener('change', () => onFieldChange(tr));
     if (input.dataset.field === 'quantity' && onQtyChange) input.addEventListener('input', () => onQtyChange(tr));
+
+    // 备注记忆下拉：聚焦时根据品名查询历史备注
+    if (input.dataset.field === 'remark') {
+      input.addEventListener('focus', () => showRemarkDropdown(input));
+    }
   });
 }
 
@@ -315,6 +320,54 @@ function renumberRows(tbodyId) {
   tbody.querySelectorAll('tr').forEach((tr, idx) => {
     tr.querySelector('.row-num').textContent = idx + 1;
   });
+}
+
+// 备注记忆下拉：根据品名查询历史备注供点选
+async function showRemarkDropdown(input) {
+  const tr = input.closest('tr');
+  const productName = tr.querySelector('[data-field="product_name"]')?.value?.trim();
+  if (!productName) return;
+
+  try {
+    const remarks = await window.api.getRemarksByName(productName);
+    if (!remarks || remarks.length === 0) return;
+
+    // 移除已有下拉
+    hideRemarkDropdown();
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'remark-dropdown';
+    dropdown.innerHTML = remarks.map(r =>
+      `<div class="remark-dropdown-item" data-remark="${(r.remark || '').replace(/"/g, '&quot;')}">${r.remark}</div>`
+    ).join('');
+
+    // 定位
+    const rect = input.getBoundingClientRect();
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = rect.bottom + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.minWidth = rect.width + 'px';
+    dropdown.style.zIndex = '9999';
+    document.body.appendChild(dropdown);
+
+    // 点击选择
+    dropdown.querySelectorAll('.remark-dropdown-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value = item.dataset.remark;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        hideRemarkDropdown();
+      });
+    });
+
+    // 失焦关闭
+    input.addEventListener('blur', () => setTimeout(hideRemarkDropdown, 150), { once: true });
+  } catch (e) { /* ignore */ }
+}
+
+function hideRemarkDropdown() {
+  document.querySelectorAll('.remark-dropdown').forEach(el => el.remove());
 }
 
 // 列复制：点击表头 📋 按钮，将整列数据写入剪贴板
