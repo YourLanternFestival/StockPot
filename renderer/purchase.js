@@ -105,7 +105,7 @@ function initMultiCanteenMode() {
 
   if (!multiModeInitialized) {
     for (const canteen of MULTI_CANTEENS) {
-      // 联华分组 (per canteen)
+      // 联华分组 (per canteen) — 基础输入模板，数据源为 lianhua_items
       const lianhuaSrc = `${canteen}-联华`;
       const lianhuaGroup = document.createElement('div');
       lianhuaGroup.className = 'purchase-group';
@@ -117,8 +117,7 @@ function initMultiCanteenMode() {
           <span class="group-toggle">▶</span>
           <h3>联华超市 - ${canteen}</h3>
           <div class="group-actions">
-            <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate('${lianhuaSrc}')">+ 添加日期</button>
-            <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()">管理商品</button>
+            <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('${lianhuaSrc}')">+ 添加日期</button>
           </div>
         </div>
         <div class="group-content" style="display:none;"></div>
@@ -979,10 +978,14 @@ function addDateGroup(source, date) {
     toggleGroup(groupHeader);
   }
 
-  // Add empty rows
+  // Add empty rows (联华使用联华自动补全，厨房使用询价自动补全)
   const tbody = dateGroup.querySelector('tbody');
   for (let i = 0; i < APP_SETTINGS.purchase_rows; i++) {
-    appendPurchaseRow(tbody, i);
+    if (source.includes('联华')) {
+      appendLianhuaRow(tbody, i);
+    } else {
+      appendPurchaseRow(tbody, i);
+    }
   }
 }
 
@@ -1010,6 +1013,7 @@ function addPurchaseRows(btn) {
   }
 }
 
+/** 仅用于厨房/面点房。联华请使用 appendLianhuaRow */
 function appendPurchaseRow(tbody, idx) {
   const tr = document.createElement('tr');
 
@@ -1180,7 +1184,7 @@ async function handleProductAutocomplete(input) {
   // Check if this is in 联华 group
   const dateGroup = input.closest('.date-group');
   const purchaseGroup = input.closest('.purchase-group');
-  const isLianhua = purchaseGroup && purchaseGroup.dataset.source === '联华';
+  const isLianhua = purchaseGroup && purchaseGroup.dataset.source.includes('联华');
 
   try {
     let results = [];
@@ -1352,7 +1356,7 @@ async function saveAllPurchaseOrders() {
   try {
     // Only clear orders for visible groups
     const currentSources = [...document.querySelectorAll('#purchase-container .purchase-group[data-source]')]
-      .filter(g => g.offsetParent !== null || g.dataset.source === '联华')
+      .filter(g => g.offsetParent !== null || g.dataset.source.includes('联华'))
       .map(g => g.dataset.source)
       .filter(s => s);
     for (const source of currentSources) {

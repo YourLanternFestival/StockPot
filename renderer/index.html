@@ -568,14 +568,13 @@
           <!-- 小所食堂模式: 矩阵区域 (样式2) -->
           <div id="small-matrix-area" style="display:none;"></div>
 
-          <!-- 洋安/新安模式: 联华 -->
+          <!-- 洋安/新安模式: 联华（基础输入模板，数据源为 lianhua_items） -->
           <div class="purchase-group" id="purchase-lianhua" data-source="联华">
             <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠联华超市采购组">
               <span class="group-toggle">▶</span>
               <h3 id="lianhua-title">联华超市</h3>
               <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddLianhuaDate()" data-tooltip="为联华采购组添加新的送货日期">+ 添加日期</button>
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()" data-tooltip="查看和编辑联华超市商品目录">管理商品</button>
+                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('联华')" data-tooltip="为联华采购组添加新的到货日期">+ 添加日期</button>
               </div>
             </div>
             <div class="group-content" style="display:none;"></div>
