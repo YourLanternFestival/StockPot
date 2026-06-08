@@ -200,7 +200,6 @@ async function doEditInquiryItem(id) {
 
   try {
     await window.api.updateInquiryItem(id, data);
-    if (data.remark) window.api.addRemarkMemory(data.name, data.remark).catch(() => {});
     closeModal();
     showToast('已更新');
     await loadInquiryItems();
@@ -413,12 +412,6 @@ async function startImportInquiry() {
 
   try {
     const result = await window.api.importInquiryItems(month, pendingInquiryData);
-    // 同步备注到 remark_memory
-    for (const item of pendingInquiryData) {
-      if (item.remark && item.name) {
-        window.api.addRemarkMemory(item.name, item.remark).catch(() => {});
-      }
-    }
     showToast(`导入成功！共 ${result.imported} 条数据`);
     closeModal();
     pendingInquiryData = null;
@@ -561,7 +554,6 @@ async function doAddInquiryItem(month) {
 
   try {
     await window.api.addInquiryItem(data);
-    if (data.remark) window.api.addRemarkMemory(data.name, data.remark).catch(() => {});
     closeModal();
     showToast('已添加');
     await loadInquiryItems();

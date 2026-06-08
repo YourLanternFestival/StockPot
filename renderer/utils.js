@@ -308,9 +308,10 @@ function bindTableRowEvents(tr, tbody, options = {}) {
     if (onFieldChange) input.addEventListener('change', () => onFieldChange(tr));
     if (input.dataset.field === 'quantity' && onQtyChange) input.addEventListener('input', () => onQtyChange(tr));
 
-    // 备注记忆下拉：聚焦时根据品名查询历史备注
+    // 备注记忆：聚焦显示候选，失焦采集备注
     if (input.dataset.field === 'remark') {
       input.addEventListener('focus', () => showRemarkDropdown(input));
+      input.addEventListener('blur', () => saveRemarkOnBlur(input));
     }
   });
 }
@@ -322,7 +323,7 @@ function renumberRows(tbodyId) {
   });
 }
 
-// 备注记忆下拉：根据品名查询历史备注供点选
+// 备注记忆：根据品名查询历史备注，显示最多 3 个候选槽位
 async function showRemarkDropdown(input) {
   const tr = input.closest('tr');
   const productName = tr.querySelector('[data-field="product_name"]')?.value?.trim();
@@ -332,42 +333,49 @@ async function showRemarkDropdown(input) {
     const remarks = await window.api.getRemarksByName(productName);
     if (!remarks || remarks.length === 0) return;
 
-    // 移除已有下拉
     hideRemarkDropdown();
 
     const dropdown = document.createElement('div');
     dropdown.className = 'remark-dropdown';
-    dropdown.innerHTML = remarks.map(r =>
-      `<div class="remark-dropdown-item" data-remark="${(r.remark || '').replace(/"/g, '&quot;')}">${r.remark}</div>`
+    // 最多 3 个槽位，以小按钮形式排列
+    const slots = remarks.slice(0, 3);
+    dropdown.innerHTML = slots.map(r =>
+      `<button class="remark-slot" data-remark="${(r.remark || '').replace(/"/g, '&quot;')}">${r.remark}</button>`
     ).join('');
 
-    // 定位
     const rect = input.getBoundingClientRect();
     dropdown.style.position = 'fixed';
-    dropdown.style.top = rect.bottom + 'px';
+    dropdown.style.top = (rect.bottom + 2) + 'px';
     dropdown.style.left = rect.left + 'px';
     dropdown.style.minWidth = rect.width + 'px';
     dropdown.style.zIndex = '9999';
     document.body.appendChild(dropdown);
 
-    // 点击选择
-    dropdown.querySelectorAll('.remark-dropdown-item').forEach(item => {
-      item.addEventListener('mousedown', (e) => {
+    dropdown.querySelectorAll('.remark-slot').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        input.value = item.dataset.remark;
+        input.value = btn.dataset.remark;
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
         hideRemarkDropdown();
       });
     });
 
-    // 失焦关闭
     input.addEventListener('blur', () => setTimeout(hideRemarkDropdown, 150), { once: true });
   } catch (e) { /* ignore */ }
 }
 
 function hideRemarkDropdown() {
   document.querySelectorAll('.remark-dropdown').forEach(el => el.remove());
+}
+
+// 备注记忆采集：备注输入失焦时，非空则保存到 remark_memory
+function saveRemarkOnBlur(input) {
+  const tr = input.closest('tr');
+  const productName = tr.querySelector('[data-field="product_name"]')?.value?.trim();
+  const remark = input.value.trim();
+  if (!productName || !remark) return;
+  try { window.api.addRemarkMemory(productName, remark); } catch (e) { /* ignore */ }
 }
 
 // 列复制：点击表头 📋 按钮，将整列数据写入剪贴板
