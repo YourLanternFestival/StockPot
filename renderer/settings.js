@@ -153,6 +153,7 @@ async function loadAppSettings() {
       show_matrix_remarks: g('show_matrix_remarks'),
       alert_short_days: parseInt(g('alert_short_days')) || 30,
       alert_long_days: parseInt(g('alert_long_days')) || 60,
+      last_purchase_date: g('last_purchase_date') || '',
     };
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框
