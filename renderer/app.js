@@ -16,6 +16,18 @@ function closeWindow() {
   window.electronAPI?.closeWindow();
 }
 
+// 双击标题栏切换最大化
+document.addEventListener('DOMContentLoaded', () => {
+  const titlebar = document.getElementById('custom-titlebar');
+  if (titlebar) {
+    titlebar.addEventListener('dblclick', (e) => {
+      // 排除按钮区域
+      if (e.target.closest('.titlebar-controls')) return;
+      maximizeWindow();
+    });
+  }
+});
+
 // 更新最大化按钮图标
 function updateMaximizeButton(isMaximized) {
   const btn = document.getElementById('btn-maximize');

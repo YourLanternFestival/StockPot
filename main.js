@@ -60,8 +60,7 @@ async function createWindow() {
     height: 900,
     minWidth: 1100,
     minHeight: 700,
-    frame: false, // 隐藏原生边框
-    titleBarStyle: 'hidden', // 保留Windows snap功能
+    frame: false, // 隐藏原生边框和标题栏
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -103,6 +102,31 @@ ipcMain.handle('window:maximize', () => {
 
 ipcMain.handle('window:close', () => {
   if (mainWindow) mainWindow.close();
+});
+
+// 窗口调整大小
+ipcMain.handle('window:resize', (e, direction) => {
+  if (!mainWindow) return;
+
+  const [width, height] = mainWindow.getSize();
+  const [x, y] = mainWindow.getPosition();
+  const minSize = { width: 1100, height: 700 };
+
+  // 根据方向调整大小
+  switch(direction) {
+    case 'top':
+      // 向上调整大小（需要移动窗口位置）
+      break;
+    case 'right':
+      mainWindow.setSize(Math.max(width + 10, minSize.width), height);
+      break;
+    case 'bottom':
+      mainWindow.setSize(width, Math.max(height + 10, minSize.height));
+      break;
+    case 'left':
+      // 向左调整大小（需要移动窗口位置）
+      break;
+  }
 });
 
 // Products

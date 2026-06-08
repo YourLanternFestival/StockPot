@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
   maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
   closeWindow: () => ipcRenderer.invoke('window:close'),
+  resizeWindow: (direction) => ipcRenderer.invoke('window:resize', direction),
   onWindowStateChanged: (callback) => {
     ipcRenderer.on('window-state-changed', (event, state) => callback(state));
   },

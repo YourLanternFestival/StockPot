@@ -9,13 +9,18 @@
   height: 32px;
   background: var(--sidebar-bg);
   color: #fff;
-  -webkit-app-region: drag;
+  -webkit-app-region: drag; /* 拖拽区域 */
   user-select: none;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 10000;
+}
+
+/* 标题栏按钮不参与拖拽 */
+.custom-titlebar button {
+  -webkit-app-region: no-drag;
 }
 
 .titlebar-drag-region {
