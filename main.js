@@ -55,6 +55,8 @@ async function createWindow() {
   // Initialize DB before creating window
   await db.init();
 
+  console.log('Creating BrowserWindow with frame: false');
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -68,6 +70,8 @@ async function createWindow() {
     },
     title: '食堂出入库管理系统',
   });
+
+  console.log('BrowserWindow created, frame:', mainWindow.frame);
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
