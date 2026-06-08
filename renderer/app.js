@@ -2,6 +2,43 @@
 let PRODUCTS = [];
 let RECIPIENTS = [];
 let ENTER_MODE = 'next-row'; // 'next-row' | 'next-cell'
+
+// ===== Window Controls =====
+function minimizeWindow() {
+  window.electronAPI?.minimizeWindow();
+}
+
+function maximizeWindow() {
+  window.electronAPI?.maximizeWindow();
+}
+
+function closeWindow() {
+  window.electronAPI?.closeWindow();
+}
+
+// 更新最大化按钮图标
+function updateMaximizeButton(isMaximized) {
+  const btn = document.getElementById('btn-maximize');
+  if (!btn) return;
+
+  if (isMaximized) {
+    btn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 12 12">
+        <rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/>
+        <rect fill="var(--sidebar-bg)" width="7" height="7" x="3" y="0.5"/>
+        <rect fill="none" stroke="currentColor" width="7" height="7" x="3" y="0.5"/>
+      </svg>
+    `;
+    btn.title = '还原';
+  } else {
+    btn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 12 12">
+        <rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/>
+      </svg>
+    `;
+    btn.title = '最大化';
+  }
+}
 let APP_SETTINGS = {
   inbound_rows: 5, outbound_rows: 5, purchase_rows: 10,
   inbound_history: 'on', inbound_history_days: 20,
@@ -104,6 +141,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Check if first launch and start tutorial
   checkAndStartTour();
+
+  // 监听窗口状态变化
+  window.electronAPI?.onWindowStateChanged?.((state) => {
+    updateMaximizeButton(state.isMaximized);
+  });
 
   // Ctrl+Enter 切换回车导航模式
   document.addEventListener('keydown', (e) => {

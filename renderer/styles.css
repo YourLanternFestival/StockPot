@@ -1,6 +1,70 @@
 /* ===== Reset & Base ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* ===== Custom Titlebar ===== */
+.custom-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  background: var(--sidebar-bg);
+  color: #fff;
+  -webkit-app-region: drag;
+  user-select: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+}
+
+.titlebar-drag-region {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  height: 100%;
+}
+
+.titlebar-title {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.titlebar-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.titlebar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.titlebar-btn-close:hover {
+  background: #e81123;
+}
+
+.titlebar-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
 :root {
   --primary: #4f6ef7;
   --primary-hover: #3d5bd9;
@@ -40,7 +104,8 @@ body {
 /* ===== Layout ===== */
 .app {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 32px);
+  margin-top: 32px;
 }
 
 /* ===== Sidebar ===== */

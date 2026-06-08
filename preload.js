@@ -1,5 +1,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Window control API
+contextBridge.exposeInMainWorld('electronAPI', {
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
+  onWindowStateChanged: (callback) => {
+    ipcRenderer.on('window-state-changed', (event, state) => callback(state));
+  },
+});
+
 contextBridge.exposeInMainWorld('api', {
   // Products
   getProducts: () => ipcRenderer.invoke('products:get'),

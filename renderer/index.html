@@ -3,15 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>洋安出入库管理系统</title>
+  <title>食堂出入库管理系统</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- 自定义标题栏 -->
+  <div class="custom-titlebar" id="custom-titlebar">
+    <div class="titlebar-drag-region">
+      <span class="titlebar-title">📦 食堂出入库管理系统</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" id="btn-minimize" onclick="minimizeWindow()" title="最小化">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect fill="currentColor" width="10" height="1" x="1" y="5.5"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn" id="btn-maximize" onclick="maximizeWindow()" title="最大化">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn titlebar-btn-close" id="btn-close" onclick="closeWindow()" title="关闭">
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <path fill="currentColor" d="M1.5,0.5 L10.5,0.5 M1.5,0.5 L10.5,11.5 M1.5,11.5 L10.5,0.5 M1.5,11.5 L10.5,11.5" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
   <div class="app">
     <!-- Sidebar -->
     <nav class="sidebar">
       <div class="sidebar-header">
-        <h1>📦 洋安出入库</h1>
+        <h1>📦 食堂出入库</h1>
       </div>
       <ul class="nav-list">
         <li class="nav-item active" data-page="dashboard" data-tooltip="查看库存统计概览、趋势图和预警">
@@ -878,7 +902,7 @@
               <h3>📑 功能目录</h3>
             </div>
             <div class="card-body">
-              <p>欢迎使用<strong>洋安出入库管理系统</strong>！本系统专为食堂仓储管理设计，帮助您轻松管理食材的入库、出库、采购和库存。</p>
+              <p>欢迎使用<strong>食堂出入库管理系统</strong>！本系统专为食堂仓储管理设计，帮助您轻松管理食材的入库、出库、采购和库存。</p>
               <div class="help-tip">
                 <strong>💡 新手建议：</strong>首次使用请点击上方的"启动新手教程"按钮，系统会一步步带您了解各功能。
               </div>

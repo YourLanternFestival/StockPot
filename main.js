@@ -60,19 +60,50 @@ async function createWindow() {
     height: 900,
     minWidth: 1100,
     minHeight: 700,
+    frame: false, // 隐藏原生边框
+    titleBarStyle: 'hidden', // 保留Windows snap功能
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    title: '洋安出入库管理系统',
+    title: '食堂出入库管理系统',
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+
+  // 监听窗口最大化/还原事件
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-state-changed', { isMaximized: true });
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-state-changed', { isMaximized: false });
+  });
+
   setupCloseHandler();
 }
 
 // ===== IPC Handlers =====
+
+// Window controls
+ipcMain.handle('window:minimize', () => {
+  if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow) {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  }
+});
+
+ipcMain.handle('window:close', () => {
+  if (mainWindow) mainWindow.close();
+});
 
 // Products
 ipcMain.handle('products:get', () => db.getProducts());
