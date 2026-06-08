@@ -34,6 +34,7 @@ function navigateTo(page) {
     case 'inbound': initInboundPage(); break;
     case 'outbound': initOutboundPage(); break;
     case 'settings': initSettingsPage(); break;
+    case 'help': break; // 帮助页面无需初始化
   }
 }
 
@@ -119,6 +120,74 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ===== 退出前未保存检测 =====
+
+// ===== 帮助页面搜索和跳转 =====
+function scrollToHelpSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 高亮显示目标章节
+    section.style.transition = 'background-color 0.3s';
+    section.style.backgroundColor = 'var(--primary-light)';
+    setTimeout(() => {
+      section.style.backgroundColor = '';
+    }, 2000);
+  }
+}
+
+function searchHelp(keyword) {
+  const dropdown = document.getElementById('help-search-dropdown');
+  const hint = document.getElementById('help-search-hint');
+
+  if (!keyword || keyword.length < 1) {
+    dropdown.style.display = 'none';
+    hint.textContent = '输入关键词快速定位';
+    return;
+  }
+
+  const sections = document.querySelectorAll('.help-section[id]');
+  const results = [];
+
+  sections.forEach(section => {
+    const title = section.querySelector('h3')?.textContent || '';
+    const keywords = section.dataset.keywords || '';
+    const content = section.textContent || '';
+
+    // 检查是否匹配
+    const searchText = `${title} ${keywords} ${content}`.toLowerCase();
+    if (searchText.includes(keyword.toLowerCase())) {
+      results.push({
+        id: section.id,
+        title: title,
+        keywords: keywords
+      });
+    }
+  });
+
+  if (results.length > 0) {
+    dropdown.innerHTML = results.map(r => `
+      <div class="autocomplete-item" onclick="scrollToHelpSection('${r.id}'); document.getElementById('help-search-dropdown').style.display='none'; document.getElementById('help-search-input').value='';">
+        <span class="item-name">${r.title}</span>
+        <span class="item-spec">${r.keywords.split(' ').slice(0, 3).join(' ')}</span>
+      </div>
+    `).join('');
+    dropdown.style.display = 'block';
+    hint.textContent = `找到 ${results.length} 个相关章节`;
+  } else {
+    dropdown.innerHTML = '<div class="autocomplete-item" style="color:var(--text-muted);cursor:default;">未找到相关内容</div>';
+    dropdown.style.display = 'block';
+    hint.textContent = '未找到匹配内容';
+  }
+}
+
+// 点击其他地方关闭搜索下拉框
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('help-search-dropdown');
+  const input = document.getElementById('help-search-input');
+  if (dropdown && input && !dropdown.contains(e.target) && e.target !== input) {
+    dropdown.style.display = 'none';
+  }
+});
 function hasTableData(tbodyId) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return false;

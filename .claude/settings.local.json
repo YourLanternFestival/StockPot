@@ -6,7 +6,9 @@
       "Bash(echo \"exit: $?\")",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(npx fuck-u-code *)",
+      "Bash(git push *)"
     ]
   }
 }
