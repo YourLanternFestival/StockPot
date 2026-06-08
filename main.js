@@ -63,6 +63,7 @@ async function createWindow() {
     minWidth: 1100,
     minHeight: 700,
     frame: false, // 隐藏原生边框和标题栏
+    titleBarStyle: 'hidden', // 隐藏标题栏
     transparent: false, // 不透明背景
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
