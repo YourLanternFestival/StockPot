@@ -1,6 +1,6 @@
 {
   "name": "in-out",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -19,6 +19,29 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
-    "electron": "^42.3.1"
+    "electron": "^42.3.1",
+    "electron-builder": "^26.15.2"
+  },
+  "build": {
+    "appId": "com.yang-an.inventory",
+    "productName": "洋安出入库管理系统",
+    "win": {
+      "target": "nsis",
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "洋安出入库管理系统"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "db.js",
+      "date-util.js",
+      "renderer/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ]
   }
 }
