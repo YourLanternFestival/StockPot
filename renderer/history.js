@@ -218,11 +218,11 @@ function renderHistoryTable(title, items, subtotal, dec) {
 
 // ===== 渲染：默认/多食堂模式（按 source 分组） =====
 
-function renderDefaultHistory(orders) {
+// 多食堂模式历史：按所分割（复用小所模式的分割线布局）
+function renderMultiCanteenHistory(orders, date) {
   const dec = APP_SETTINGS.price_decimals || 2;
-  const xiaosuoMode = APP_SETTINGS.xiaosuo_mode || 'off';
+  const canteenNames = ['下涯', '制杆厂', '白南山'];
 
-  // 按 source 分组
   const groups = {};
   orders.forEach(order => {
     const source = order.source || '未知';
@@ -230,16 +230,66 @@ function renderDefaultHistory(orders) {
     groups[source].push(order);
   });
 
-  // 确定 source 排序
-  let orderedSources = [];
-  if (xiaosuoMode === 'on') {
-    ['下涯', '制杆厂', '白南山'].forEach(name => {
-      orderedSources.push(`${name}-联华`);
-      orderedSources.push(`${name}-厨房`);
-    });
-  } else {
-    orderedSources = ['联华', '洋安食堂厨房', '洋安面点房', '新安食堂厨房', '新安面点房', '洋安厨房', '新安厨房'];
+  const canteenData = [];
+  canteenNames.forEach(name => {
+    const kitchen = groups[`${name}-厨房`] || [];
+    const lianhua = groups[`${name}-联华`] || [];
+    if (kitchen.length === 0 && lianhua.length === 0) return;
+    canteenData.push({ name, kitchen, lianhua });
+  });
+
+  if (canteenData.length === 0) {
+    return '<div style="text-align:center;padding:40px;color:var(--text-muted);">该日期无采购记录</div>';
   }
+
+  const grandTotal = canteenData.reduce((sum, c) => {
+    return sum + c.kitchen.reduce((s, i) => s + (i.amount || 0), 0) + c.lianhua.reduce((s, i) => s + (i.amount || 0), 0);
+  }, 0);
+
+  let html = `
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header" style="cursor:pointer;" onclick="toggleHistoryGroup(this)">
+        <span class="group-toggle" style="transition:transform 0.2s;">▶</span>
+        <h3>${date} 采购单 <span style="margin-left:auto;font-weight:600;color:var(--primary);">合计: ¥${grandTotal.toFixed(dec)}</span></h3>
+      </div>
+      <div class="card-body" style="display:none;padding:16px;">
+  `;
+
+  canteenData.forEach(c => {
+    const kitchenSum = c.kitchen.reduce((s, i) => s + (i.amount || 0), 0);
+    const lianhuaSum = c.lianhua.reduce((s, i) => s + (i.amount || 0), 0);
+    const canteenTotal = kitchenSum + lianhuaSum;
+
+    html += `<div class="history-canteen-section" style="margin-bottom:24px;">`;
+    html += `<div class="history-canteen-divider" style="text-align:center;margin:16px 0 12px;font-weight:600;color:var(--primary);font-size:14px;">————————${c.name}————————</div>`;
+
+    if (c.kitchen.length > 0) {
+      html += renderHistoryTable('厨房申购', c.kitchen, kitchenSum, dec);
+    }
+    if (c.lianhua.length > 0) {
+      html += renderHistoryTable('联华加购', c.lianhua, lianhuaSum, dec);
+    }
+
+    html += `<div style="text-align:right;font-weight:600;padding:8px 4px;color:var(--primary);">${c.name}合计: ¥${canteenTotal.toFixed(dec)}</div>`;
+    html += `</div>`;
+  });
+
+  html += `</div></div>`;
+  return html;
+}
+
+// 默认模式历史：按 source 分组（每个 source 独立卡片）
+function renderDefaultHistory(orders) {
+  const dec = APP_SETTINGS.price_decimals || 2;
+
+  const groups = {};
+  orders.forEach(order => {
+    const source = order.source || '未知';
+    if (!groups[source]) groups[source] = [];
+    groups[source].push(order);
+  });
+
+  const orderedSources = ['联华', '洋安食堂厨房', '洋安面点房', '新安食堂厨房', '新安面点房', '洋安厨房', '新安厨房'];
   Object.keys(groups).forEach(source => {
     if (!orderedSources.includes(source)) orderedSources.push(source);
   });
@@ -306,6 +356,8 @@ function renderHistoryContent(orders, date) {
 
   if (xiaosuoMode === 'small') {
     container.innerHTML = renderSmallCanteenHistory(orders, date);
+  } else if (xiaosuoMode === 'on') {
+    container.innerHTML = renderMultiCanteenHistory(orders, date);
   } else {
     container.innerHTML = renderDefaultHistory(orders);
   }

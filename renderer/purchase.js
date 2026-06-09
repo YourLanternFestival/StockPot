@@ -28,11 +28,12 @@ function getPastrySource() {
 }
 
 // ===== Shared HTML Builders =====
-function buildDateGroupHTML(date, summaryText) {
+function buildDateGroupHTML(date, summaryText, labelSuffix) {
+  const suffix = labelSuffix || '收货';
   return `
     <div class="date-header expanded" onclick="toggleDateGroup(this)">
       <span class="date-toggle">▶</span>
-      <span class="date-label">${date} 收货</span>
+      <span class="date-label">${date} ${suffix}</span>
       <span class="date-summary">${summaryText}</span>
       <div class="date-actions">
         <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
@@ -807,7 +808,8 @@ function addDateGroupToPage(source, date, items) {
   dateGroup.className = 'date-group';
   dateGroup.id = dateId;
 
-  dateGroup.innerHTML = buildDateGroupHTML(date, `${items.length} 项`);
+  const labelSuffix = source.includes('联华') ? '发货' : '收货';
+  dateGroup.innerHTML = buildDateGroupHTML(date, `${items.length} 项`, labelSuffix);
 
   groupContent.appendChild(dateGroup);
 
@@ -937,7 +939,8 @@ function addDateGroup(source, date) {
   dateGroup.className = 'date-group';
   dateGroup.id = dateId;
 
-  dateGroup.innerHTML = buildDateGroupHTML(date, '0 项');
+  const labelSuffix = source.includes('联华') ? '发货' : '收货';
+  dateGroup.innerHTML = buildDateGroupHTML(date, '0 项', labelSuffix);
 
   groupContent.appendChild(dateGroup);
 
