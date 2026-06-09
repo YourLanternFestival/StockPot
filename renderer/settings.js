@@ -17,6 +17,7 @@ const SETTING_KEYS = [
   'show_matrix_remarks',
   'alert_short_days', 'alert_long_days',
   'last_purchase_date',
+  'theme',
 ];
 
 const SETTING_DEFAULTS = {
@@ -38,6 +39,7 @@ const SETTING_DEFAULTS = {
   alert_short_days: '30',
   alert_long_days: '60',
   last_purchase_date: '',
+  theme: 'default',
 };
 
 async function initSettingsPage() {
@@ -59,6 +61,9 @@ async function initSettingsPage() {
     document.getElementById('setting-photo-folder').value = settings.photo_folder || SETTING_DEFAULTS.photo_folder;
     document.getElementById('setting-alert-short-days').value = settings.alert_short_days || SETTING_DEFAULTS.alert_short_days;
     document.getElementById('setting-alert-long-days').value = settings.alert_long_days || SETTING_DEFAULTS.alert_long_days;
+    // 主题
+    const themeEl = document.getElementById('setting-theme');
+    if (themeEl) themeEl.value = settings.theme || SETTING_DEFAULTS.theme;
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
     // 食堂模式：兼容旧格式
@@ -158,8 +163,22 @@ async function loadAppSettings() {
     ENTER_MODE = g('enter_mode');
     // 同步到询价页内联折扣输入框
     syncDiscountToInquiry();
+    // 应用主题
+    applyTheme(g('theme'));
   } catch (err) {
     console.error('Load app settings error:', err);
+  }
+}
+
+function applyTheme(theme) {
+  const css = document.getElementById('theme-biophilic-css');
+  if (!css) return;
+  if (theme === 'biophilic') {
+    css.disabled = false;
+    document.body.classList.add('theme-biophilic');
+  } else {
+    css.disabled = true;
+    document.body.classList.remove('theme-biophilic');
   }
 }
 

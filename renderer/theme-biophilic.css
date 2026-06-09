@@ -1,0 +1,251 @@
+/* ===== Organic Biophilic Theme ===== */
+/* 叠加在 styles.css 之上，通过 body.theme-biophilic 激活 */
+
+@font-face {
+  font-family: 'Cheese';
+  src: url('../assets/cheese-font.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body.theme-biophilic {
+  --primary: #5D6B4D;
+  --primary-hover: #3E4A32;
+  --primary-light: #D4E4C1;
+  --danger: #C04A1A;
+  --danger-light: #FDF0EB;
+  --warning: #B8860B;
+  --warning-light: #FDF8E8;
+  --success: #5D8A3C;
+  --success-light: #EDF5E8;
+  --info: #5D6B4D;
+  --info-light: #EDF5E8;
+  --bg: #F5F1E8;
+  --card-bg: rgba(255,255,255,0.75);
+  --sidebar-bg: #3E4A32;
+  --sidebar-text: rgba(255,255,255,0.55);
+  --sidebar-active: rgba(143,188,143,0.18);
+  --text: #2D3527;
+  --text-secondary: #5D6B4D;
+  --text-muted: #8A9A7B;
+  --border: #E0D8C8;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(62,74,50,0.06);
+  --shadow-md: 0 4px 16px rgba(62,74,50,0.08);
+
+  font-family: 'Cheese', 'Noto Sans SC', -apple-system, sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+/* Global size bump for biophilic theme */
+body.theme-biophilic .nav-item { font-size: 18px; font-weight: 600; }
+body.theme-biophilic .page-header h2 { font-size: 38px; font-weight: 700; }
+body.theme-biophilic .card-header h3 { font-size: 24px; font-weight: 700; }
+body.theme-biophilic .stat-value { font-size: 40px; font-weight: 800; }
+body.theme-biophilic .stat-label { font-size: 16px; font-weight: 600; }
+body.theme-biophilic .table th { font-size: 16px; font-weight: 700; }
+body.theme-biophilic .table td { font-size: 16px; font-weight: 500; }
+body.theme-biophilic .btn { font-size: 16px; font-weight: 600; }
+body.theme-biophilic .tag { font-size: 15px; font-weight: 700; }
+body.theme-biophilic .form-control { font-size: 16px; font-weight: 500; }
+body.theme-biophilic .form-group label { font-size: 15px; font-weight: 600; }
+body.theme-biophilic .sidebar-header h1 { font-size: 26px; font-weight: 700; }
+body.theme-biophilic .sidebar-header .subtitle { font-size: 14px; font-weight: 500; }
+body.theme-biophilic .page-header .date-display { font-size: 16px; font-weight: 500; }
+body.theme-biophilic .product-info-bar { font-size: 16px; font-weight: 500; }
+body.theme-biophilic .alert-count { font-size: 42px; font-weight: 800; }
+body.theme-biophilic .alert-label { font-size: 16px; font-weight: 600; }
+
+/* ===== Sidebar ===== */
+body.theme-biophilic .sidebar {
+  background: #3E4A32;
+  position: relative;
+  overflow: hidden;
+}
+body.theme-biophilic .sidebar::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: #8FBC8F;
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  opacity: 0.12;
+  pointer-events: none;
+}
+body.theme-biophilic .sidebar::after {
+  content: '';
+  position: absolute;
+  bottom: 60px; left: -30px;
+  width: 100px; height: 100px;
+  background: #D4E4C1;
+  border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%;
+  opacity: 0.08;
+  pointer-events: none;
+}
+body.theme-biophilic .sidebar-header h1 {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-style: normal;
+}
+body.theme-biophilic .nav-item.active {
+  background: rgba(143,188,143,0.18);
+}
+body.theme-biophilic .nav-item.active::before {
+  background: #8FBC8F;
+}
+
+/* ===== Page Header ===== */
+body.theme-biophilic .page-header {
+  background: linear-gradient(180deg, #D4E4C1 0%, #F5F1E8 100%);
+}
+body.theme-biophilic .page-header h2 {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-style: normal;
+}
+
+/* ===== Cards ===== */
+body.theme-biophilic .card {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  border: 1px solid rgba(224,216,200,0.4);
+  box-shadow: 0 2px 12px rgba(62,74,50,0.05);
+}
+body.theme-biophilic .card-header {
+  background: linear-gradient(180deg, rgba(212,228,193,0.15) 0%, transparent 100%);
+  border-radius: 20px 20px 0 0;
+  border-bottom: 1px solid rgba(224,216,200,0.3);
+}
+body.theme-biophilic .card-header h3 {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+  font-style: normal;
+}
+
+/* ===== Stat Cards ===== */
+body.theme-biophilic .stat-card {
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+body.theme-biophilic .stat-card:nth-child(1) { background: #C8B89E; }
+body.theme-biophilic .stat-card:nth-child(2) { background: #D4E4C1; }
+body.theme-biophilic .stat-card:nth-child(3) { background: #E8E0D0; }
+body.theme-biophilic .stat-card:nth-child(4) { background: #8FBC8F; }
+
+body.theme-biophilic .stat-card::before {
+  content: '';
+  position: absolute;
+  width: 100px; height: 100px;
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  opacity: 0.3;
+  z-index: 0;
+}
+body.theme-biophilic .stat-card:nth-child(1)::before { background: #D4C4A8; top: -25px; right: -15px; }
+body.theme-biophilic .stat-card:nth-child(2)::before { background: #8FBC8F; bottom: -25px; left: -15px; }
+body.theme-biophilic .stat-card:nth-child(3)::before { background: #C8B89E; top: -20px; left: -20px; }
+body.theme-biophilic .stat-card:nth-child(4)::before { background: #6B8E5A; top: -15px; right: -25px; border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%; }
+
+body.theme-biophilic .stat-card .stat-icon {
+  border-radius: 5% 95% 10% 90% / 85% 15% 85% 15%;
+}
+body.theme-biophilic .stat-card:nth-child(1) .stat-icon { background: #8FBC8F; }
+body.theme-biophilic .stat-card:nth-child(2) .stat-icon { background: #5D6B4D; }
+body.theme-biophilic .stat-card:nth-child(3) .stat-icon { background: #C8B89E; }
+body.theme-biophilic .stat-card:nth-child(4) .stat-icon { background: #B8860B; }
+
+body.theme-biophilic .stat-value {
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+}
+
+/* ===== Tables ===== */
+body.theme-biophilic .table th {
+  background: rgba(212,228,193,0.2);
+  color: #5D6B4D;
+}
+body.theme-biophilic .table tbody tr:hover {
+  background: rgba(212,228,193,0.15);
+}
+
+/* ===== Buttons ===== */
+body.theme-biophilic .btn {
+  border-radius: 12px;
+  border-color: rgba(224,216,200,0.6);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(4px);
+}
+body.theme-biophilic .btn:hover {
+  background: #D4E4C1;
+  border-color: #8FBC8F;
+}
+body.theme-biophilic .btn-primary {
+  background: #3E4A32;
+  border-color: #3E4A32;
+}
+body.theme-biophilic .btn-primary:hover {
+  background: #5D6B4D;
+  border-color: #5D6B4D;
+}
+
+/* ===== Tabs ===== */
+body.theme-biophilic .tab-bar {
+  background: rgba(212,228,193,0.18);
+  border-radius: 14px;
+}
+body.theme-biophilic .tab-btn.active {
+  background: #3E4A32;
+  box-shadow: 0 2px 8px rgba(62,74,50,0.2);
+}
+
+/* ===== Form Controls ===== */
+body.theme-biophilic .form-control {
+  border-radius: 12px;
+  border-color: rgba(224,216,200,0.6);
+}
+body.theme-biophilic .form-control:focus {
+  border-color: #8FBC8F;
+  box-shadow: 0 0 0 3px rgba(143,188,143,0.15);
+}
+
+/* ===== Tags ===== */
+body.theme-biophilic .tag-danger { background: #FDF0EB; color: #C04A1A; }
+body.theme-biophilic .tag-warning { background: #FDF8E8; color: #B8860B; }
+body.theme-biophilic .tag-success { background: #EDF5E8; color: #5D8A3C; }
+
+/* ===== Alert Cards ===== */
+body.theme-biophilic .alert-card {
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+body.theme-biophilic .alert-card::before {
+  content: '';
+  position: absolute;
+  width: 80px; height: 80px;
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  opacity: 0.2;
+  bottom: -20px; right: -15px;
+  background: white;
+}
+
+/* ===== Custom Titlebar ===== */
+body.theme-biophilic .custom-titlebar {
+  background: #3E4A32;
+}
+
+/* ===== Scrollbar ===== */
+body.theme-biophilic ::-webkit-scrollbar-thumb {
+  background: #C8B89E;
+}
+body.theme-biophilic ::-webkit-scrollbar-thumb:hover {
+  background: #5D6B4D;
+}
+
+/* ===== Dashboard Grid ===== */
+body.theme-biophilic .dashboard-grid {
+  gap: 20px;
+}
+
+/* ===== Stat Card warning border ===== */
+body.theme-biophilic .stat-card.warning {
+  border: 2px solid #B8860B;
+}

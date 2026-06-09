@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>食堂出入库管理系统</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="theme-biophilic.css" id="theme-biophilic-css" disabled>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <!-- 自定义标题栏 -->
@@ -868,6 +870,19 @@
                   <button class="btn" onclick="selectPhotoFolder()">浏览...</button>
                 </div>
                 <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block;">建议使用内网共享文件夹，图片按"品名_规格.ext"命名</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>🎨 界面主题</h3></div>
+            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+              <div class="form-group">
+                <label>主题风格</label>
+                <select class="form-control" id="setting-theme" data-tooltip="切换界面视觉风格，保存后立即生效">
+                  <option value="default">默认风格</option>
+                  <option value="biophilic">🌿 有机自然（Organic Biophilic）</option>
+                </select>
               </div>
             </div>
           </div>
