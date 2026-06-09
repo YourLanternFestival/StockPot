@@ -635,6 +635,9 @@ async function saveMatrixData(silent) {
     }
   }
 
+  // 静默保存时若矩阵无数据则跳过，防止新天误清历史
+  if (silent && orders.length === 0) return;
+
   // 事务保护
   const result = await window.api.savePurchaseOrdersBatch(sources, orders);
   if (!result.success) {
@@ -1296,8 +1299,16 @@ async function saveLianhuaDomData(silent) {
     const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
     if (!group) continue;
 
+    const dateGroupEls = group.querySelectorAll('.date-group');
+    // 静默保存时无 dateGroup = 数据未加载，跳过防止误清历史
+    // 显式保存时无 dateGroup = 用户清空了数据，仍需清理 DB
+    if (dateGroupEls.length === 0) {
+      if (!silent) sourcesToProcess.push(source);
+      continue;
+    }
+
     sourcesToProcess.push(source);
-    group.querySelectorAll('.date-group').forEach(dateGroup => {
+    dateGroupEls.forEach(dateGroup => {
       const date = getDateFromGroup(dateGroup);
       dateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
         const data = getRowData(tr);
@@ -1318,7 +1329,6 @@ async function saveLianhuaDomData(silent) {
     });
   }
 
-  // 始终清理有 DOM group 的 source，允许用户清空联华数据
   if (sourcesToProcess.length === 0) return;
 
   const result = await window.api.savePurchaseOrdersBatch(sourcesToProcess, allOrders);
@@ -1377,10 +1387,16 @@ async function saveAllPurchaseOrders(opts = {}) {
   });
 
   try {
-    // 收集所有 group 的 source（包括隐藏的面点房），避免隐藏时数据丢失
-    const currentSources = [...document.querySelectorAll('#purchase-container .purchase-group[data-source]')]
-      .map(g => g.dataset.source)
-      .filter(s => s);
+    // 仅清理有 dateGroup 的 source，防止新天未加载数据时误清历史记录
+    const sourcesWithDates = new Set();
+    dateGroups.forEach(dg => {
+      const pg = dg.closest('.purchase-group');
+      if (pg && pg.dataset.source) sourcesWithDates.add(pg.dataset.source);
+    });
+    const currentSources = [...sourcesWithDates];
+
+    // 如果 DOM 中没有任何 dateGroup，说明数据未加载（新天 shouldLoadData=false），跳过保存
+    if (currentSources.length === 0) return;
 
     // 事务保护：clear + insert 在同一个事务中，崩溃不丢数据
     const result = await window.api.savePurchaseOrdersBatch(currentSources, allOrders);
@@ -1551,8 +1567,9 @@ async function exportAllPurchaseOrders() {
 
         const lianhuaSource = `${canteen}-联华`;
         for (const dateGroup of getLianhuaDateGroups(lianhuaSource)) {
+          const date = getDateFromGroup(dateGroup);
           const rows = collectLianhuaRows(dateGroup);
-          rows.forEach(r => r.canteen = canteen);
+          rows.forEach(r => { r.canteen = canteen; r.date = date; });
           allLianhuaRows.push(...rows);
         }
       }
