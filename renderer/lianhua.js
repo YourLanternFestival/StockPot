@@ -406,8 +406,9 @@ function doSaveLianhuaFromModal(source) {
   }
   if (!dateGroup) { showToast('创建日期分组失败', 'error'); return; }
 
-  // 将弹窗中的数据追加到日期分组的 tbody
+  // 先清空已有 tbody 行，再写入弹窗数据（避免重复追加）
   const targetTbody = dateGroup.querySelector('tbody');
+  targetTbody.innerHTML = '';
   const modalRows = document.querySelectorAll('#modal-lianhua-tbody tr');
   let addedCount = 0;
 
@@ -416,19 +417,20 @@ function doSaveLianhuaFromModal(source) {
     const productName = getData('product_name').trim();
     if (!productName) return;
 
+    const esc = escHtml;
     const newTr = document.createElement('tr');
     newTr.innerHTML = `
       <td>0</td>
       <td style="position:relative;">
-        <input type="text" class="cell-input cell-editable" value="${productName}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <input type="text" class="cell-input cell-editable" value="${esc(productName)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input cell-readonly" value="${getData('spec')}" data-field="spec" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${getData('unit_price')}" data-field="unit_price" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-editable" value="${getData('quantity')}" data-field="quantity" placeholder="数量"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${getData('unit')}" data-field="unit" readonly tabindex="-1"></td>
-      <td class="amount-cell cell-readonly">${tr.querySelector('.amount-cell')?.textContent || ''}</td>
-      <td><input type="text" class="cell-input cell-editable" value="${getData('remark')}" data-field="remark" placeholder="备注"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(getData('spec'))}" data-field="spec" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(getData('unit_price'))}" data-field="unit_price" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-editable" value="${esc(getData('quantity'))}" data-field="quantity" placeholder="数量"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(getData('unit'))}" data-field="unit" readonly tabindex="-1"></td>
+      <td class="amount-cell cell-readonly">${esc(tr.querySelector('.amount-cell')?.textContent || '')}</td>
+      <td><input type="text" class="cell-input cell-editable" value="${esc(getData('remark'))}" data-field="remark" placeholder="备注"></td>
       <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" data-tooltip="复制当前行数据到新行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
     `;
     targetTbody.appendChild(newTr);

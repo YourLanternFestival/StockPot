@@ -1113,16 +1113,16 @@ function recalcRowAmount(tr) {
   // Check if quantity is a number
   const qtyNum = parseFloat(qtyStr);
 
+  const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
+
   if (qtyStr && !isNaN(qtyNum) && String(qtyNum) === qtyStr) {
     // Pure number - calculate amount
-    const dec = APP_SETTINGS.price_decimals || 2;
     const factor = Math.pow(10, dec);
     const amount = Math.round(price * qtyNum * factor) / factor;
     amountCell.textContent = amount.toFixed(dec);
   } else {
     // Contains text (like "60片") - amount is 0
-    const dec = APP_SETTINGS.price_decimals || 2;
-    amountCell.textContent = '0.' + '0'.repeat(dec);
+    amountCell.textContent = (0).toFixed(dec);
   }
 }
 
@@ -1282,14 +1282,58 @@ async function saveAllSmallGroupsData(opts = {}) {
   }
 }
 
+// 收集 DOM 中所有联华数据并保存到 DB（用于矩阵模式，矩阵只存厨房不存联华）
+async function saveLianhuaDomData(silent) {
+  const canteens = getSmallCanteens();
+  const allOrders = [];
+  const sourcesToProcess = [];
+
+  for (const canteen of canteens) {
+    const source = `${canteen}-联华`;
+    const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
+    if (!group) continue;
+
+    sourcesToProcess.push(source);
+    group.querySelectorAll('.date-group').forEach(dateGroup => {
+      const date = getDateFromGroup(dateGroup);
+      dateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
+        const data = getRowData(tr);
+        if (!data) return;
+        allOrders.push({
+          source,
+          receive_date: date,
+          product_name: data.product_name,
+          spec: data.spec,
+          unit_price: data.unit_price,
+          quantity: data.quantity,
+          unit: data.unit,
+          amount: data.amount,
+          remark: data.remark,
+          sort_order: idx,
+        });
+      });
+    });
+  }
+
+  // 始终清理有 DOM group 的 source，允许用户清空联华数据
+  if (sourcesToProcess.length === 0) return;
+
+  const result = await window.api.savePurchaseOrdersBatch(sourcesToProcess, allOrders);
+  if (!result.success && !silent) {
+    showToast('联华保存失败: ' + result.error, 'error');
+  }
+}
+
 // Save all purchase orders (including 联华)
 // opts.silent: no toast, no reload (used for auto-save on page switch)
 async function saveAllPurchaseOrders(opts = {}) {
   const silent = opts.silent || false;
 
-  // 矩阵模式：单独处理
+  // 矩阵模式：保存矩阵数据 + 联华 DOM 数据
   if (APP_SETTINGS.xiaosuo_mode === 'small' && APP_SETTINGS.small_display_style === 'matrix') {
     await saveMatrixData(silent);
+    // 矩阵只有厨房，联华数据在 DOM 中需要单独收集保存
+    await saveLianhuaDomData(silent);
     return;
   }
 

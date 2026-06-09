@@ -159,7 +159,7 @@ function renderHistoryTable(title, items, subtotal, dec) {
         <td>${(item.unit_price || 0).toFixed(dec)}</td>
         <td>${item.quantity || ''}</td>
         <td>${item.unit || ''}</td>
-        <td style="text-align:right;">${item.amount ? '¥' + item.amount.toFixed(dec) : ''}</td>
+        <td style="text-align:right;">${item.amount != null ? '¥' + item.amount.toFixed(dec) : ''}</td>
         <td>${item.remark || ''}</td>
       </tr>
     `;
@@ -195,7 +195,7 @@ function renderDefaultHistory(orders) {
       orderedSources.push(`${name}-厨房`);
     });
   } else {
-    orderedSources = ['联华', '洋安食堂厨房', '洋安面点房', '新安食堂厨房', '新安面点房'];
+    orderedSources = ['联华', '洋安食堂厨房', '洋安面点房', '新安食堂厨房', '新安面点房', '洋安厨房', '新安厨房'];
   }
   Object.keys(groups).forEach(source => {
     if (!orderedSources.includes(source)) orderedSources.push(source);
@@ -236,7 +236,7 @@ function renderDefaultHistory(orders) {
                   <td>${(item.unit_price || 0).toFixed(dec)}</td>
                   <td>${item.quantity || ''}</td>
                   <td>${item.unit || ''}</td>
-                  <td style="text-align:right;">${item.amount ? '¥' + item.amount.toFixed(dec) : ''}</td>
+                  <td style="text-align:right;">${item.amount != null ? '¥' + item.amount.toFixed(dec) : ''}</td>
                   <td>${item.remark || ''}</td>
                 </tr>
               `).join('')}
