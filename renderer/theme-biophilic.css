@@ -52,12 +52,14 @@ body.theme-biophilic {
   --shadow-md: 0 4px 16px rgba(62,74,50,0.08);
 
   font-family: var(--theme-font, 'Cheese'), 'Noto Sans SC', -apple-system, sans-serif;
-  font-size: 17px;
+  font-size: var(--theme-body-size, 20px);
   font-weight: 500;
 }
 
 /* Global size bump for biophilic theme */
-body.theme-biophilic .nav-item { font-size: 18px; font-weight: 600; }
+body.theme-biophilic .nav-item { font-size: var(--theme-nav-size, 21px); font-weight: 600; }
+body.theme-biophilic .nav-text { font-size: var(--theme-nav-size, 21px); font-weight: 600; }
+body.theme-biophilic .nav-icon { font-size: var(--theme-nav-size, 21px); }
 body.theme-biophilic .page-header h2 { font-size: 38px; font-weight: 700; }
 body.theme-biophilic .card-header h3 { font-size: 24px; font-weight: 700; }
 body.theme-biophilic .stat-value { font-size: 40px; font-weight: 800; }

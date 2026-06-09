@@ -19,6 +19,8 @@ const SETTING_KEYS = [
   'last_purchase_date',
   'theme',
   'theme_font',
+  'theme_nav_size',
+  'theme_body_size',
 ];
 
 const SETTING_DEFAULTS = {
@@ -42,6 +44,8 @@ const SETTING_DEFAULTS = {
   last_purchase_date: '',
   theme: 'default',
   theme_font: 'Cheese',
+  theme_nav_size: '21',
+  theme_body_size: '20',
 };
 
 async function initSettingsPage() {
@@ -68,6 +72,10 @@ async function initSettingsPage() {
     if (themeEl) themeEl.value = settings.theme || SETTING_DEFAULTS.theme;
     const fontEl = document.getElementById('setting-theme-font');
     if (fontEl) fontEl.value = settings.theme_font || SETTING_DEFAULTS.theme_font;
+    const navSizeEl = document.getElementById('setting-theme-nav-size');
+    if (navSizeEl) navSizeEl.value = settings.theme_nav_size || SETTING_DEFAULTS.theme_nav_size;
+    const bodySizeEl = document.getElementById('setting-theme-body-size');
+    if (bodySizeEl) bodySizeEl.value = settings.theme_body_size || SETTING_DEFAULTS.theme_body_size;
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
     // 食堂模式：兼容旧格式
@@ -168,13 +176,13 @@ async function loadAppSettings() {
     // 同步到询价页内联折扣输入框
     syncDiscountToInquiry();
     // 应用主题
-    applyTheme(g('theme'), g('theme_font'));
+    applyTheme(g('theme'), g('theme_font'), g('theme_nav_size'), g('theme_body_size'));
   } catch (err) {
     console.error('Load app settings error:', err);
   }
 }
 
-function applyTheme(theme, font) {
+function applyTheme(theme, font, navSize, bodySize) {
   const css = document.getElementById('theme-biophilic-css');
   if (!css) return;
   if (theme === 'biophilic') {
@@ -185,9 +193,10 @@ function applyTheme(theme, font) {
     document.body.classList.remove('theme-biophilic');
   }
   // 应用字体
-  if (font) {
-    document.documentElement.style.setProperty('--theme-font', font);
-  }
+  if (font) document.documentElement.style.setProperty('--theme-font', font);
+  // 应用字号
+  if (navSize) document.documentElement.style.setProperty('--theme-nav-size', navSize + 'px');
+  if (bodySize) document.documentElement.style.setProperty('--theme-body-size', bodySize + 'px');
 }
 
 function syncDiscountToInquiry() {
