@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('api', {
+  // App Version
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
+
   // Products
   getProducts: () => ipcRenderer.invoke('products:get'),
   getAllProducts: () => ipcRenderer.invoke('products:getAll'),
@@ -80,6 +83,7 @@ contextBridge.exposeInMainWorld('api', {
   updatePurchaseOrder: (id, data) => ipcRenderer.invoke('purchaseOrders:update', id, data),
   deletePurchaseOrder: (id) => ipcRenderer.invoke('purchaseOrders:delete', id),
   clearPurchaseOrders: (source) => ipcRenderer.invoke('purchaseOrders:clear', source),
+  savePurchaseOrdersBatch: (sources, orders) => ipcRenderer.invoke('purchaseOrders:saveBatch', { sources, orders }),
   getPurchaseOrdersByDate: (date) => ipcRenderer.invoke('purchaseOrders:getByDate', date),
   getPurchaseHistoryDates: () => ipcRenderer.invoke('purchaseOrders:historyDates'),
   cleanOldPurchaseOrders: (days) => ipcRenderer.invoke('purchaseOrders:cleanOld', days),

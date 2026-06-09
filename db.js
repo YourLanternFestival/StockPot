@@ -195,6 +195,28 @@ function run(sql, params = []) {
   }
 }
 
+let inTransaction = false;
+function beginTransaction() {
+  if (!inTransaction) {
+    db.run('BEGIN TRANSACTION');
+    inTransaction = true;
+  }
+}
+function commit() {
+  if (inTransaction) {
+    db.run('COMMIT');
+    inTransaction = false;
+    save();
+  }
+}
+function rollback() {
+  if (inTransaction) {
+    try { db.run('ROLLBACK'); } catch(e) {}
+    inTransaction = false;
+    save();
+  }
+}
+
 // ===== Products =====
 function getProducts() {
   return queryAll('SELECT * FROM products WHERE active = 1 ORDER BY id');
@@ -222,15 +244,14 @@ function deleteProduct(id) {
 }
 
 function batchDeleteProducts(ids) {
-  run('BEGIN');
+  beginTransaction();
   try {
     for (const id of ids) {
       run('UPDATE products SET active = 0 WHERE id = ?', [id]);
     }
-    run('COMMIT');
-    save();
+    commit();
   } catch (e) {
-    run('ROLLBACK');
+    rollback();
     throw e;
   }
 }
@@ -672,7 +693,7 @@ function addPurchaseOrder(data) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [data.source || '洋安食堂', data.receive_date || '', data.product_name, data.spec || '',
      data.unit_price || 0, data.quantity || '', data.unit || '', data.amount || 0, data.remark || '', data.sort_order || 0]);
-  save();
+  if (!inTransaction) save();
 }
 
 function updatePurchaseOrder(id, data) {
@@ -693,27 +714,28 @@ function clearPurchaseOrders(source) {
   } else {
     run('DELETE FROM purchase_orders');
   }
-  save();
+  if (!inTransaction) save();
 }
 
 function getPurchaseOrdersByDate(date) {
   return queryAll(
-    `SELECT * FROM purchase_orders WHERE date(created_at) = ? ORDER BY source, sort_order, id`,
+    `SELECT * FROM purchase_orders WHERE receive_date = ? ORDER BY source, sort_order, id`,
     [date]
   );
 }
 
 function getPurchaseHistoryDates() {
   return queryAll(
-    `SELECT DISTINCT date(created_at) as date FROM purchase_orders ORDER BY date DESC LIMIT 5`
+    `SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != '' ORDER BY date DESC LIMIT 5`
   );
 }
 
 function cleanOldPurchaseOrders(daysToKeep = 3) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - daysToKeep);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  run('DELETE FROM purchase_orders WHERE date(created_at) < ?', [cutoffStr]);
+  const now = new Date();
+  // 用本地日期，不用 toISOString（UTC 会差 8 小时）
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToKeep);
+  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
+  run('DELETE FROM purchase_orders WHERE created_at < ?', [cutoffStr]);
   save();
 }
 
@@ -911,7 +933,7 @@ function clearLianhuaOrders(orderDate) {
 }
 
 module.exports = {
-  init, save, getDb: () => db,
+  init, save, getDb: () => db, beginTransaction, commit, rollback,
   getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts, restoreProduct,
   getInboundRecords, addInbound, updateInbound, deleteInbound,
   getOutboundRecords, addOutbound, updateOutbound, deleteOutbound,

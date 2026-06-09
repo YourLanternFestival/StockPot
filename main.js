@@ -48,6 +48,9 @@ function backupDatabase() {
   }
 }
 
+// ===== App Version =====
+ipcMain.handle('app:getVersion', () => app.getVersion());
+
 async function createWindow() {
   // Backup database before init
   backupDatabase();
@@ -191,6 +194,24 @@ ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(sou
 ipcMain.handle('purchaseOrders:getByDate', (e, date) => db.getPurchaseOrdersByDate(date));
 ipcMain.handle('purchaseOrders:historyDates', () => db.getPurchaseHistoryDates());
 ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
+
+// 批量保存采购单（事务保护：先清空再写入，中间崩溃不丢数据）
+ipcMain.handle('purchaseOrders:saveBatch', (e, { sources, orders }) => {
+  try {
+    db.beginTransaction();
+    for (const source of sources) {
+      db.clearPurchaseOrders(source);
+    }
+    for (const order of orders) {
+      db.addPurchaseOrder(order);
+    }
+    db.commit();
+    return { success: true };
+  } catch (err) {
+    db.rollback();
+    return { success: false, error: err.message };
+  }
+});
 
 // Inquiry Items
 ipcMain.handle('inquiry:get', (e, { month, category } = {}) => db.getInquiryItems(month, category));

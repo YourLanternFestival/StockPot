@@ -3,6 +3,12 @@ let PRODUCTS = [];
 let RECIPIENTS = [];
 let ENTER_MODE = 'next-row'; // 'next-row' | 'next-cell'
 
+// 侧边栏显示版本号
+window.api.getAppVersion().then(v => {
+  const el = document.getElementById('sidebar-version');
+  if (el) el.textContent = `v${v}`;
+});
+
 // ===== Window Controls =====
 function minimizeWindow() {
   window.electronAPI?.minimizeWindow();

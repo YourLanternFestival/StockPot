@@ -599,12 +599,11 @@ async function saveMatrixData(silent) {
   const dateInput = document.getElementById('matrix-date');
   const date = dateInput ? dateInput.value : getTomorrowStr();
 
-  for (const canteen of canteens) {
-    await window.api.clearPurchaseOrders(`${canteen}-厨房`);
-  }
-
+  const sources = canteens.map(c => `${c}-厨房`);
+  const orders = [];
   const rows = tbody.querySelectorAll('tr');
   let savedCount = 0;
+
   for (const tr of rows) {
     const productName = tr.querySelector('[data-field="product_name"]')?.value?.trim();
     if (!productName) continue;
@@ -618,7 +617,7 @@ async function saveMatrixData(silent) {
       const quantity = qtyInput ? qtyInput.value.trim() : '';
       if (!quantity) continue;
 
-      await window.api.addPurchaseOrder({
+      orders.push({
         source: `${canteen}-厨房`,
         receive_date: date,
         product_name: productName,
@@ -632,6 +631,13 @@ async function saveMatrixData(silent) {
       });
       savedCount++;
     }
+  }
+
+  // 事务保护
+  const result = await window.api.savePurchaseOrdersBatch(sources, orders);
+  if (!result.success) {
+    if (!silent) showToast('保存失败: ' + result.error, 'error');
+    return;
   }
 
   // Record the save date
@@ -1079,7 +1085,11 @@ async function handleProductBlur(input) {
 
     if (match) {
       tr.querySelector('[data-field="spec"]').value = match.spec || '';
-      tr.querySelector('[data-field="unit_price"]').value = match.price || 0;
+      // 使用盛销折扣后的价格
+      const rawPrice = match.price || 0;
+      const discountRate = parseFloat(APP_SETTINGS.discount1_rate) || 1;
+      const discountedPrice = rawPrice * discountRate;
+      tr.querySelector('[data-field="unit_price"]').value = Math.round(discountedPrice * 100) / 100;
       tr.querySelector('[data-field="unit"]').value = match.unit || '';
       recalcRowAmount(tr);
     }
@@ -1192,12 +1202,16 @@ function selectAutocompleteItem(input, item) {
   const tr = input.closest('tr');
   const name = item.dataset.name;
   const spec = item.dataset.spec;
-  const price = item.dataset.price;
+  const rawPrice = parseFloat(item.dataset.price) || 0;
   const unit = item.dataset.unit;
+
+  // 使用盛销折扣后的价格
+  const discountRate = parseFloat(APP_SETTINGS.discount1_rate) || 1;
+  const discountedPrice = Math.round(rawPrice * discountRate * 100) / 100;
 
   input.value = name;
   tr.querySelector('[data-field="spec"]').value = spec;
-  tr.querySelector('[data-field="unit_price"]').value = price;
+  tr.querySelector('[data-field="unit_price"]').value = discountedPrice;
   tr.querySelector('[data-field="unit"]').value = unit;
   hideAutocomplete();
 
@@ -1239,14 +1253,9 @@ async function saveAllSmallGroupsData() {
     }
   }
 
-  // 清空所有小所相关 source 后写入
+  // 事务保护：clear + insert 在同一个事务中
   const sources = canteens.flatMap(c => [`${c}-厨房`, `${c}-联华`]);
-  for (const source of sources) {
-    await window.api.clearPurchaseOrders(source);
-  }
-  for (const order of allOrders) {
-    await window.api.addPurchaseOrder(order);
-  }
+  await window.api.savePurchaseOrdersBatch(sources, allOrders);
 }
 
 // Save all purchase orders (including 联华)
@@ -1262,8 +1271,8 @@ async function saveAllPurchaseOrders(opts = {}) {
 
   const allOrders = [];
   const container = document.getElementById('purchase-container');
-  // Only process visible date groups
-  const dateGroups = [...container.querySelectorAll('.date-group')].filter(dg => dg.offsetParent !== null);
+  // 收集所有 dateGroup（包括隐藏的面点房），避免隐藏时数据丢失
+  const dateGroups = [...container.querySelectorAll('.date-group')];
 
   dateGroups.forEach(dateGroup => {
     const purchaseGroup = dateGroup.closest('.purchase-group');
@@ -1297,16 +1306,16 @@ async function saveAllPurchaseOrders(opts = {}) {
   });
 
   try {
-    // Only clear orders for visible groups
+    // 收集所有 group 的 source（包括隐藏的面点房），避免隐藏时数据丢失
     const currentSources = [...document.querySelectorAll('#purchase-container .purchase-group[data-source]')]
-      .filter(g => g.offsetParent !== null || g.dataset.source.includes('联华'))
       .map(g => g.dataset.source)
       .filter(s => s);
-    for (const source of currentSources) {
-      await window.api.clearPurchaseOrders(source);
-    }
-    for (const order of allOrders) {
-      await window.api.addPurchaseOrder(order);
+
+    // 事务保护：clear + insert 在同一个事务中，崩溃不丢数据
+    const result = await window.api.savePurchaseOrdersBatch(currentSources, allOrders);
+    if (!result.success) {
+      if (!silent) showToast('保存失败: ' + result.error, 'error');
+      return;
     }
 
     // Record the save date
@@ -1388,6 +1397,7 @@ function buildKitchenSheet(title, rows, images) {
   return {
     name: title, title,
     headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
+    colWidths: [8, 15, 30, 25, 10, 10, 10, 10, 30, 15],
     rows: rows.map((row, idx) => ({
       data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
       imagePath: images[idx]
