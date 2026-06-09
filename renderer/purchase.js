@@ -1088,8 +1088,10 @@ async function handleProductBlur(input) {
       // 使用盛销折扣后的价格
       const rawPrice = match.price || 0;
       const discountRate = parseFloat(APP_SETTINGS.discount1_rate) || 1;
-      const discountedPrice = rawPrice * discountRate;
-      tr.querySelector('[data-field="unit_price"]').value = Math.round(discountedPrice * 100) / 100;
+      const dec = APP_SETTINGS.price_decimals || 2;
+      const factor = Math.pow(10, dec);
+      const discountedPrice = Math.round(rawPrice * discountRate * factor) / factor;
+      tr.querySelector('[data-field="unit_price"]').value = discountedPrice;
       tr.querySelector('[data-field="unit"]').value = match.unit || '';
       recalcRowAmount(tr);
     }
@@ -1207,7 +1209,9 @@ function selectAutocompleteItem(input, item) {
 
   // 使用盛销折扣后的价格
   const discountRate = parseFloat(APP_SETTINGS.discount1_rate) || 1;
-  const discountedPrice = Math.round(rawPrice * discountRate * 100) / 100;
+  const dec = APP_SETTINGS.price_decimals || 2;
+  const factor = Math.pow(10, dec);
+  const discountedPrice = Math.round(rawPrice * discountRate * factor) / factor;
 
   input.value = name;
   tr.querySelector('[data-field="spec"]').value = spec;
@@ -1411,7 +1415,7 @@ function buildLianhuaSheet(title, canteen, date, rows, images) {
     title: `${canteen}联华超市 ${date}`,
     headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
     rows: rows.map((row, idx) => ({
-      data: [idx + 1, canteen, date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.split_qty, row.remark, ''],
+      data: [idx + 1, canteen, date.replace(/-/g, '.'), row.code, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, (row.quantity || 0) * (row.split_qty || 1), row.remark, ''],
       imagePath: images[idx]
     }))
   };
@@ -1433,7 +1437,7 @@ function buildMergedLianhuaSheet(canteens, exportDate, allRows) {
       row.unit_price,
       row.quantity,
       row.amount,
-      row.split_qty,
+      (row.quantity || 0) * (row.split_qty || 1),
       row.remark,
       '',
     ]
@@ -1465,31 +1469,49 @@ async function exportAllPurchaseOrders() {
     if (mode === 'small') {
       // 小所食堂模式：厨房并列，联华按日期
       await exportSmallCanteenOrders(sheets);
-    } else {
-      // 普通模式或多食堂模式
-      const isMulti = mode === 'on';
-      const canteens = isMulti ? MULTI_CANTEENS : [APP_SETTINGS.current_canteen || '洋安'];
+    } else if (mode === 'on') {
+      // 多食堂模式：厨房合并一张 sheet，联华合并一张 sheet
+      const canteens = MULTI_CANTEENS;
+      const allKitchenRows = [];
+      const allLianhuaRows = [];
 
       for (const canteen of canteens) {
-        const kitchenSource = isMulti ? `${canteen}-厨房` : getKitchenSource();
+        const kitchenSource = `${canteen}-厨房`;
         const kitchenRows = collectRows(kitchenSource);
-        if (kitchenRows.length > 0) {
-          sheets.push(buildKitchenSheet(`${canteen}厨房申购单`, kitchenRows, await resolveImages(kitchenRows)));
-        }
-        if (!isMulti && APP_SETTINGS.show_pastry !== 'off') {
-          const pastryRows = collectRows(getPastrySource());
-          if (pastryRows.length > 0) {
-            sheets.push(buildKitchenSheet(`${getPastrySource()}申购单`, pastryRows, await resolveImages(pastryRows)));
-          }
-        }
-        const lianhuaSource = isMulti ? `${canteen}-联华` : '联华';
+        kitchenRows.forEach(r => r.canteen = canteen);
+        allKitchenRows.push(...kitchenRows);
+
+        const lianhuaSource = `${canteen}-联华`;
         for (const dateGroup of getLianhuaDateGroups(lianhuaSource)) {
-          const date = getDateFromGroup(dateGroup);
           const rows = collectLianhuaRows(dateGroup);
-          if (rows.length === 0) continue;
-          const title = isMulti ? `${canteen}-${date}` : date;
-          sheets.push(buildLianhuaSheet(title, canteen, date, rows, await resolveImages(rows)));
+          rows.forEach(r => r.canteen = canteen);
+          allLianhuaRows.push(...rows);
         }
+      }
+
+      if (allKitchenRows.length > 0) {
+        sheets.push(buildKitchenSheet('厨房申购单', allKitchenRows, await resolveImages(allKitchenRows)));
+      }
+      if (allLianhuaRows.length > 0) {
+        sheets.push(buildMergedLianhuaSheet(canteens, null, allLianhuaRows));
+      }
+    } else {
+      // 默认模式
+      const kitchenRows = collectRows(getKitchenSource());
+      if (kitchenRows.length > 0) {
+        sheets.push(buildKitchenSheet('厨房申购单', kitchenRows, await resolveImages(kitchenRows)));
+      }
+      if (APP_SETTINGS.show_pastry !== 'off') {
+        const pastryRows = collectRows(getPastrySource());
+        if (pastryRows.length > 0) {
+          sheets.push(buildKitchenSheet(`${getPastrySource()}申购单`, pastryRows, await resolveImages(pastryRows)));
+        }
+      }
+      for (const dateGroup of getLianhuaDateGroups('联华')) {
+        const date = getDateFromGroup(dateGroup);
+        const rows = collectLianhuaRows(dateGroup);
+        if (rows.length === 0) continue;
+        sheets.push(buildLianhuaSheet(date, '联华', date, rows, await resolveImages(rows)));
       }
     }
 

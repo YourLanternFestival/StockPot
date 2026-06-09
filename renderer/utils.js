@@ -267,6 +267,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
       const allRows = Array.from(currentTbody.querySelectorAll('tr'));
       const startRowIdx = allRows.indexOf(currentTr);
       const startColIdx = Array.from(currentTr.querySelectorAll('.cell-editable')).indexOf(input);
+      const totalCols = currentTr.querySelectorAll('.cell-editable').length;
 
       for (let i = 0; i < lines.length; i++) {
         // 获取或追加目标行
@@ -281,14 +282,16 @@ function bindTableRowEvents(tr, tbody, options = {}) {
         const editableInputs = targetRow.querySelectorAll('.cell-editable');
 
         if (isTSV) {
-          // 多列粘贴：按列顺序映射，自动截断多余列，缺失列保持原样
+          // 多列粘贴：从当前列开始填充，超出列数时截断
           const cells = lines[i].split('\t');
           for (let j = 0; j < cells.length; j++) {
             const targetIdx = startColIdx + j;
-            if (targetIdx >= editableInputs.length) break; // 截断
-            editableInputs[targetIdx].value = cells[j];
-            editableInputs[targetIdx].dispatchEvent(new Event('input', { bubbles: true }));
-            editableInputs[targetIdx].dispatchEvent(new Event('blur', { bubbles: true }));
+            if (targetIdx >= totalCols) break; // 截断，避免溢出到下一列
+            if (editableInputs[targetIdx]) {
+              editableInputs[targetIdx].value = cells[j];
+              editableInputs[targetIdx].dispatchEvent(new Event('input', { bubbles: true }));
+              editableInputs[targetIdx].dispatchEvent(new Event('blur', { bubbles: true }));
+            }
           }
         } else {
           // 单列粘贴：按当前列向下填充

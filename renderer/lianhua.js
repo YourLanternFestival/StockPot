@@ -615,7 +615,7 @@ async function exportLianhuaOrderByDate(date) {
       title: `联华超市 ${date}`,
       headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
       rows: orders.map((order, idx) => ({
-        data: [order.index, '洋安', date.replace(/-/g, '.'), order.code, order.name, order.unit, order.spec, order.price, order.quantity, order.amount, order.split_qty, order.remark, ''],
+        data: [order.index, '洋安', date.replace(/-/g, '.'), order.code, order.name, order.unit, order.spec, order.price, order.quantity, order.amount, (order.quantity || 0) * (order.split_qty || 1), order.remark, ''],
         imagePath: images[idx]
       }))
     }];

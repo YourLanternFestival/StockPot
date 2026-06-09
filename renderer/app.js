@@ -297,16 +297,7 @@ function hasTableData(tbodyId) {
 }
 
 function hasPurchaseData() {
-  // Check if current purchase order page has any unsaved data
-  const activePage = document.querySelector('.page.active');
-  if (!activePage || activePage.id !== 'page-purchase') return false;
-  const tbodies = document.querySelectorAll('#page-purchase tbody');
-  for (const tbody of tbodies) {
-    for (const tr of tbody.querySelectorAll('tr')) {
-      const name = tr.querySelector('[data-field="product_name"]');
-      if (name && name.value.trim()) return true;
-    }
-  }
+  // 采购单已有自动保存机制，不需要关闭提醒
   return false;
 }
 

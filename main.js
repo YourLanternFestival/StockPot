@@ -257,9 +257,11 @@ ipcMain.handle('dialog:openFile', async () => {
 });
 
 ipcMain.handle('dialog:saveFile', async (e, defaultName) => {
+  const docsDir = app.getPath('documents');
+  const defaultPath = path.join(docsDir, defaultName || '导出数据.xlsx');
   const result = await dialog.showSaveDialog(mainWindow, {
     title: '保存文件',
-    defaultPath: defaultName,
+    defaultPath: defaultPath,
     filters: [{ name: 'Excel 文件', extensions: ['xlsx'] }],
   });
   return result.canceled ? null : result.filePath;
