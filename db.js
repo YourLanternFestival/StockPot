@@ -726,7 +726,7 @@ function getPurchaseOrdersByDate(date) {
 
 function getPurchaseHistoryDates() {
   return queryAll(
-    `SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != '' ORDER BY date DESC LIMIT 5`
+    `SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != '' ORDER BY date DESC LIMIT 3`
   );
 }
 

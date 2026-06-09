@@ -100,12 +100,13 @@ function renderHistoryContent(orders) {
     if (!items || items.length === 0) return;
 
     const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const dec = APP_SETTINGS.price_decimals || 2;
 
     html += `
       <div class="card" style="margin-bottom:16px;">
         <div class="card-header" style="cursor:pointer;" onclick="toggleHistoryGroup(this)">
           <span class="group-toggle" style="transition:transform 0.2s;">▶</span>
-          <h3>${source} <span class="tag tag-info">${items.length} 项</span> <span style="margin-left:auto;font-weight:600;color:var(--primary);">¥${totalAmount.toFixed(2)}</span></h3>
+          <h3>${source} <span class="tag tag-info">${items.length} 项</span> <span style="margin-left:auto;font-weight:600;color:var(--primary);">¥${totalAmount.toFixed(dec)}</span></h3>
         </div>
         <div class="card-body" style="display:none;padding:0;">
           <table class="table" style="font-size:13px;">
@@ -127,10 +128,10 @@ function renderHistoryContent(orders) {
                   <td>${idx + 1}</td>
                   <td style="text-align:left;">${item.product_name}</td>
                   <td>${item.spec || ''}</td>
-                  <td>${item.unit_price || ''}</td>
+                  <td>${(item.unit_price || 0).toFixed(dec)}</td>
                   <td>${item.quantity || ''}</td>
                   <td>${item.unit || ''}</td>
-                  <td style="text-align:right;">${item.amount ? '¥' + item.amount.toFixed(2) : ''}</td>
+                  <td style="text-align:right;">${item.amount ? '¥' + item.amount.toFixed(dec) : ''}</td>
                   <td>${item.remark || ''}</td>
                 </tr>
               `).join('')}

@@ -1114,11 +1114,14 @@ function recalcRowAmount(tr) {
 
   if (qtyStr && !isNaN(qtyNum) && String(qtyNum) === qtyStr) {
     // Pure number - calculate amount
-    const amount = Math.round(price * qtyNum * 10) / 10; // Round to 1 decimal
-    amountCell.textContent = amount.toFixed(1);
+    const dec = APP_SETTINGS.price_decimals || 2;
+    const factor = Math.pow(10, dec);
+    const amount = Math.round(price * qtyNum * factor) / factor;
+    amountCell.textContent = amount.toFixed(dec);
   } else {
     // Contains text (like "60片") - amount is 0
-    amountCell.textContent = '0.0';
+    const dec = APP_SETTINGS.price_decimals || 2;
+    amountCell.textContent = '0.' + '0'.repeat(dec);
   }
 }
 

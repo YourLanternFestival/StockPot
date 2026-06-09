@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organic Biophilic - 食堂管理系统</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Nunito:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ===== CSS Variables - Organic Biophilic ===== */
+    :root {
+      --forest: #3E4A32;
+      --forest-light: #4a5a3a;
+      --sage: #5D6B4D;
+      --sage-light: #6d7b5d;
+      --moss: #8FBC8F;
+      --moss-light: #a5cca5;
+      --leaf: #D4E4C1;
+      --leaf-dark: #c4d4b1;
+      --sand: #C8B89E;
+      --sand-light: #d8c8ae;
+      --cream: #F5F1E8;
+      --cream-dark: #e5e1d8;
+      --warm-white: #FAFAF5;
+      --beige: #E8E0D0;
+
+      /* Semantic */
+      --primary: var(--sage);
+      --primary-hover: var(--forest);
+      --danger: #a83232;
+      --danger-light: #fdf2f2;
+      --warning: #b8860b;
+      --warning-light: #fef9e7;
+      --success: var(--moss);
+
+      /* Background */
+      --bg: var(--cream);
+      --card-bg: var(--warm-white);
+      --sidebar-bg: var(--forest);
+
+      /* Text */
+      --text: var(--forest);
+      --text-secondary: var(--sage);
+      --text-muted: #8A9A7B;
+
+      /* Border */
+      --border: #E0D8C8;
+
+      /* Radius */
+      --radius-sm: 1rem;
+      --radius: 1.5rem;
+      --radius-lg: 2rem;
+      --radius-xl: 3rem;
+
+      /* Shadow */
+      --shadow: 0 4px 20px rgba(62, 74, 50, 0.08);
+      --shadow-md: 0 8px 30px rgba(62, 74, 50, 0.12);
+      --shadow-lg: 0 12px 40px rgba(62, 74, 50, 0.15);
+
+      /* Organic Shapes */
+      --organic: 30% 70% 70% 30% / 30% 30% 70% 70%;
+      --leaf-shape: 5% 95% 10% 90% / 85% 15% 85% 15%;
+      --blob-1: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      --blob-2: 30% 70% 70% 30% / 30% 30% 70% 70%;
+    }
+
+    /* ===== Reset ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .font-serif {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    /* ===== Layout ===== */
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      width: 260px;
+      background: var(--forest);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      padding: 28px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sidebar-logo-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--moss);
+      border-radius: var(--leaf-shape);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .sidebar-logo h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: white;
+      letter-spacing: -0.3px;
+    }
+
+    .sidebar-version {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 4px;
+      padding-left: 62px;
+    }
+
+    /* Navigation */
+    .nav-list {
+      list-style: none;
+      padding: 20px 16px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-section {
+      margin-bottom: 28px;
+    }
+
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0 16px;
+      margin-bottom: 10px;
+    }
+
+    .nav-item {
+      margin-bottom: 4px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .nav-link:hover {
+      background: rgba(255,255,255,0.08);
+      color: white;
+    }
+
+    .nav-link.active {
+      background: var(--moss);
+      color: var(--forest);
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+      opacity: 0.8;
+    }
+
+    .nav-link.active .nav-icon {
+      opacity: 1;
+    }
+
+    /* ===== Main Content ===== */
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      padding: 40px;
+      min-height: 100vh;
+    }
+
+    /* ===== Page Header ===== */
+    .page-header {
+      margin-bottom: 40px;
+      text-align: center;
+      padding: 60px 40px;
+      position: relative;
+    }
+
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 200px;
+      height: 200px;
+      background: var(--leaf);
+      border-radius: var(--organic);
+      opacity: 0.5;
+      z-index: -1;
+    }
+
+    .page-header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: -20px;
+      width: 120px;
+      height: 120px;
+      background: var(--moss);
+      border-radius: var(--blob-1);
+      opacity: 0.3;
+      z-index: -1;
+    }
+
+    .page-badge {
+      display: inline-block;
+      padding: 8px 24px;
+      background: var(--leaf);
+      border-radius: 50px;
+      color: var(--forest);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .page-header h2 {
+      font-size: 48px;
+      font-weight: 600;
+      color: var(--forest);
+      margin-bottom: 12px;
+      letter-spacing: -1px;
+    }
+
+    .page-header p {
+      color: var(--sage);
+      font-size: 17px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ===== Stats Grid ===== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid var(--border);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 80px;
+      height: 80px;
+      border-radius: var(--organic);
+      opacity: 0.15;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:nth-child(1)::before { background: var(--moss); }
+    .stat-card:nth-child(2)::before { background: var(--sand); }
+    .stat-card:nth-child(3)::before { background: var(--sage); }
+    .stat-card:nth-child(4)::before { background: var(--leaf); }
+
+    .stat-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-card:hover::before {
+      transform: scale(1.5);
+    }
+
+    .stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--leaf-shape);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 18px;
+    }
+
+    .stat-icon.green { background: var(--leaf); }
+    .stat-icon.blue { background: #d4e8f0; }
+    .stat-icon.brown { background: var(--sand-light); }
+    .stat-icon.yellow { background: #f0e8d4; }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--forest);
+      margin-bottom: 4px;
+      letter-spacing: -1px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--sage);
+      font-weight: 500;
+    }
+
+    /* ===== Cards ===== */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-header {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--forest);
+    }
+
+    .card-body {
+      padding: 28px;
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--sage);
+      color: white;
+      box-shadow: 0 4px 15px rgba(93, 107, 77, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--forest);
+      box-shadow: 0 6px 20px rgba(62, 74, 50, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 2px solid var(--sage);
+      color: var(--sage);
+    }
+
+    .btn-secondary:hover {
+      background: var(--sage);
+      color: white;
+    }
+
+    .btn-sm {
+      padding: 8px 18px;
+      font-size: 13px;
+    }
+
+    .btn-lg {
+      padding: 18px 36px;
+      font-size: 17px;
+    }
+
+    /* ===== Tags ===== */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 50px;
+    }
+
+    .tag-success {
+      background: var(--leaf);
+      color: var(--forest);
+    }
+
+    .tag-warning {
+      background: #f0e8d4;
+      color: #8a6d0b;
+    }
+
+    .tag-danger {
+      background: #f8e0e0;
+      color: var(--danger);
+    }
+
+    .tag-info {
+      background: #d4e8f0;
+      color: #2980b9;
+    }
+
+    /* ===== Tabs ===== */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      padding: 6px;
+      background: var(--beige);
+      border-radius: 50px;
+      margin-bottom: 28px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--sage);
+      background: transparent;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: inherit;
+    }
+
+    .tab-btn:hover {
+      color: var(--forest);
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: var(--forest);
+      box-shadow: var(--shadow);
+    }
+
+    /* ===== Table ===== */
+    .table-container {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th {
+      background: var(--leaf);
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--forest);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .table td {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .table tbody tr {
+      transition: all 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+      background: var(--cream);
+    }
+
+    .table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ===== Form ===== */
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--sage);
+      margin-bottom: 10px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 15px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: white;
+      color: var(--text);
+      transition: all 0.25s ease;
+      font-family: inherit;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--moss);
+      box-shadow: 0 0 0 4px rgba(143, 188, 143, 0.2);
+    }
+
+    .form-control::placeholder {
+      color: #aaa;
+    }
+
+    /* ===== Alert Card ===== */
+    .alert-card {
+      background: linear-gradient(135deg, #f0e8d4 0%, #e8e0d0 100%);
+      border: 1px solid var(--sand);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .alert-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--sand);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .alert-content {
+      flex: 1;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      color: var(--forest);
+      margin-bottom: 4px;
+    }
+
+    .alert-desc {
+      font-size: 14px;
+      color: var(--sage);
+    }
+
+    /* ===== Chart Placeholder ===== */
+    .chart-placeholder {
+      background: linear-gradient(135deg, var(--leaf) 0%, var(--cream) 100%);
+      border: 3px dashed var(--moss);
+      border-radius: var(--radius);
+      height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--sage);
+    }
+
+    .chart-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    /* ===== Grid ===== */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    /* ===== Demo Section ===== */
+    .demo-section {
+      margin-bottom: 48px;
+    }
+
+    .demo-section h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--forest);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .demo-section h3::before {
+      content: '';
+      width: 6px;
+      height: 24px;
+      background: var(--moss);
+      border-radius: 3px;
+    }
+
+    /* ===== Feature Section (Dark) ===== */
+    .feature-dark {
+      background: var(--forest);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      margin-bottom: 40px;
+      color: white;
+    }
+
+    .feature-dark h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    .feature-dark p {
+      color: var(--leaf);
+      font-size: 17px;
+      margin-bottom: 32px;
+      max-width: 500px;
+    }
+
+    .feature-list {
+      list-style: none;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+      font-size: 16px;
+    }
+
+    .feature-check {
+      width: 32px;
+      height: 32px;
+      background: var(--moss);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--forest);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* ===== Color Palette ===== */
+    .color-palette {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .color-swatch {
+      flex: 1;
+      height: 100px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: flex-end;
+      padding: 16px;
+    }
+
+    .color-swatch span {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .color-swatch.forest { background: var(--forest); }
+    .color-swatch.forest span { color: white; }
+    .color-swatch.sage { background: var(--sage); }
+    .color-swatch.sage span { color: white; }
+    .color-swatch.moss { background: var(--moss); }
+    .color-swatch.moss span { color: var(--forest); }
+    .color-swatch.leaf { background: var(--leaf); }
+    .color-swatch.leaf span { color: var(--forest); }
+    .color-swatch.sand { background: var(--sand); }
+    .color-swatch.sand span { color: var(--forest); }
+    .color-swatch.cream { background: var(--cream); border: 1px solid var(--border); }
+    .color-swatch.cream span { color: var(--forest); }
+
+    /* ===== Scrollbar ===== */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--cream);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--moss);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--sage);
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 1200px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+      .stats-grid,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+      .color-palette {
+        flex-wrap: wrap;
+      }
+      .color-swatch {
+        flex: 0 0 calc(50% - 8px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">🌿</div>
+          <h1 class="font-serif">食堂管理</h1>
+        </div>
+        <div class="sidebar-version">v2.0.0 · Organic Biophilic</div>
+      </div>
+      <nav class="nav-list">
+        <div class="nav-section">
+          <div class="nav-section-title">概览</div>
+          <ul>
+            <li class="nav-item">
+              <a href="#" class="nav-link active">
+                <span class="nav-icon">📊</span>
+                仪表盘
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">📦</span>
+                库存查询
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">业务</div>
+          <ul>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">📥</span>
+                入库登记
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">📤</span>
+                出库登记
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">📋</span>
+                月度台账
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">🛒</span>
+                采购单
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">管理</div>
+          <ul>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">🏷️</span>
+                品名管理
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">⚙️</span>
+                系统设置
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Hero Header -->
+      <div class="page-header">
+        <div class="page-badge">🌿 Nature-inspired design</div>
+        <h2 class="font-serif">Embrace Nature</h2>
+        <p>将自然的宁静带入数字空间，有机形态、大地色调、可持续美学</p>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="demo-section">
+        <h3>统计卡片</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon green">📦</div>
+            <div class="stat-value">1,234</div>
+            <div class="stat-label">库存总量</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">📥</div>
+            <div class="stat-value">89</div>
+            <div class="stat-label">本月入库</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon brown">📤</div>
+            <div class="stat-value">156</div>
+            <div class="stat-label">本月出库</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">⚠️</div>
+            <div class="stat-value">12</div>
+            <div class="stat-label">临期预警</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buttons & Tags -->
+      <div class="demo-section">
+        <h3>按钮 & 标签</h3>
+        <div class="card">
+          <div class="card-body">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">
+              <button class="btn btn-primary">主要按钮</button>
+              <button class="btn btn-secondary">次要按钮</button>
+              <button class="btn btn-primary btn-sm">小按钮</button>
+              <button class="btn btn-primary btn-lg">大按钮</button>
+            </div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <span class="tag tag-success">正常</span>
+              <span class="tag tag-warning">临期</span>
+              <span class="tag tag-danger">过期</span>
+              <span class="tag tag-info">信息</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="demo-section">
+        <h3>选项卡</h3>
+        <div class="tab-bar">
+          <button class="tab-btn active">全部</button>
+          <button class="tab-btn">临期预警</button>
+          <button class="tab-btn">库存不足</button>
+          <button class="tab-btn">已过期</button>
+        </div>
+      </div>
+
+      <!-- Feature Section (Dark) -->
+      <div class="demo-section">
+        <h3>特色区块</h3>
+        <div class="feature-dark">
+          <div class="grid-2" style="gap: 48px; align-items: center;">
+            <div>
+              <h2 class="font-serif">Bring the Outdoors In</h2>
+              <p>生物亲和设计通过有机形态、自然材质和大地色调，将人与自然连接。它促进身心健康，减轻压力，创造充满生机的空间。</p>
+              <ul class="feature-list">
+                <li>
+                  <span class="feature-check">✓</span>
+                  减轻压力与焦虑
+                </li>
+                <li>
+                  <span class="feature-check">✓</span>
+                  提升专注力与创造力
+                </li>
+                <li>
+                  <span class="feature-check">✓</span>
+                  建立情感连接
+                </li>
+              </ul>
+            </div>
+            <div style="background: var(--sage); border-radius: var(--radius-lg); padding: 48px; text-align: center;">
+              <div style="font-size: 80px; margin-bottom: 16px;">🌿</div>
+              <p class="font-serif" style="font-size: 28px; color: white;">Sustainable by Design</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="demo-section">
+        <h3>数据表格</h3>
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>品名</th>
+                <th>规格</th>
+                <th>库存</th>
+                <th>有效期</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>有机大米</strong></td>
+                <td>25kg/袋</td>
+                <td>48 袋</td>
+                <td>2026-12-15</td>
+                <td><span class="tag tag-success">正常</span></td>
+                <td><button class="btn btn-sm btn-secondary">详情</button></td>
+              </tr>
+              <tr>
+                <td><strong>新鲜蔬菜</strong></td>
+                <td>5kg/箱</td>
+                <td>12 箱</td>
+                <td>2026-06-15</td>
+                <td><span class="tag tag-warning">临期</span></td>
+                <td><button class="btn btn-sm btn-secondary">详情</button></td>
+              </tr>
+              <tr>
+                <td><strong>调味品</strong></td>
+                <td>1L/瓶</td>
+                <td>36 瓶</td>
+                <td>2026-03-01</td>
+                <td><span class="tag tag-danger">过期</span></td>
+                <td><button class="btn btn-sm btn-secondary">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Form & Alert -->
+      <div class="demo-section">
+        <h3>表单 & 预警</h3>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>入库登记</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">品名</label>
+                <input type="text" class="form-control" placeholder="请输入品名">
+              </div>
+              <div class="form-group">
+                <label class="form-label">数量</label>
+                <input type="number" class="form-control" placeholder="请输入数量">
+              </div>
+              <button class="btn btn-primary">提交</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>临期预警</h3>
+            </div>
+            <div class="card-body">
+              <div class="alert-card">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                  <div class="alert-title">有机蔬菜 - 3天后过期</div>
+                  <div class="alert-desc">当前库存 12 箱，建议尽快处理</div>
+                </div>
+              </div>
+              <div class="alert-card">
+                <div class="alert-icon">⏰</div>
+                <div class="alert-content">
+                  <div class="alert-title">新鲜水果 - 5天后过期</div>
+                  <div class="alert-desc">当前库存 8 箱，建议优先使用</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="demo-section">
+        <h3>图表区域</h3>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>出入库趋势</h3>
+            </div>
+            <div class="card-body">
+              <div class="chart-placeholder">
+                <div class="chart-icon">📈</div>
+                <div>Chart.js 图表区域</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>库存分布</h3>
+            </div>
+            <div class="card-body">
+              <div class="chart-placeholder">
+                <div class="chart-icon">🥧</div>
+                <div>饼图区域</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Color Palette -->
+      <div class="demo-section">
+        <h3>配色方案</h3>
+        <div class="color-palette">
+          <div class="color-swatch forest"><span>Forest</span></div>
+          <div class="color-swatch sage"><span>Sage</span></div>
+          <div class="color-swatch moss"><span>Moss</span></div>
+          <div class="color-swatch leaf"><span>Leaf</span></div>
+          <div class="color-swatch sand"><span>Sand</span></div>
+          <div class="color-swatch cream"><span>Cream</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Nav switching
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
