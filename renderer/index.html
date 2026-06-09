@@ -1,1439 +1,1439 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>食堂出入库管理系统</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="theme-biophilic.css" id="theme-biophilic-css" disabled>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>食堂出入库管理系统</title>
+ <link rel="stylesheet" href="styles.css">
+ <link rel="stylesheet" href="theme-biophilic.css" id="theme-biophilic-css" disabled>
+ <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- 浮动窗口控制按钮 -->
-  <div class="window-controls" id="window-controls">
-    <button id="btn-minimize" onclick="minimizeWindow()" title="最小化">
-      <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="currentColor" width="10" height="1" x="1" y="5.5"/></svg>
-    </button>
-    <button id="btn-maximize" onclick="maximizeWindow()" title="最大化">
-      <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/></svg>
-    </button>
-    <button class="btn-close" id="btn-close" onclick="closeWindow()" title="关闭">
-      <svg width="12" height="12" viewBox="0 0 12 12">
-        <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
-  </div>
-
-  <div class="app">
-    <!-- Sidebar -->
-    <nav class="sidebar">
-      <div class="sidebar-header">
-        <h1>📦 食堂出入库</h1>
-        <span class="sidebar-version" id="sidebar-version"></span>
-      </div>
-      <ul class="nav-list">
-        <li class="nav-item active" data-page="dashboard" data-tooltip="查看库存统计概览、趋势图和预警">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-          <span class="nav-text">总览</span>
-        </li>
-        <li class="nav-item" data-page="inventory" data-tooltip="搜索材料库存和查看过期预警">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <span class="nav-text">库存查询</span>
-        </li>
-        <li class="nav-item" data-page="inbound" data-tooltip="批量录入入库记录">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-          <span class="nav-text">入库登记</span>
-        </li>
-        <li class="nav-item" data-page="outbound" data-tooltip="批量登记出库，含库存校验">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 8 12 13 17 8"/><line x1="12" y1="13" x2="12" y2="3"/></svg></span>
-          <span class="nav-text">出库登记</span>
-        </li>
-        <li class="nav-item" data-page="ledger" data-tooltip="查看按日分列的月度出入库汇总">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-          <span class="nav-text">月度台账</span>
-        </li>
-        <li class="nav-item" data-page="products" data-tooltip="管理材料清单和保质期信息">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
-          <span class="nav-text">产品管理</span>
-        </li>
-        <li class="nav-item" data-page="purchase" data-tooltip="编制和管理采购订单">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
-          <span class="nav-text">采购单</span>
-        </li>
-        <li class="nav-item" data-page="history" data-tooltip="查看最近3天的采购单历史记录">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg></span>
-          <span class="nav-text">历史采购</span>
-        </li>
-        <li class="nav-item" data-page="inquiry" data-tooltip="管理询价数据和价格变动">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-          <span class="nav-text">询价管理</span>
-        </li>
-        <li class="nav-item" data-page="settings" data-tooltip="配置系统参数">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
-          <span class="nav-text">设置</span>
-        </li>
-        <li class="nav-item" data-page="help" style="margin-top:auto;border-top:1px solid var(--border);padding-top:8px;" data-tooltip="查看使用教程和帮助文档">
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-          <span class="nav-text">帮助</span>
-        </li>
-      </ul>
-      <div class="sidebar-toggle" onclick="toggleSidebar()" data-tooltip="展开/折叠侧栏">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-      </div>
-    </nav>
-    <div class="drag-region"></div>
-
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Dashboard -->
-      <div class="page active" id="page-dashboard">
-        <div class="page-header">
-          <h2>总览</h2>
-          <span class="date-display">2026年6月3日</span>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-card" data-tooltip="当前有库存的材料品种数">
-            <div class="stat-icon">📦</div>
-            <div class="stat-info">
-              <div class="stat-value" id="stat-products">0</div>
-              <div class="stat-label">在库品种</div>
-            </div>
-          </div>
-          <div class="stat-card" data-tooltip="历史入库记录总条数">
-            <div class="stat-icon">📥</div>
-            <div class="stat-info">
-              <div class="stat-value" id="stat-inbound">0</div>
-              <div class="stat-label">累计入库笔数</div>
-            </div>
-          </div>
-          <div class="stat-card" data-tooltip="历史出库记录总条数">
-            <div class="stat-icon">📤</div>
-            <div class="stat-info">
-              <div class="stat-value" id="stat-outbound">0</div>
-              <div class="stat-label">累计出库笔数</div>
-            </div>
-          </div>
-          <div class="stat-card warning" style="cursor:pointer;" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')" data-tooltip="点击跳转到库存查询的过期预警标签页">
-            <div class="stat-icon">⚠️</div>
-            <div class="stat-info">
-              <div class="stat-value" id="stat-alerts">0</div>
-              <div class="stat-label">临期/过期预警</div>
-            </div>
-          </div>
-        </div>
-        <div class="dashboard-grid">
-          <div class="card">
-            <div class="card-header">
-              <h3>📊 近30天入出库趋势</h3>
-            </div>
-            <div class="card-body" data-tooltip="近30天每日入库(绿)和出库(红)数量折线图">
-              <canvas id="trend-chart" height="250"></canvas>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h3>🥧 库存分布 (Top 10)</h3>
-            </div>
-            <div class="card-body" data-tooltip="按当前库存量排序的前10大品种分布">
-              <canvas id="pie-chart" height="250"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>⚠️ 临期预警</h3>
-            <button class="btn btn-sm" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')">查看全部</button>
-          </div>
-          <div class="card-body" style="text-align:center;padding:20px;color:var(--text-muted);">
-            点击"查看全部"跳转到库存查询的过期预警标签页查看详情
-          </div>
-        </div>
-      </div>
-
-      <!-- Inventory (with Alerts tab) -->
-      <div class="page" id="page-inventory">
-        <div class="page-header">
-          <h2>库存管理</h2>
-          <div class="header-actions">
-            <button class="btn btn-primary" onclick="exportInventory()" data-tooltip="将当前库存数据导出为 Excel 文件">📥 导出 xlsx</button>
-          </div>
-        </div>
-        <div class="tab-bar">
-          <button class="tab-btn active" data-tab="inv-search" onclick="switchInvTab('inv-search')" data-tooltip="按材料查看详细库存和出入库流水">📋 库存查询</button>
-          <button class="tab-btn" data-tab="inv-alerts" onclick="switchInvTab('inv-alerts')" data-tooltip="查看临期和已过期的材料清单">
-            ⚠️ 过期预警 <span class="badge" id="alert-badge" style="display:none;">0</span>
-          </button>
-        </div>
-
-        <!-- Tab: 库存查询 -->
-        <div class="tab-panel active" id="tab-inv-search">
-          <div class="card card-no-clip" style="margin-bottom: 16px;">
-            <div class="card-body" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-              <div style="position:relative;flex:1;min-width:250px;">
-                <input type="text" class="form-control" id="inv-search-input" placeholder="🔍 输入材料名称搜索..." autocomplete="off" style="width:100%;">
-                <div class="autocomplete-dropdown" id="inv-search-dropdown" style="display:none;"></div>
-              </div>
-              <span class="text-muted" id="inv-search-hint">输入名称后选择材料查看详情</span>
-            </div>
-          </div>
-
-          <div id="inv-detail" style="display:none;">
-            <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 16px;">
-              <div class="stat-card">
-                <div class="stat-info">
-                  <div class="stat-value" id="inv-prev-stock">0</div>
-                  <div class="stat-label">上月结存</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-info">
-                  <div class="stat-value" id="inv-month-in">0</div>
-                  <div class="stat-label">本月入库</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-info">
-                  <div class="stat-value" id="inv-month-out">0</div>
-                  <div class="stat-label">本月出库</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-info">
-                  <div class="stat-value" id="inv-stock">0</div>
-                  <div class="stat-label">当前库存</div>
-                </div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-info">
-                  <div class="stat-value" id="inv-status">-</div>
-                  <div class="stat-label">库存状态</div>
-                </div>
-              </div>
-            </div>
-            <div class="product-info-bar" id="inv-product-info" style="margin-bottom:16px;padding:10px 16px;background:var(--bg);border-radius:8px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
-              <span><strong id="inv-p-name">-</strong></span>
-              <span class="text-muted">规格：<span id="inv-p-spec">-</span></span>
-              <span class="text-muted">单位：<span id="inv-p-unit">-</span></span>
-              <span class="text-muted">累计入库：<strong id="inv-total-in">0</strong></span>
-              <span class="text-muted">累计出库：<strong id="inv-total-out">0</strong></span>
-              <span class="text-muted">累计净入库：<strong id="inv-net-in">0</strong></span>
-            </div>
-
-            <div class="inv-records-grid">
-              <div class="card">
-                <div class="card-header">
-                  <h3>📥 最近入库记录 <span class="tag tag-info" id="inv-inbound-count">0</span></h3>
-                </div>
-                <table class="table">
-                  <thead>
-                    <tr><th>日期</th><th>数量</th><th>生产日期</th><th>到期日</th><th>备注</th></tr>
-                  </thead>
-                  <tbody id="inv-inbound-body"></tbody>
-                </table>
-              </div>
-              <div class="card">
-                <div class="card-header">
-                  <h3>📤 最近出库记录 <span class="tag tag-info" id="inv-outbound-count">0</span></h3>
-                </div>
-                <table class="table">
-                  <thead>
-                    <tr><th>日期</th><th>数量</th><th>领取人</th></tr>
-                  </thead>
-                  <tbody id="inv-outbound-body"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab: 过期预警 -->
-        <div class="tab-panel" id="tab-inv-alerts">
-          <div class="alert-summary">
-            <div class="alert-card alert-danger">
-              <div class="alert-count" id="alert-expired-count">0</div>
-              <div class="alert-label">已过期</div>
-            </div>
-            <div class="alert-card alert-warning">
-              <div class="alert-count" id="alert-soon-count">0</div>
-              <div class="alert-label" id="alert-soon-label">30天内到期</div>
-            </div>
-            <div class="alert-card alert-info">
-              <div class="alert-count" id="alert-upcoming-count">0</div>
-              <div class="alert-label" id="alert-upcoming-label">60天内到期</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <h3>预警列表</h3>
-              <select id="alert-filter" class="form-control" style="width:120px;">
-                <option value="all">全部</option>
-                <option value="expired">已过期</option>
-                <option value="soon">即将到期</option>
-              </select>
-            </div>
-            <table class="table">
-              <thead>
-                <tr><th>材料名称</th><th>规格</th><th>数量</th><th>生产日期</th><th>到期日</th><th>剩余天数</th><th>状态</th></tr>
-              </thead>
-              <tbody id="alerts-body">
-                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Inbound -->
-      <div class="page" id="page-inbound">
-        <div class="page-header">
-          <h2>入库登记</h2>
-          <div class="header-actions">
-            <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录">✓ 批量提交</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>入库录入</h3>
-            <button class="btn btn-sm" onclick="addInboundRows()" data-tooltip="在表格底部添加更多录入行">+ 添加行</button>
-          </div>
-          <div class="purchase-table-wrapper">
-            <table class="table table-purchase" id="inbound-table">
-              <thead>
-                <tr>
-                  <th style="width:40px;">#</th>
-                  <th style="width:140px;">材料名称 <span class="required">*</span></th>
-                  <th style="width:80px;">规格</th>
-                  <th style="width:80px;">数量 <span class="required">*</span></th>
-                  <th style="width:60px;">单位</th>
-                  <th style="width:130px;">入库日期 <span class="required">*</span></th>
-                  <th style="width:130px;">生产日期</th>
-                  <th style="width:130px;">到期日</th>
-                  <th style="width:120px;">备注</th>
-                  <th style="width:60px;">操作</th>
-                </tr>
-              </thead>
-              <tbody id="inbound-tbody">
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="card" style="margin-top: 20px;">
-          <div class="card-header">
-            <h3>最近入库记录</h3>
-          </div>
-          <table class="table">
-            <thead>
-              <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>生产日期</th><th>到期日</th><th>操作</th></tr>
-            </thead>
-            <tbody id="recent-inbound">
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Outbound -->
-      <div class="page" id="page-outbound">
-        <div class="page-header">
-          <h2>出库登记</h2>
-          <div class="header-actions">
-            <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序">👥 管理领取人</button>
-            <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录">✓ 批量提交</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h3>出库录入</h3>
-            <button class="btn btn-sm" onclick="addOutboundRows()" data-tooltip="在表格底部添加更多录入行">+ 添加行</button>
-          </div>
-          <div class="purchase-table-wrapper">
-            <table class="table table-purchase" id="outbound-table">
-              <thead>
-                <tr>
-                  <th style="width:40px;">#</th>
-                  <th style="width:140px;">材料名称 <span class="required">*</span></th>
-                  <th style="width:80px;">规格</th>
-                  <th style="width:80px;">数量 <span class="required">*</span></th>
-                  <th style="width:60px;">单位</th>
-                  <th style="width:60px;">库存</th>
-                  <th style="width:130px;">出库日期 <span class="required">*</span></th>
-                  <th style="width:100px;">领取人 <span class="required">*</span></th>
-                  <th style="width:60px;">操作</th>
-                </tr>
-              </thead>
-              <tbody id="outbound-tbody">
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="card" style="margin-top: 20px;">
-          <div class="card-header">
-            <h3>最近出库记录</h3>
-          </div>
-          <table class="table">
-            <thead>
-              <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>领取人</th><th>操作</th></tr>
-            </thead>
-            <tbody id="recent-outbound">
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Ledger -->
-      <div class="page" id="page-ledger">
-        <div class="page-header">
-          <h2>月度台账</h2>
-          <div class="header-actions">
-            <select id="ledger-year" class="form-control" style="width:100px;" data-tooltip="选择要查看的年份">
-            </select>
-            <select id="ledger-month" class="form-control" style="width:80px;" data-tooltip="选择要查看的月份">
-              <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
-              <option value="4">4月</option><option value="5">5月</option><option value="6" selected>6月</option>
-              <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
-              <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
-            </select>
-            <button class="btn" onclick="toggleImportPanel()" data-tooltip="展开导入面板，从 xlsx 文件批量导入产品和出入库数据">📥 导入数据</button>
-            <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件">📤 导出 xlsx</button>
-          </div>
-        </div>
-
-        <!-- Import Panel (collapsible) -->
-        <div class="import-panel" id="import-panel" style="display:none;">
-          <div class="card" style="margin-bottom: 16px;">
-            <div class="card-header">
-              <h3>📥 从 xlsx 文件导入数据</h3>
-              <button class="btn btn-sm" onclick="toggleImportPanel()">✕ 关闭</button>
-            </div>
-            <div class="card-body">
-              <div class="import-dropzone" id="dropzone">
-                <div class="dropzone-content">
-                  <div class="dropzone-icon">📄</div>
-                  <p>将 xlsx 文件拖拽到此处</p>
-                  <p class="text-muted">或点击选择文件</p>
-                  <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;">
-                  <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">选择文件</button>
-                </div>
-              </div>
-              <div class="import-options" style="margin-top: 16px;">
-                <label class="checkbox-label">
-                  <input type="checkbox" checked disabled> 产品数据（材料清单）
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" checked id="import-inbound"> 入库流水账
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" checked id="import-outbound"> 出库流水账
-                </label>
-              </div>
-              <div class="import-preview" id="import-preview" style="display:none;">
-                <h4>预览导入数据</h4>
-                <div class="import-stats" id="import-preview-stats"></div>
-                <div style="margin-top:15px;display:flex;gap:10px;">
-                  <button class="btn btn-primary btn-lg" onclick="startImport()" data-tooltip="覆盖已有数据并导入新数据，请先备份">开始导入（覆盖已有数据）</button>
-                  <button class="btn btn-lg" style="color:var(--danger);border-color:var(--danger);" onclick="clearAndReimport()" data-tooltip="清除所有现有数据后导入，请谨慎操作">清空后重新导入</button>
-                </div>
-              </div>
-              <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
-                <button class="btn" onclick="exportInventory()">📊 导出库存</button>
-                <button class="btn" onclick="exportLedger()">📅 导出台账</button>
-                <button class="btn" onclick="exportAll()">📦 导出全部</button>
-                <button class="btn" style="color:var(--danger);border-color:var(--danger);margin-left:auto;" onclick="clearAndReimport()">🗑 清空所有数据</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="table-wrapper">
-            <table class="table table-ledger" id="ledger-table">
-              <thead>
-                <tr>
-                  <th class="sticky-col col-idx">序号</th>
-                  <th class="sticky-col col-name">品名</th>
-                  <th class="sticky-col col-unit">单位</th>
-                  <th>上月结存</th>
-                  <th>本月入库</th>
-                  <th>本月出库</th>
-                  <th>当前库存</th>
-                  <th class="day-header" data-day="1">1日</th>
-                  <th class="day-header" data-day="2">2日</th>
-                  <th class="day-header" data-day="3">3日</th>
-                  <th class="day-header" data-day="4">4日</th>
-                  <th class="day-header" data-day="5">5日</th>
-                  <th class="day-header" data-day="6">6日</th>
-                  <th class="day-header" data-day="7">7日</th>
-                  <th class="day-header" data-day="8">8日</th>
-                  <th class="day-header" data-day="9">9日</th>
-                  <th class="day-header" data-day="10">10日</th>
-                  <th class="day-header" data-day="11">11日</th>
-                  <th class="day-header" data-day="12">12日</th>
-                  <th class="day-header" data-day="13">13日</th>
-                  <th class="day-header" data-day="14">14日</th>
-                  <th class="day-header" data-day="15">15日</th>
-                  <th class="day-header" data-day="16">16日</th>
-                  <th class="day-header" data-day="17">17日</th>
-                  <th class="day-header" data-day="18">18日</th>
-                  <th class="day-header" data-day="19">19日</th>
-                  <th class="day-header" data-day="20">20日</th>
-                  <th class="day-header" data-day="21">21日</th>
-                  <th class="day-header" data-day="22">22日</th>
-                  <th class="day-header" data-day="23">23日</th>
-                  <th class="day-header" data-day="24">24日</th>
-                  <th class="day-header" data-day="25">25日</th>
-                  <th class="day-header" data-day="26">26日</th>
-                  <th class="day-header" data-day="27">27日</th>
-                  <th class="day-header" data-day="28">28日</th>
-                  <th class="day-header" data-day="29">29日</th>
-                  <th class="day-header" data-day="30">30日</th>
-                  <th class="day-header" data-day="31">31日</th>
-                </tr>
-              </thead>
-              <tbody id="ledger-body"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Products -->
-      <div class="page" id="page-products">
-        <div class="page-header">
-          <h2>产品管理</h2>
-          <div class="header-actions">
-            <select id="prod-status-filter" class="form-control" style="width:120px;" onchange="renderProductTable(document.getElementById('prod-search').value)" data-tooltip="筛选显示有效/已停用/全部产品">
-              <option value="active">有效产品</option>
-              <option value="inactive">已停用</option>
-              <option value="all">全部</option>
-            </select>
-            <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()" data-tooltip="批量停用勾选的产品">🗑 停用选中</button>
-            <input type="text" class="search-input" placeholder="🔍 搜索产品..." id="prod-search" data-tooltip="按材料名称搜索产品">
-            <button class="btn btn-primary" onclick="showAddProduct()" data-tooltip="添加新产品到材料清单">+ 新增产品</button>
-          </div>
-        </div>
-        <div class="card">
-          <table class="table" id="products-table">
-            <thead>
-              <tr>
-                <th style="width:40px;"><input type="checkbox" id="select-all-products" onchange="toggleSelectAll(this.checked)"></th>
-                <th>序号</th><th>材料名称</th><th>规格</th><th>单位</th><th>保质期(月)</th><th>保质期(日)</th><th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="products-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Purchase Order -->
-      <div class="page" id="page-purchase">
-        <div class="page-header">
-          <h2>采购单</h2>
-          <div class="header-actions">
-            <button class="btn" onclick="exportAllPurchaseOrders()" data-tooltip="将所有采购组导出为 Excel（含实物图片）">📤 导出全部</button>
-            <button class="btn" onclick="showImportLianhuaDialog()" data-tooltip="从 xlsx 文件导入联华超市商品目录">📥 导入联华商品</button>
-            <button class="btn btn-primary" onclick="saveAllPurchaseOrders()" data-tooltip="保存当前所有采购组的数据">💾 保存所有</button>
-          </div>
-        </div>
-        <div class="purchase-container" id="purchase-container">
-          <!-- 默认模式：食堂切换 -->
-          <div id="canteen-switch" class="tab-bar" style="display:none;">
-            <button class="tab-btn canteen-tab active" data-canteen="洋安" onclick="switchCanteen('洋安')">洋安</button>
-            <button class="tab-btn canteen-tab" data-canteen="新安" onclick="switchCanteen('新安')">新安</button>
-          </div>
-          <!-- 多食堂模式 Tab (hidden by default) -->
-          <div id="multi-canteen-tabs" class="tab-bar" style="display:none;">
-            <button class="tab-btn active" data-canteen="下涯" onclick="switchMultiCanteenTab('下涯')">下涯</button>
-            <button class="tab-btn" data-canteen="制杆厂" onclick="switchMultiCanteenTab('制杆厂')">制杆厂</button>
-            <button class="tab-btn" data-canteen="白南山" onclick="switchMultiCanteenTab('白南山')">白南山</button>
-          </div>
-
-          <!-- 多食堂模式: 联华+厨房 (JS动态创建，按Tab显隐) -->
-          <div id="multi-canteen-area"></div>
-
-          <!-- 小所食堂模式 Tab -->
-          <div id="small-canteen-tabs" class="tab-bar" style="display:none;">
-          </div>
-          <!-- 小所食堂模式: 操作栏 -->
-          <div id="small-canteen-actions" style="display:none;margin-bottom:12px;">
-            <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" data-tooltip="展开或隐藏矩阵视图中的备注列">💬 备注</button>
-            <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()" data-tooltip="将当前小所的采购数据复制到另一个小所">📋 复用单个小所</button>
-            <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()" data-tooltip="将当前小所的数据同步覆盖到所有其他小所">🔄 一键同步到所有小所</button>
-            <div class="dropdown-wrap" style="margin-left:auto;">
-              <button class="btn btn-sm" onclick="toggleDropdown(event)" data-tooltip="快速将联华商品添加到当前小所的采购单">联华加购 ▾</button>
-              <div class="dropdown-menu" id="lianhua-dropdown"></div>
-            </div>
-          </div>
-          <!-- 小所食堂模式: 并排区域 (样式1) -->
-          <div id="small-canteen-area" style="display:none;"></div>
-          <!-- 小所食堂模式: 矩阵区域 (样式2) -->
-          <div id="small-matrix-area" style="display:none;"></div>
-
-          <!-- 洋安/新安模式: 联华（基础输入模板，数据源为 lianhua_items） -->
-          <div class="purchase-group" id="purchase-lianhua" data-source="联华">
-            <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠联华超市采购组">
-              <span class="group-toggle">▶</span>
-              <h3 id="lianhua-title">联华超市</h3>
-              <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('联华')" data-tooltip="为联华采购组添加新的到货日期">+ 添加日期</button>
-              </div>
-            </div>
-            <div class="group-content" style="display:none;"></div>
-          </div>
-
-          <!-- 洋安/新安模式: 厨房 -->
-          <div class="purchase-group" id="purchase-kitchen" data-source="">
-            <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠厨房采购组">
-              <span class="group-toggle">▶</span>
-              <h3 id="kitchen-title">厨房</h3>
-              <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog(getKitchenSource())">+ 添加日期</button>
-              </div>
-            </div>
-            <div class="group-content" style="display:none;"></div>
-          </div>
-
-          <!-- 洋安/新安模式: 面点房 -->
-          <div class="purchase-group" id="purchase-pastry" data-source="">
-            <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠面点房采购组">
-              <span class="group-toggle">▶</span>
-              <h3 id="pastry-title">面点房</h3>
-              <div class="group-actions">
-                <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog(getPastrySource())">+ 添加日期</button>
-              </div>
-            </div>
-            <div class="group-content" style="display:none;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Purchase History -->
-      <div class="page" id="page-history">
-        <div class="page-header">
-          <h2>📋 历史采购记录</h2>
-          <div class="header-actions">
-            <span style="color:var(--text-muted);font-size:13px;">保留最近3天的采购数据</span>
-          </div>
-        </div>
-        <div class="card" style="margin-bottom:16px;">
-          <div class="card-body" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <span style="font-weight:500;">选择日期：</span>
-            <div id="history-dates" style="display:flex;gap:8px;">
-              <span style="color:var(--text-muted);">加载中...</span>
-            </div>
-          </div>
-        </div>
-        <div id="history-content">
-          <div style="text-align:center;padding:40px;color:var(--text-muted);">请选择日期查看历史记录</div>
-        </div>
-      </div>
-
-      <!-- Inquiry Management -->
-      <div class="page" id="page-inquiry">
-        <div class="page-header">
-          <h2>询价管理</h2>
-          <div class="header-actions">
-            <button class="btn" onclick="showImportInquiryDialog()" data-tooltip="从 xlsx 文件导入询价鉴证表数据">📥 导入鉴证表</button>
-            <button class="btn btn-primary" onclick="showAddInquiryItem()" data-tooltip="手动添加一条询价记录">+ 新增单品</button>
-          </div>
-        </div>
-
-        <!-- 月份和分类筛选 -->
-        <div class="inquiry-filters">
-          <div class="filter-group">
-            <label>月份：</label>
-            <select id="inquiry-month" class="form-control" onchange="loadInquiryItems()" data-tooltip="选择要查看的询价月份">
-              <option value="">请选择月份</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>分类：</label>
-            <select id="inquiry-category" class="form-control" onchange="loadInquiryItems()" data-tooltip="按食材分类筛选询价数据">
-              <option value="">全部分类</option>
-              <option value="米面粮油类">米面粮油类</option>
-              <option value="肉禽蛋类">肉禽蛋类</option>
-              <option value="水果蔬菜及豆制品类">水果蔬菜及豆制品类</option>
-              <option value="速冻食品类">速冻食品类</option>
-              <option value="乳品饮料类">乳品饮料类</option>
-              <option value="海鲜水产类">海鲜水产类</option>
-              <option value="干货调料及腌制品类">干货调料及腌制品类</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label>搜索：</label>
-            <input type="text" id="inquiry-search" class="form-control" placeholder="🔍 搜索品名..." oninput="searchInquiry()" data-tooltip="按品名搜索询价记录">
-          </div>
-          <div class="filter-group">
-            <label>盛销折扣率：</label>
-            <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" readonly tabindex="-1" data-tooltip="盛销供应商的折扣率，在设置页修改">
-          </div>
-          <div class="filter-group">
-            <label>优宏折扣率：</label>
-            <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" readonly tabindex="-1" data-tooltip="优宏供应商的折扣率，在设置页修改">
-          </div>
-        </div>
-
-        <!-- 询价数据表格 -->
-        <div class="card">
-          <div class="card-header">
-            <h3>询价数据 <span id="inquiry-count" class="tag tag-info">0 条</span></h3>
-          </div>
-          <div class="inquiry-table-wrapper">
-            <table class="table table-inquiry" id="inquiry-table">
-              <thead>
-                <tr>
-                  <th style="width:40px;">序号</th>
-                  <th style="width:120px;">分类</th>
-                  <th style="width:200px;">品名</th>
-                  <th style="width:80px;">评估价</th>
-                  <th style="width:80px;" id="header-discount1">盛销价</th>
-                  <th style="width:80px;" id="header-discount2">优宏价</th>
-                  <th style="width:60px;">单位</th>
-                  <th style="width:100px;">规格</th>
-                  <th style="width:80px;">涨跌</th>
-                  <th style="width:100px;">备注</th>
-                  <th style="width:80px;">实物图</th>
-                  <th style="width:100px;">操作</th>
-                </tr>
-              </thead>
-              <tbody id="inquiry-body">
-                <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted);">请先导入鉴证表数据</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Settings -->
-      <div class="page" id="page-settings">
-        <div class="page-header">
-          <h2>⚙️ 设置</h2>
-        </div>
-        <div class="settings-grid">
-          <div class="card">
-            <div class="card-header"><h3>📋 录入表格</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: repeat(3, 1fr);">
-              <div class="form-group">
-                <label>入库添加行数</label>
-                <input type="number" class="form-control" id="setting-inbound-rows" min="1" max="50" value="5" data-tooltip="入库页面每次点击"添加行"时增加的行数">
-              </div>
-              <div class="form-group">
-                <label>出库添加行数</label>
-                <input type="number" class="form-control" id="setting-outbound-rows" min="1" max="50" value="5" data-tooltip="出库页面每次点击"添加行"时增加的行数">
-              </div>
-              <div class="form-group">
-                <label>采购单添加行数</label>
-                <input type="number" class="form-control" id="setting-purchase-rows" min="1" max="50" value="10" data-tooltip="采购单页面每次点击"添加行"时增加的行数">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>📊 历史记录</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
-              <div class="form-group">
-                <label>入库页面展示历史</label>
-                <select class="form-control" id="setting-inbound-history" data-tooltip="是否在入库页面底部显示最近入库记录">
-                  <option value="on">开启</option>
-                  <option value="off">关闭</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>入库历史展示天数</label>
-                <input type="number" class="form-control" id="setting-inbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
-              </div>
-              <div class="form-group">
-                <label>出库页面展示历史</label>
-                <select class="form-control" id="setting-outbound-history" data-tooltip="是否在出库页面底部显示最近出库记录">
-                  <option value="on">开启</option>
-                  <option value="off">关闭</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>出库历史展示天数</label>
-                <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>⚠️ 过期预警</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
-              <div class="form-group">
-                <label>短期预警天数</label>
-                <input type="number" class="form-control" id="setting-alert-short-days" min="1" max="365" value="30" data-tooltip="临期预警的短期天数阈值">
-              </div>
-              <div class="form-group">
-                <label>长期预警天数</label>
-                <input type="number" class="form-control" id="setting-alert-long-days" min="1" max="365" value="60" data-tooltip="临期预警的长期天数阈值">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>📋 库存查询</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
-              <div class="form-group">
-                <label>最近入库记录数</label>
-                <input type="number" class="form-control" id="setting-inv-inbound-limit" min="1" max="50" value="5" data-tooltip="库存查询页面中入库记录表格显示的条数">
-              </div>
-              <div class="form-group">
-                <label>最近出库记录数</label>
-                <input type="number" class="form-control" id="setting-inv-outbound-limit" min="1" max="50" value="10" data-tooltip="库存查询页面中出库记录表格显示的条数">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>💰 询价管理</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: repeat(2, 1fr);">
-              <div class="form-group">
-                <label>折扣一名称</label>
-                <input type="text" class="form-control" id="setting-discount1-name" value="盛销" data-tooltip="询价管理中第一个折扣供应商的名称">
-              </div>
-              <div class="form-group">
-                <label>折扣一折扣率</label>
-                <input type="text" class="form-control" id="setting-discount1-rate" value="0.9008" data-tooltip="询价管理中第一个折扣供应商的折扣系数">
-              </div>
-              <div class="form-group">
-                <label>折扣二名称</label>
-                <input type="text" class="form-control" id="setting-discount2-name" value="优宏" data-tooltip="询价管理中第二个折扣供应商的名称">
-              </div>
-              <div class="form-group">
-                <label>折扣二折扣率</label>
-                <input type="text" class="form-control" id="setting-discount2-rate" value="0.9058" data-tooltip="询价管理中第二个折扣供应商的折扣系数">
-              </div>
-              <div class="form-group">
-                <label>单价小数位数</label>
-                <input type="number" class="form-control" id="setting-price-decimals" min="0" max="4" value="2" data-tooltip="询价管理中价格显示的小数位数">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>🍽️ 食堂模式</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
-              <div class="form-group">
-                <label>运行模式</label>
-                <select class="form-control" id="setting-canteen-mode" onchange="toggleSmallCanteenConfig()" data-tooltip="切换采购单的食堂模式，影响采购单页的布局和功能">
-                  <option value="default">默认模式（洋安/新安，采购单页可切换）</option>
-                  <option value="multi">多食堂分页（下涯/制杆厂/白南山）</option>
-                  <option value="small">小所食堂</option>
-                </select>
-              </div>
-              <div id="small-canteen-config" style="display:none;">
-                <div class="form-group">
-                  <label>采购单填写样式</label>
-                  <select class="form-control" id="setting-small-display-style" onchange="onSmallDisplayStyleChange(this.value)" data-tooltip="小所模式下：逐所分页输入或品名x所名矩阵输入">
-                    <option value="groups">样式1：逐所输入（分页切换）</option>
-                    <option value="matrix">样式2：矩阵输入（品名×所名）</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>小所列表（可拖拽排序）</label>
-                  <div id="small-canteen-list" data-tooltip="配置小所名称和显示顺序"></div>
-                  <button class="btn btn-sm" onclick="addSmallCanteen()" style="margin-top:8px;">+ 添加小所</button>
-                </div>
-                <div class="form-group">
-                  <label>厨房导出样式</label>
-                  <select class="form-control" id="setting-small-export-style" data-tooltip="小所模式导出 Excel 时的排版样式">
-                    <option value="matrix">样式1：矩阵式（品名×小所，紧凑）</option>
-                    <option value="paired">样式2：两两并列（每组完整列）</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>⌨️ 键盘导航</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
-              <div class="form-group">
-                <label>回车键导航模式</label>
-                <select class="form-control" id="setting-enter-mode" data-tooltip="回车后跳到下一行同列还是下一行首格，可用 Ctrl+Enter 快速切换">
-                  <option value="next-row">跳到下一行同列</option>
-                  <option value="next-cell">跳到下一行首格</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>📷 实物图片</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
-              <div class="form-group">
-                <label>照片文件夹路径</label>
-                <div style="display:flex;gap:8px;">
-                  <input type="text" class="form-control" id="setting-photo-folder" placeholder="选择存放实物图片的文件夹路径" style="flex:1;" data-tooltip="存放询价实物图片的文件夹路径，建议使用内网共享文件夹">
-                  <button class="btn" onclick="selectPhotoFolder()">浏览...</button>
-                </div>
-                <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block;">建议使用内网共享文件夹，图片按"品名_规格.ext"命名</small>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3>🎨 界面主题</h3></div>
-            <div class="card-body form-grid" style="grid-template-columns: 1fr;">
-              <div class="form-group">
-                <label>主题风格</label>
-                <select class="form-control" id="setting-theme" data-tooltip="切换界面视觉风格，保存后立即生效">
-                  <option value="default">默认风格</option>
-                  <option value="biophilic">🌿 有机自然（Organic Biophilic）</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>主题字体（仅有机自然主题生效）</label>
-                <select class="form-control" id="setting-theme-font" data-tooltip="选择有机自然主题下使用的字体">
-                  <option value="Cheese">🧀 日系可爱奶酪体</option>
-                  <option value="Bayu">🖊️ 叶根友霸域行书</option>
-                  <option value="Erciyuan">✌️ 手指二次元体</option>
-                  <option value="Xuesong">🌲 禅意雪松体</option>
-                  <option value="Yangmao">🐑 汉标榜羊毛笔拼音体</option>
-                  <option value="Tengxiang">🔵 腾祥亲圆简体</option>
-                </select>
-              </div>
-              <div class="form-group" style="display:flex;gap:16px;">
-                <div style="flex:1;">
-                  <label>导航栏字号 (px)</label>
-                  <input type="number" class="form-control" id="setting-theme-nav-size" min="12" max="40" value="21" data-tooltip="侧边栏导航文字大小" style="width:100%;">
-                </div>
-                <div style="flex:1;">
-                  <label>正文字号 (px)</label>
-                  <input type="number" class="form-control" id="setting-theme-body-size" min="12" max="40" value="20" data-tooltip="页面正文内容文字大小" style="width:100%;">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style="text-align:right;margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
-          <button class="btn" onclick="startTour(0)" data-tooltip="重新播放新手引导教程">📖 查看新手引导</button>
-          <button class="btn btn-primary btn-lg" onclick="saveSettings()" data-tooltip="保存所有配置项并立即生效">💾 保存设置</button>
-        </div>
-      </div>
-
-      <!-- Help -->
-      <div class="page" id="page-help">
-        <div class="page-header">
-          <h2>📖 使用帮助</h2>
-          <div class="header-actions">
-            <button class="btn btn-primary" onclick="startTour(0)" data-tooltip="重新播放新手引导教程，一步步带你熟悉各功能">🎓 启动新手教程</button>
-          </div>
-        </div>
-        <div class="help-container">
-          <!-- 搜索框 -->
-          <div class="card" style="margin-bottom:16px;">
-            <div class="card-body" style="display:flex;gap:12px;align-items:center;">
-              <div style="position:relative;flex:1;">
-                <input type="text" class="form-control" id="help-search-input" placeholder="🔍 搜索帮助内容... 如：入库、采购单、过期预警" autocomplete="off" style="width:100%;" oninput="searchHelp(this.value)">
-                <div class="autocomplete-dropdown" id="help-search-dropdown" style="display:none;"></div>
-              </div>
-              <span class="text-muted" id="help-search-hint">输入关键词快速定位</span>
-            </div>
-          </div>
-
-          <!-- 目录 -->
-          <div class="card help-section" id="help-toc">
-            <div class="card-header">
-              <h3>📑 功能目录</h3>
-            </div>
-            <div class="card-body">
-              <p>欢迎使用<strong>食堂出入库管理系统</strong>！本系统专为食堂仓储管理设计，帮助您轻松管理食材的入库、出库、采购和库存。</p>
-              <div class="help-tip">
-                <strong>💡 新手建议：</strong>首次使用请点击上方的"启动新手教程"按钮，系统会一步步带您了解各功能。
-              </div>
-              <h4>点击跳转到对应章节</h4>
-              <div class="help-toc-grid">
-                <a href="#section-products" class="help-toc-item" onclick="scrollToHelpSection('section-products')">
-                  <span class="toc-icon">🏷️</span>
-                  <span class="toc-text">产品管理</span>
-                  <span class="toc-desc">添加、编辑、停用材料</span>
-                </a>
-                <a href="#section-inbound" class="help-toc-item" onclick="scrollToHelpSection('section-inbound')">
-                  <span class="toc-icon">📥</span>
-                  <span class="toc-text">入库登记</span>
-                  <span class="toc-desc">批量录入入库记录</span>
-                </a>
-                <a href="#section-outbound" class="help-toc-item" onclick="scrollToHelpSection('section-outbound')">
-                  <span class="toc-icon">📤</span>
-                  <span class="toc-text">出库登记</span>
-                  <span class="toc-desc">批量登记出库记录</span>
-                </a>
-                <a href="#section-inventory" class="help-toc-item" onclick="scrollToHelpSection('section-inventory')">
-                  <span class="toc-icon">📋</span>
-                  <span class="toc-text">库存查询</span>
-                  <span class="toc-desc">查看库存和过期预警</span>
-                </a>
-                <a href="#section-ledger" class="help-toc-item" onclick="scrollToHelpSection('section-ledger')">
-                  <span class="toc-icon">📅</span>
-                  <span class="toc-text">月度台账</span>
-                  <span class="toc-desc">按日查看出入库汇总</span>
-                </a>
-                <a href="#section-purchase" class="help-toc-item" onclick="scrollToHelpSection('section-purchase')">
-                  <span class="toc-icon">📝</span>
-                  <span class="toc-text">采购单</span>
-                  <span class="toc-desc">编制采购计划</span>
-                </a>
-                <a href="#section-inquiry" class="help-toc-item" onclick="scrollToHelpSection('section-inquiry')">
-                  <span class="toc-icon">💰</span>
-                  <span class="toc-text">询价管理</span>
-                  <span class="toc-desc">管理价格数据</span>
-                </a>
-                <a href="#section-data-io" class="help-toc-item" onclick="scrollToHelpSection('section-data-io')">
-                  <span class="toc-icon">📦</span>
-                  <span class="toc-text">数据导入导出</span>
-                  <span class="toc-desc">批量数据操作</span>
-                </a>
-                <a href="#section-history" class="help-toc-item" onclick="scrollToHelpSection('section-history')">
-                  <span class="toc-icon">📋</span>
-                  <span class="toc-text">历史采购</span>
-                  <span class="toc-desc">查看历史记录</span>
-                </a>
-                <a href="#section-settings" class="help-toc-item" onclick="scrollToHelpSection('section-settings')">
-                  <span class="toc-icon">⚙️</span>
-                  <span class="toc-text">设置</span>
-                  <span class="toc-desc">配置系统参数</span>
-                </a>
-                <a href="#section-faq" class="help-toc-item" onclick="scrollToHelpSection('section-faq')">
-                  <span class="toc-icon">❓</span>
-                  <span class="toc-text">常见问题</span>
-                  <span class="toc-desc">问题解答</span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <!-- 产品管理 -->
-          <div class="card help-section" id="section-products" data-keywords="产品 物料 添加 编辑 停用 恢复 保质期">
-            <div class="card-header">
-              <h3>🏷️ 产品管理</h3>
-            </div>
-            <div class="card-body">
-              <p>产品管理是整个系统的基础，所有入库、出库、库存查询都依赖于这里的产品数据。</p>
-
-              <h4>添加新产品</h4>
-              <ol>
-                <li>点击右上角的<strong>"+ 新增产品"</strong>按钮</li>
-                <li>填写产品信息：
-                  <ul>
-                    <li><strong>材料名称</strong>（必填）：如"大米"、"面粉"、"猪肉"等</li>
-                    <li><strong>规格</strong>：如"50斤/袋"、"散装"等</li>
-                    <li><strong>单位</strong>：如"斤"、"袋"、"箱"等</li>
-                    <li><strong>保质期</strong>：填写月数和天数，系统会自动计算过期日期</li>
-                  </ul>
-                </li>
-                <li>点击保存完成添加</li>
-              </ol>
-
-              <h4>搜索和筛选产品</h4>
-              <ul>
-                <li>在搜索框输入产品名称可快速查找</li>
-                <li>使用筛选下拉框可查看：有效产品、已停用产品或全部产品</li>
-              </ul>
-
-              <h4>停用和恢复产品</h4>
-              <ul>
-                <li>点击产品右侧的<strong>"停用"</strong>按钮可停用产品（不会删除数据）</li>
-                <li>切换到"已停用"筛选可查看被停用的产品</li>
-                <li>点击<strong>"恢复"</strong>按钮可重新启用产品</li>
-              </ul>
-
-              <div class="help-tip">
-                <strong>💡 提示：</strong>产品被停用后，在入库、出库时将无法选择该产品，但历史记录会保留。
-              </div>
-            </div>
-          </div>
-
-          <!-- 入库登记 -->
-          <div class="card help-section" id="section-inbound" data-keywords="入库 进货 录入 批量 生产日期 到期日 自动补全">
-            <div class="card-header">
-              <h3>📥 入库登记</h3>
-            </div>
-            <div class="card-body">
-              <p>入库登记用于记录食材的进货入库，支持批量录入，提高工作效率。</p>
-
-              <h4>录入入库记录</h4>
-              <ol>
-                <li>在<strong>材料名称</strong>列输入产品名称（支持自动补全，输入1个字就会显示匹配的产品）</li>
-                <li>从下拉列表中选择正确的产品，系统会自动填入规格和单位</li>
-                <li>输入<strong>数量</strong>和<strong>入库日期</strong></li>
-                <li>如果需要记录<strong>生产日期</strong>，系统会根据保质期自动计算<strong>到期日</strong></li>
-                <li>填写<strong>备注</strong>（可选）</li>
-                <li>继续填写下一行，或点击<strong>"✓ 批量提交"</strong>按钮保存所有记录</li>
-              </ol>
-
-              <h4>快捷操作</h4>
-              <ul>
-                <li><strong>回车键</strong>：跳到下一行同列（可在设置中改为跳到下一行首格）</li>
-                <li><strong>方向键</strong>：上下左右移动光标</li>
-                <li><strong>粘贴功能</strong>：可以从Excel复制一列数据，粘贴到表格中自动向下填充</li>
-                <li><strong>添加行</strong>：点击"+ 添加行"按钮可增加更多录入行</li>
-              </ul>
-
-              <div class="help-warning">
-                <strong>⚠️ 注意：</strong>输入的产品名称必须在"产品管理"中已存在，否则系统会提示"该产品不存在"。如果是新产品，请先到产品管理中添加。
-              </div>
-            </div>
-          </div>
-
-          <!-- 出库登记 -->
-          <div class="card help-section" id="section-outbound" data-keywords="出库 领用 领取人 库存校验 批量">
-            <div class="card-header">
-              <h3>📤 出库登记</h3>
-            </div>
-            <div class="card-body">
-              <p>出库登记用于记录食材的领用出库，支持批量录入和库存校验。</p>
-
-              <h4>录入出库记录</h4>
-              <ol>
-                <li>在<strong>材料名称</strong>列输入产品名称（支持自动补全）</li>
-                <li>选择产品后，系统会显示当前<strong>库存数量</strong></li>
-                <li>输入<strong>数量</strong>和<strong>出库日期</strong></li>
-                <li>选择<strong>领取人</strong>（默认有：厨房、小食堂、面点房、烧饭、明档）</li>
-                <li>点击<strong>"✓ 批量提交"</strong>按钮保存所有记录</li>
-              </ol>
-
-              <h4>库存校验</h4>
-              <p>系统会在提交前检查库存是否充足。如果出库数量超过当前库存，系统会显示警告，防止超领。</p>
-
-              <h4>管理领取人</h4>
-              <p>点击页面右上角的<strong>"👥 管理领取人"</strong>按钮，可以：</p>
-              <ul>
-                <li><strong>新增</strong>：添加新的领取人名称</li>
-                <li><strong>编辑</strong>：修改现有领取人名称</li>
-                <li><strong>删除</strong>：移除不需要的领取人</li>
-                <li><strong>排序</strong>：拖拽调整领取人的显示顺序</li>
-              </ul>
-              <p>默认领取人有：厨房、小食堂、面点房、烧饭、明档。您可以根据实际情况自由调整。</p>
-            </div>
-          </div>
-
-          <!-- 库存查询 -->
-          <div class="card help-section" id="section-inventory" data-keywords="库存 查询 搜索 过期 预警 临期 红色徽章">
-            <div class="card-header">
-              <h3>📋 库存查询</h3>
-            </div>
-            <div class="card-body">
-              <p>库存查询页面帮助您实时了解各种食材的库存情况，并提供过期预警功能。</p>
-
-              <h4>查询库存</h4>
-              <ol>
-                <li>在搜索框输入产品名称</li>
-                <li>从下拉列表中选择产品</li>
-                <li>系统会显示该产品的详细库存信息：
-                  <ul>
-                    <li><strong>上月结存</strong>：上个月的库存数量</li>
-                    <li><strong>本月入库</strong>：本月累计入库数量</li>
-                    <li><strong>本月出库</strong>：本月累计出库数量</li>
-                    <li><strong>当前库存</strong>：实时库存数量</li>
-                  </ul>
-                </li>
-                <li>页面下方还会显示最近的入库和出库记录</li>
-              </ol>
-
-              <h4>过期预警</h4>
-              <p>点击<strong>"⚠️ 过期预警"</strong>标签页，可以查看所有临期和已过期的食材：</p>
-              <ul>
-                <li><strong>已过期</strong>（红色）：已经超过保质期的食材</li>
-                <li><strong>即将到期</strong>（橙色）：短期内将要过期的食材（天数可在设置中配置）</li>
-                <li><strong>长期预警</strong>（黄色）：较长期内将要过期的食材</li>
-              </ul>
-
-              <div class="help-warning">
-                <strong>⚠️ 重要：</strong>当有过期或临期食材时，总览页面和库存查询标签会显示<strong>红色徽章</strong>提醒，请及时处理！
-              </div>
-            </div>
-          </div>
-
-          <!-- 月度台账 -->
-          <div class="card help-section" id="section-ledger" data-keywords="台账 月度 日明细 汇总 导出 按日">
-            <div class="card-header">
-              <h3>📅 月度台账</h3>
-            </div>
-            <div class="card-body">
-              <p>月度台账以表格形式展示每月的出入库明细，方便核对和存档。</p>
-
-              <h4>查看台账</h4>
-              <ol>
-                <li>选择<strong>年份</strong>和<strong>月份</strong></li>
-                <li>系统会显示该月所有产品的出入库记录：
-                  <ul>
-                    <li>每一列代表一天（1日-31日）</li>
-                    <li>显示每天的入库和出库数量</li>
-                    <li>汇总列显示：上月结存、本月入库、本月出库、当前库存</li>
-                  </ul>
-                </li>
-                <li>点击产品行可展开查看详细记录</li>
-              </ol>
-
-              <h4>导出台账</h4>
-              <p>点击<strong>"📤 导出 xlsx"</strong>按钮，可将当前月份的台账导出为Excel文件，方便打印和存档。</p>
-            </div>
-          </div>
-
-          <!-- 采购单 -->
-          <div class="card help-section" id="section-purchase" data-keywords="采购 食堂模式 默认 多食堂 小所 联华 厨房 面点房">
-            <div class="card-header">
-              <h3>📝 采购单</h3>
-            </div>
-            <div class="card-body">
-              <p>采购单模块用于编制每日的采购计划，支持多种食堂模式。</p>
-
-              <h4>食堂模式</h4>
-              <p>系统支持三种食堂模式（在设置中切换）：</p>
-              <ul>
-                <li><strong>默认模式</strong>：适用于洋安和新安食堂，可切换标签页</li>
-                <li><strong>多食堂模式</strong>：适用于下涯、制杆厂、白南山食堂</li>
-                <li><strong>小所模式</strong>：适用于7个卫星食堂（寿昌、梅城等），支持分组和矩阵两种显示样式</li>
-              </ul>
-
-              <h4>录入采购数据</h4>
-              <ol>
-                <li>选择对应的食堂标签页</li>
-                <li>在<strong>厨房</strong>区域录入食材采购：
-                  <ul>
-                    <li>输入品名时会从询价数据自动补全</li>
-                    <li>选择后自动填入规格、单位</li>
-                    <li>输入数量和单价</li>
-                  </ul>
-                </li>
-                <li>在<strong>联华超市</strong>区域录入联华商品采购</li>
-                <li>点击<strong>"💾 保存所有"</strong>按钮保存数据</li>
-              </ol>
-
-              <h4>快捷功能</h4>
-              <ul>
-                <li><strong>添加日期</strong>：为采购组添加新的送货日期</li>
-                <li><strong>复制行</strong>：快速复制一行数据</li>
-                <li><strong>导出</strong>：将采购单导出为Excel（含产品图片）</li>
-              </ul>
-
-              <div class="help-tip">
-                <strong>💡 提示：</strong>采购单每天会自动清空，但数据会保留3天，可在"历史采购"中查看。
-              </div>
-            </div>
-          </div>
-
-          <!-- 询价管理 -->
-          <div class="card help-section" id="section-inquiry" data-keywords="询价 价格 折扣 鉴证表 盛销 优宏 涨跌">
-            <div class="card-header">
-              <h3>💰 询价管理</h3>
-            </div>
-            <div class="card-body">
-              <p>询价管理用于管理每月的价格验证数据，是采购单自动补全的数据源。</p>
-
-              <h4>导入询价数据</h4>
-              <ol>
-                <li>点击<strong>"📥 导入鉴证表"</strong>按钮</li>
-                <li>选择鉴证表xlsx文件</li>
-                <li>系统会自动解析并导入询价数据</li>
-              </ol>
-
-              <h4>查看询价数据</h4>
-              <ul>
-                <li>选择<strong>月份</strong>查看该月的询价数据</li>
-                <li>按<strong>分类</strong>筛选：米面粮油类、肉禽蛋类、水果蔬菜及豆制品类等</li>
-                <li>使用<strong>搜索</strong>功能按品名查找</li>
-              </ul>
-
-              <h4>价格变动</h4>
-              <p>系统会自动比较本月和上月的价格：</p>
-              <ul>
-                <li><strong>↑</strong>：价格上涨</li>
-                <li><strong>↓</strong>：价格下降</li>
-              </ul>
-
-              <h4>折扣计算</h4>
-              <p>系统支持两个折扣率（在设置中配置）：</p>
-              <ul>
-                <li><strong>盛销价</strong>：原价 × 第一折扣率</li>
-                <li><strong>优宏价</strong>：原价 × 第二折扣率</li>
-              </ul>
-
-              <div class="help-tip">
-                <strong>💡 提示：</strong>询价数据会作为采购单的自动补全数据源，建议每月及时更新。
-              </div>
-            </div>
-          </div>
-
-          <!-- 数据导入导出 -->
-          <div class="card help-section" id="section-data-io" data-keywords="导入 导出 xlsx excel 备份 拖拽 批量">
-            <div class="card-header">
-              <h3>📦 数据导入导出</h3>
-            </div>
-            <div class="card-body">
-              <p>系统支持通过Excel文件进行批量数据导入和导出。</p>
-
-              <h4>导入数据</h4>
-              <p>在<strong>月度台账</strong>页面，点击<strong>"📥 导入数据"</strong>按钮，可导入：</p>
-              <ul>
-                <li><strong>产品数据</strong>：材料清单</li>
-                <li><strong>入库流水账</strong>：入库记录</li>
-                <li><strong>出库流水账</strong>：出库记录</li>
-                <li><strong>期初库存</strong>：台账sheet中的期初数据</li>
-              </ul>
-              <p>支持<strong>拖拽上传</strong>或点击选择文件。</p>
-
-              <h4>导出数据</h4>
-              <ul>
-                <li><strong>📊 导出库存</strong>：导出当前库存快照</li>
-                <li><strong>📅 导出台账</strong>：导出月度台账（含日明细）</li>
-                <li><strong>📦 导出全部</strong>：导出所有数据（产品+入库+出库）</li>
-                <li><strong>采购单导出</strong>：导出采购单（含产品图片）</li>
-              </ul>
-
-              <div class="help-warning">
-                <strong>⚠️ 注意：</strong>导入数据会<strong>覆盖</strong>已有数据，请谨慎操作。建议先导出备份，再进行导入。
-              </div>
-            </div>
-          </div>
-
-          <!-- 历史采购 -->
-          <div class="card help-section" id="section-history" data-keywords="历史 采购 3天 保留 查看">
-            <div class="card-header">
-              <h3>📋 历史采购</h3>
-            </div>
-            <div class="card-body">
-              <p>历史采购页面用于查看最近3天的采购单记录。</p>
-
-              <h4>查看历史</h4>
-              <ol>
-                <li>点击日期标签选择要查看的日期（默认显示最近一天）</li>
-                <li>系统会按食堂模式分组显示采购数据</li>
-                <li>每个分组可展开/折叠查看详情</li>
-              </ol>
-
-              <h4>数据保留规则</h4>
-              <ul>
-                <li>采购单每天会自动清空显示</li>
-                <li>数据库中的记录保留<strong>3天</strong></li>
-                <li>超过3天的记录会自动清理</li>
-              </ul>
-
-              <div class="help-tip">
-                <strong>💡 提示：</strong>历史记录为只读，不支持编辑。如需修改，请在采购单页面重新录入。
-              </div>
-            </div>
-          </div>
-
-          <!-- 设置 -->
-          <div class="card help-section" id="section-settings" data-keywords="设置 配置 参数 食堂模式 键盘 图片 预警天数">
-            <div class="card-header">
-              <h3>⚙️ 设置</h3>
-            </div>
-            <div class="card-body">
-              <p>设置页面用于配置系统的各项参数，所有设置修改后会<strong>立即生效</strong>。</p>
-
-              <h4>主要设置项</h4>
-              <ul>
-                <li><strong>录入表格</strong>：配置入库、出库、采购单每次添加的行数</li>
-                <li><strong>历史记录</strong>：配置是否显示历史记录及显示天数</li>
-                <li><strong>过期预警</strong>：配置短期和长期预警天数</li>
-                <li><strong>询价管理</strong>：配置折扣名称和折扣率</li>
-                <li><strong>食堂模式</strong>：切换默认/多食堂/小所模式</li>
-                <li><strong>键盘导航</strong>：配置回车键的导航方式</li>
-                <li><strong>实物图片</strong>：配置产品图片文件夹路径</li>
-              </ul>
-
-              <h4>保存设置</h4>
-              <p>修改设置后，点击<strong>"💾 保存设置"</strong>按钮保存。</p>
-
-              <div class="help-tip">
-                <strong>💡 提示：</strong>切换食堂模式时，系统会提示可能的数据丢失，请谨慎操作。
-              </div>
-            </div>
-          </div>
-
-          <!-- 常见问题 -->
-          <div class="card help-section" id="section-faq" data-keywords="问题 解答 FAQ 怎么办 如何 为什么">
-            <div class="card-header">
-              <h3>❓ 常见问题</h3>
-            </div>
-            <div class="card-body">
-              <h4>Q: 为什么入库时提示"该产品不存在"？</h4>
-              <p>A: 输入的产品名称必须在"产品管理"中已存在。如果是新产品，请先到产品管理中添加。</p>
-
-              <h4>Q: 如何查看过期食材？</h4>
-              <p>A: 在"库存查询"页面，点击"⚠️ 过期预警"标签页，可查看所有临期和已过期的食材。</p>
-
-              <h4>Q: 采购单数据丢失了怎么办？</h4>
-              <p>A: 采购单每天会自动清空，但数据保留3天。可在"历史采购"中查看。如需更长时间保留，请及时导出备份。</p>
-
-              <h4>Q: 如何备份数据？</h4>
-              <p>A: 在"月度台账"页面，点击"📥 导入数据"展开面板，然后点击"📦 导出全部"可导出所有数据。建议定期备份。</p>
-
-              <h4>Q: 如何添加新的领取人？</h4>
-              <p>A: 默认领取人有：厨房、小食堂、面点房、烧饭、明档。如需添加新的领取人，请联系管理员修改数据库。</p>
-
-              <h4>Q: 键盘快捷键有哪些？</h4>
-              <p>A:
-                <ul>
-                  <li><strong>回车</strong>：跳到下一行（可在设置中配置跳到同列或首格）</li>
-                  <li><strong>Ctrl+Enter</strong>：快速切换回车导航模式</li>
-                  <li><strong>方向键</strong>：在表格中移动光标</li>
-                  <li><strong>Tab</strong>：跳到下一列</li>
-                  <li><strong>Escape</strong>：关闭下拉菜单或失焦当前输入</li>
-                </ul>
-              </p>
-            </div>
-          </div>
-
-          <!-- 联系支持 -->
-          <div class="card help-section">
-            <div class="card-header">
-              <h3>📞 联系支持</h3>
-            </div>
-            <div class="card-body">
-              <p>如果以上内容无法解决您的问题，请联系系统管理员获取帮助。</p>
-              <div class="help-tip">
-                <strong>💡 建议：</strong>遇到问题时，请先尝试：
-                <ol>
-                  <li>刷新页面（按F5）</li>
-                  <li>重新启动应用</li>
-                  <li>查看是否有未保存的数据</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <!-- Toast notification -->
-  <div class="toast-container" id="toast-container"></div>
-
-  <!-- 返回目录悬浮按钮 -->
-  <button class="back-to-toc-btn" id="back-to-toc-btn" onclick="scrollToHelpSection('help-toc')" title="返回目录" style="display:none;">
-    <span>📑</span>
-    <span class="btn-text">目录</span>
-  </button>
-
-  <!-- Modal -->
-  <div class="modal-overlay" id="modal-overlay">
-    <div class="modal" id="modal">
-      <div class="modal-header">
-        <h3 id="modal-title">标题</h3>
-        <button class="modal-close" onclick="closeModal()">&times;</button>
-      </div>
-      <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer" id="modal-footer"></div>
-    </div>
-  </div>
-
-  <script src="chart.umd.min.js"></script>
-  <script src="../node_modules/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="utils.js"></script>
-  <script src="dashboard.js"></script>
-  <script src="settings.js"></script>
-  <script src="products.js"></script>
-  <script src="inbound.js"></script>
-  <script src="outbound.js"></script>
-  <script src="app.js"></script>
-  <script src="data-io.js"></script>
-  <script src="purchase.js"></script>
-  <script src="lianhua.js"></script>
-  <script src="history.js"></script>
-  <script src="inquiry.js"></script>
-  <script src="inventory.js"></script>
-  <script src="ledger.js"></script>
-  <script src="tour.js"></script>
+ <!-- 浮动窗口控制按钮 -->
+ <div class="window-controls" id="window-controls">
+ <button id="btn-minimize" onclick="minimizeWindow()" title="最小化">
+ <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="currentColor" width="10" height="1" x="1" y="5.5"/></svg>
+ </button>
+ <button id="btn-maximize" onclick="maximizeWindow()" title="最大化">
+ <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/></svg>
+ </button>
+ <button class="btn-close" id="btn-close" onclick="closeWindow()" title="关闭">
+ <svg width="12" height="12" viewBox="0 0 12 12">
+ <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+ <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+ </svg>
+ </button>
+ </div>
+
+ <div class="app">
+ <!-- Sidebar -->
+ <nav class="sidebar">
+ <div class="sidebar-header">
+ <h1> 食堂出入库</h1>
+ <span class="sidebar-version" id="sidebar-version"></span>
+ </div>
+ <ul class="nav-list">
+ <li class="nav-item active" data-page="dashboard" data-tooltip="查看库存统计概览、趋势图和预警">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+ <span class="nav-text">总览</span>
+ </li>
+ <li class="nav-item" data-page="inventory" data-tooltip="搜索材料库存和查看过期预警">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+ <span class="nav-text">库存查询</span>
+ </li>
+ <li class="nav-item" data-page="inbound" data-tooltip="批量录入入库记录">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+ <span class="nav-text">入库登记</span>
+ </li>
+ <li class="nav-item" data-page="outbound" data-tooltip="批量登记出库，含库存校验">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 8 12 13 17 8"/><line x1="12" y1="13" x2="12" y2="3"/></svg></span>
+ <span class="nav-text">出库登记</span>
+ </li>
+ <li class="nav-item" data-page="ledger" data-tooltip="查看按日分列的月度出入库汇总">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+ <span class="nav-text">月度台账</span>
+ </li>
+ <li class="nav-item" data-page="products" data-tooltip="管理材料清单和保质期信息">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+ <span class="nav-text">产品管理</span>
+ </li>
+ <li class="nav-item" data-page="purchase" data-tooltip="编制和管理采购订单">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+ <span class="nav-text">采购单</span>
+ </li>
+ <li class="nav-item" data-page="history" data-tooltip="查看最近3天的采购单历史记录">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg></span>
+ <span class="nav-text">历史采购</span>
+ </li>
+ <li class="nav-item" data-page="inquiry" data-tooltip="管理询价数据和价格变动">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+ <span class="nav-text">询价管理</span>
+ </li>
+ <li class="nav-item" data-page="settings" data-tooltip="配置系统参数">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+ <span class="nav-text">设置</span>
+ </li>
+ <li class="nav-item" data-page="help" style="margin-top:auto;border-top:1px solid var(--border);padding-top:8px;" data-tooltip="查看使用教程和帮助文档">
+ <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+ <span class="nav-text">帮助</span>
+ </li>
+ </ul>
+ <div class="sidebar-toggle" onclick="toggleSidebar()" data-tooltip="展开/折叠侧栏">
+ <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+ </div>
+ </nav>
+ <div class="drag-region"></div>
+
+ <!-- Main Content -->
+ <main class="main-content">
+ <!-- Dashboard -->
+ <div class="page active" id="page-dashboard">
+ <div class="page-header">
+ <h2>总览</h2>
+ <span class="date-display">2026年6月3日</span>
+ </div>
+ <div class="stats-grid">
+ <div class="stat-card" data-tooltip="当前有库存的材料品种数">
+ <div class="stat-icon"></div>
+ <div class="stat-info">
+ <div class="stat-value" id="stat-products">0</div>
+ <div class="stat-label">在库品种</div>
+ </div>
+ </div>
+ <div class="stat-card" data-tooltip="历史入库记录总条数">
+ <div class="stat-icon"></div>
+ <div class="stat-info">
+ <div class="stat-value" id="stat-inbound">0</div>
+ <div class="stat-label">累计入库笔数</div>
+ </div>
+ </div>
+ <div class="stat-card" data-tooltip="历史出库记录总条数">
+ <div class="stat-icon"></div>
+ <div class="stat-info">
+ <div class="stat-value" id="stat-outbound">0</div>
+ <div class="stat-label">累计出库笔数</div>
+ </div>
+ </div>
+ <div class="stat-card warning" style="cursor:pointer;" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')" data-tooltip="点击跳转到库存查询的过期预警标签页">
+ <div class="stat-icon"></div>
+ <div class="stat-info">
+ <div class="stat-value" id="stat-alerts">0</div>
+ <div class="stat-label">临期/过期预警</div>
+ </div>
+ </div>
+ </div>
+ <div class="dashboard-grid">
+ <div class="card">
+ <div class="card-header">
+ <h3> 近30天入出库趋势</h3>
+ </div>
+ <div class="card-body" data-tooltip="近30天每日入库(绿)和出库(红)数量折线图">
+ <canvas id="trend-chart" height="250"></canvas>
+ </div>
+ </div>
+ <div class="card">
+ <div class="card-header">
+ <h3> 库存分布 (Top 10)</h3>
+ </div>
+ <div class="card-body" data-tooltip="按当前库存量排序的前10大品种分布">
+ <canvas id="pie-chart" height="250"></canvas>
+ </div>
+ </div>
+ </div>
+ <div class="card">
+ <div class="card-header">
+ <h3> 临期预警</h3>
+ <button class="btn btn-sm" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')">查看全部</button>
+ </div>
+ <div class="card-body" style="text-align:center;padding:20px;color:var(--text-muted);">
+ 点击"查看全部"跳转到库存查询的过期预警标签页查看详情
+ </div>
+ </div>
+ </div>
+
+ <!-- Inventory (with Alerts tab) -->
+ <div class="page" id="page-inventory">
+ <div class="page-header">
+ <h2>库存管理</h2>
+ <div class="header-actions">
+ <button class="btn btn-primary" onclick="exportInventory()" data-tooltip="将当前库存数据导出为 Excel 文件"> 导出 xlsx</button>
+ </div>
+ </div>
+ <div class="tab-bar">
+ <button class="tab-btn active" data-tab="inv-search" onclick="switchInvTab('inv-search')" data-tooltip="按材料查看详细库存和出入库流水"> 库存查询</button>
+ <button class="tab-btn" data-tab="inv-alerts" onclick="switchInvTab('inv-alerts')" data-tooltip="查看临期和已过期的材料清单">
+ 过期预警 <span class="badge" id="alert-badge" style="display:none;">0</span>
+ </button>
+ </div>
+
+ <!-- Tab: 库存查询 -->
+ <div class="tab-panel active" id="tab-inv-search">
+ <div class="card card-no-clip" style="margin-bottom: 16px;">
+ <div class="card-body" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+ <div style="position:relative;flex:1;min-width:250px;">
+ <input type="text" class="form-control" id="inv-search-input" placeholder=" 输入材料名称搜索..." autocomplete="off" style="width:100%;">
+ <div class="autocomplete-dropdown" id="inv-search-dropdown" style="display:none;"></div>
+ </div>
+ <span class="text-muted" id="inv-search-hint">输入名称后选择材料查看详情</span>
+ </div>
+ </div>
+
+ <div id="inv-detail" style="display:none;">
+ <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 16px;">
+ <div class="stat-card">
+ <div class="stat-info">
+ <div class="stat-value" id="inv-prev-stock">0</div>
+ <div class="stat-label">上月结存</div>
+ </div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-info">
+ <div class="stat-value" id="inv-month-in">0</div>
+ <div class="stat-label">本月入库</div>
+ </div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-info">
+ <div class="stat-value" id="inv-month-out">0</div>
+ <div class="stat-label">本月出库</div>
+ </div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-info">
+ <div class="stat-value" id="inv-stock">0</div>
+ <div class="stat-label">当前库存</div>
+ </div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-info">
+ <div class="stat-value" id="inv-status">-</div>
+ <div class="stat-label">库存状态</div>
+ </div>
+ </div>
+ </div>
+ <div class="product-info-bar" id="inv-product-info" style="margin-bottom:16px;padding:10px 16px;background:var(--bg);border-radius:8px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;">
+ <span><strong id="inv-p-name">-</strong></span>
+ <span class="text-muted">规格：<span id="inv-p-spec">-</span></span>
+ <span class="text-muted">单位：<span id="inv-p-unit">-</span></span>
+ <span class="text-muted">累计入库：<strong id="inv-total-in">0</strong></span>
+ <span class="text-muted">累计出库：<strong id="inv-total-out">0</strong></span>
+ <span class="text-muted">累计净入库：<strong id="inv-net-in">0</strong></span>
+ </div>
+
+ <div class="inv-records-grid">
+ <div class="card">
+ <div class="card-header">
+ <h3> 最近入库记录 <span class="tag tag-info" id="inv-inbound-count">0</span></h3>
+ </div>
+ <table class="table">
+ <thead>
+ <tr><th>日期</th><th>数量</th><th>生产日期</th><th>到期日</th><th>备注</th></tr>
+ </thead>
+ <tbody id="inv-inbound-body"></tbody>
+ </table>
+ </div>
+ <div class="card">
+ <div class="card-header">
+ <h3> 最近出库记录 <span class="tag tag-info" id="inv-outbound-count">0</span></h3>
+ </div>
+ <table class="table">
+ <thead>
+ <tr><th>日期</th><th>数量</th><th>领取人</th></tr>
+ </thead>
+ <tbody id="inv-outbound-body"></tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Tab: 过期预警 -->
+ <div class="tab-panel" id="tab-inv-alerts">
+ <div class="alert-summary">
+ <div class="alert-card alert-danger">
+ <div class="alert-count" id="alert-expired-count">0</div>
+ <div class="alert-label">已过期</div>
+ </div>
+ <div class="alert-card alert-warning">
+ <div class="alert-count" id="alert-soon-count">0</div>
+ <div class="alert-label" id="alert-soon-label">30天内到期</div>
+ </div>
+ <div class="alert-card alert-info">
+ <div class="alert-count" id="alert-upcoming-count">0</div>
+ <div class="alert-label" id="alert-upcoming-label">60天内到期</div>
+ </div>
+ </div>
+ <div class="card">
+ <div class="card-header">
+ <h3>预警列表</h3>
+ <select id="alert-filter" class="form-control" style="width:120px;">
+ <option value="all">全部</option>
+ <option value="expired">已过期</option>
+ <option value="soon">即将到期</option>
+ </select>
+ </div>
+ <table class="table">
+ <thead>
+ <tr><th>材料名称</th><th>规格</th><th>数量</th><th>生产日期</th><th>到期日</th><th>剩余天数</th><th>状态</th></tr>
+ </thead>
+ <tbody id="alerts-body">
+ <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</td></tr>
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+
+ <!-- Inbound -->
+ <div class="page" id="page-inbound">
+ <div class="page-header">
+ <h2>入库登记</h2>
+ <div class="header-actions">
+ <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录"> 批量提交</button>
+ </div>
+ </div>
+ <div class="card">
+ <div class="card-header">
+ <h3>入库录入</h3>
+ <button class="btn btn-sm" onclick="addInboundRows()" data-tooltip="在表格底部添加更多录入行">+ 添加行</button>
+ </div>
+ <div class="purchase-table-wrapper">
+ <table class="table table-purchase" id="inbound-table">
+ <thead>
+ <tr>
+ <th style="width:40px;">#</th>
+ <th style="width:140px;">材料名称 <span class="required">*</span></th>
+ <th style="width:80px;">规格</th>
+ <th style="width:80px;">数量 <span class="required">*</span></th>
+ <th style="width:60px;">单位</th>
+ <th style="width:130px;">入库日期 <span class="required">*</span></th>
+ <th style="width:130px;">生产日期</th>
+ <th style="width:130px;">到期日</th>
+ <th style="width:120px;">备注</th>
+ <th style="width:60px;">操作</th>
+ </tr>
+ </thead>
+ <tbody id="inbound-tbody">
+ </tbody>
+ </table>
+ </div>
+ </div>
+ <div class="card" style="margin-top: 20px;">
+ <div class="card-header">
+ <h3>最近入库记录</h3>
+ </div>
+ <table class="table">
+ <thead>
+ <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>生产日期</th><th>到期日</th><th>操作</th></tr>
+ </thead>
+ <tbody id="recent-inbound">
+ </tbody>
+ </table>
+ </div>
+ </div>
+
+ <!-- Outbound -->
+ <div class="page" id="page-outbound">
+ <div class="page-header">
+ <h2>出库登记</h2>
+ <div class="header-actions">
+ <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序"> 管理领取人</button>
+ <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录"> 批量提交</button>
+ </div>
+ </div>
+ <div class="card">
+ <div class="card-header">
+ <h3>出库录入</h3>
+ <button class="btn btn-sm" onclick="addOutboundRows()" data-tooltip="在表格底部添加更多录入行">+ 添加行</button>
+ </div>
+ <div class="purchase-table-wrapper">
+ <table class="table table-purchase" id="outbound-table">
+ <thead>
+ <tr>
+ <th style="width:40px;">#</th>
+ <th style="width:140px;">材料名称 <span class="required">*</span></th>
+ <th style="width:80px;">规格</th>
+ <th style="width:80px;">数量 <span class="required">*</span></th>
+ <th style="width:60px;">单位</th>
+ <th style="width:60px;">库存</th>
+ <th style="width:130px;">出库日期 <span class="required">*</span></th>
+ <th style="width:100px;">领取人 <span class="required">*</span></th>
+ <th style="width:60px;">操作</th>
+ </tr>
+ </thead>
+ <tbody id="outbound-tbody">
+ </tbody>
+ </table>
+ </div>
+ </div>
+ <div class="card" style="margin-top: 20px;">
+ <div class="card-header">
+ <h3>最近出库记录</h3>
+ </div>
+ <table class="table">
+ <thead>
+ <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>领取人</th><th>操作</th></tr>
+ </thead>
+ <tbody id="recent-outbound">
+ </tbody>
+ </table>
+ </div>
+ </div>
+
+ <!-- Ledger -->
+ <div class="page" id="page-ledger">
+ <div class="page-header">
+ <h2>月度台账</h2>
+ <div class="header-actions">
+ <select id="ledger-year" class="form-control" style="width:100px;" data-tooltip="选择要查看的年份">
+ </select>
+ <select id="ledger-month" class="form-control" style="width:80px;" data-tooltip="选择要查看的月份">
+ <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+ <option value="4">4月</option><option value="5">5月</option><option value="6" selected>6月</option>
+ <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+ <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+ </select>
+ <button class="btn" onclick="toggleImportPanel()" data-tooltip="展开导入面板，从 xlsx 文件批量导入产品和出入库数据"> 导入数据</button>
+ <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件"> 导出 xlsx</button>
+ </div>
+ </div>
+
+ <!-- Import Panel (collapsible) -->
+ <div class="import-panel" id="import-panel" style="display:none;">
+ <div class="card" style="margin-bottom: 16px;">
+ <div class="card-header">
+ <h3> 从 xlsx 文件导入数据</h3>
+ <button class="btn btn-sm" onclick="toggleImportPanel()"> 关闭</button>
+ </div>
+ <div class="card-body">
+ <div class="import-dropzone" id="dropzone">
+ <div class="dropzone-content">
+ <div class="dropzone-icon"></div>
+ <p>将 xlsx 文件拖拽到此处</p>
+ <p class="text-muted">或点击选择文件</p>
+ <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;">
+ <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">选择文件</button>
+ </div>
+ </div>
+ <div class="import-options" style="margin-top: 16px;">
+ <label class="checkbox-label">
+ <input type="checkbox" checked disabled> 产品数据（材料清单）
+ </label>
+ <label class="checkbox-label">
+ <input type="checkbox" checked id="import-inbound"> 入库流水账
+ </label>
+ <label class="checkbox-label">
+ <input type="checkbox" checked id="import-outbound"> 出库流水账
+ </label>
+ </div>
+ <div class="import-preview" id="import-preview" style="display:none;">
+ <h4>预览导入数据</h4>
+ <div class="import-stats" id="import-preview-stats"></div>
+ <div style="margin-top:15px;display:flex;gap:10px;">
+ <button class="btn btn-primary btn-lg" onclick="startImport()" data-tooltip="覆盖已有数据并导入新数据，请先备份">开始导入（覆盖已有数据）</button>
+ <button class="btn btn-lg" style="color:var(--danger);border-color:var(--danger);" onclick="clearAndReimport()" data-tooltip="清除所有现有数据后导入，请谨慎操作">清空后重新导入</button>
+ </div>
+ </div>
+ <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
+ <button class="btn" onclick="exportInventory()"> 导出库存</button>
+ <button class="btn" onclick="exportLedger()"> 导出台账</button>
+ <button class="btn" onclick="exportAll()"> 导出全部</button>
+ <button class="btn" style="color:var(--danger);border-color:var(--danger);margin-left:auto;" onclick="clearAndReimport()"> 清空所有数据</button>
+ </div>
+ </div>
+ </div>
+ </div>
+ <div class="card">
+ <div class="table-wrapper">
+ <table class="table table-ledger" id="ledger-table">
+ <thead>
+ <tr>
+ <th class="sticky-col col-idx">序号</th>
+ <th class="sticky-col col-name">品名</th>
+ <th class="sticky-col col-unit">单位</th>
+ <th>上月结存</th>
+ <th>本月入库</th>
+ <th>本月出库</th>
+ <th>当前库存</th>
+ <th class="day-header" data-day="1">1日</th>
+ <th class="day-header" data-day="2">2日</th>
+ <th class="day-header" data-day="3">3日</th>
+ <th class="day-header" data-day="4">4日</th>
+ <th class="day-header" data-day="5">5日</th>
+ <th class="day-header" data-day="6">6日</th>
+ <th class="day-header" data-day="7">7日</th>
+ <th class="day-header" data-day="8">8日</th>
+ <th class="day-header" data-day="9">9日</th>
+ <th class="day-header" data-day="10">10日</th>
+ <th class="day-header" data-day="11">11日</th>
+ <th class="day-header" data-day="12">12日</th>
+ <th class="day-header" data-day="13">13日</th>
+ <th class="day-header" data-day="14">14日</th>
+ <th class="day-header" data-day="15">15日</th>
+ <th class="day-header" data-day="16">16日</th>
+ <th class="day-header" data-day="17">17日</th>
+ <th class="day-header" data-day="18">18日</th>
+ <th class="day-header" data-day="19">19日</th>
+ <th class="day-header" data-day="20">20日</th>
+ <th class="day-header" data-day="21">21日</th>
+ <th class="day-header" data-day="22">22日</th>
+ <th class="day-header" data-day="23">23日</th>
+ <th class="day-header" data-day="24">24日</th>
+ <th class="day-header" data-day="25">25日</th>
+ <th class="day-header" data-day="26">26日</th>
+ <th class="day-header" data-day="27">27日</th>
+ <th class="day-header" data-day="28">28日</th>
+ <th class="day-header" data-day="29">29日</th>
+ <th class="day-header" data-day="30">30日</th>
+ <th class="day-header" data-day="31">31日</th>
+ </tr>
+ </thead>
+ <tbody id="ledger-body"></tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+
+ <!-- Products -->
+ <div class="page" id="page-products">
+ <div class="page-header">
+ <h2>产品管理</h2>
+ <div class="header-actions">
+ <select id="prod-status-filter" class="form-control" style="width:120px;" onchange="renderProductTable(document.getElementById('prod-search').value)" data-tooltip="筛选显示有效/已停用/全部产品">
+ <option value="active">有效产品</option>
+ <option value="inactive">已停用</option>
+ <option value="all">全部</option>
+ </select>
+ <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()" data-tooltip="批量停用勾选的产品"> 停用选中</button>
+ <input type="text" class="search-input" placeholder=" 搜索产品..." id="prod-search" data-tooltip="按材料名称搜索产品">
+ <button class="btn btn-primary" onclick="showAddProduct()" data-tooltip="添加新产品到材料清单">+ 新增产品</button>
+ </div>
+ </div>
+ <div class="card">
+ <table class="table" id="products-table">
+ <thead>
+ <tr>
+ <th style="width:40px;"><input type="checkbox" id="select-all-products" onchange="toggleSelectAll(this.checked)"></th>
+ <th>序号</th><th>材料名称</th><th>规格</th><th>单位</th><th>保质期(月)</th><th>保质期(日)</th><th>操作</th>
+ </tr>
+ </thead>
+ <tbody id="products-body"></tbody>
+ </table>
+ </div>
+ </div>
+
+ <!-- Purchase Order -->
+ <div class="page" id="page-purchase">
+ <div class="page-header">
+ <h2>采购单</h2>
+ <div class="header-actions">
+ <button class="btn" onclick="exportAllPurchaseOrders()" data-tooltip="将所有采购组导出为 Excel（含实物图片）"> 导出全部</button>
+ <button class="btn" onclick="showImportLianhuaDialog()" data-tooltip="从 xlsx 文件导入联华超市商品目录"> 导入联华商品</button>
+ <button class="btn btn-primary" onclick="saveAllPurchaseOrders()" data-tooltip="保存当前所有采购组的数据"> 保存所有</button>
+ </div>
+ </div>
+ <div class="purchase-container" id="purchase-container">
+ <!-- 默认模式：食堂切换 -->
+ <div id="canteen-switch" class="tab-bar" style="display:none;">
+ <button class="tab-btn canteen-tab active" data-canteen="洋安" onclick="switchCanteen('洋安')">洋安</button>
+ <button class="tab-btn canteen-tab" data-canteen="新安" onclick="switchCanteen('新安')">新安</button>
+ </div>
+ <!-- 多食堂模式 Tab (hidden by default) -->
+ <div id="multi-canteen-tabs" class="tab-bar" style="display:none;">
+ <button class="tab-btn active" data-canteen="下涯" onclick="switchMultiCanteenTab('下涯')">下涯</button>
+ <button class="tab-btn" data-canteen="制杆厂" onclick="switchMultiCanteenTab('制杆厂')">制杆厂</button>
+ <button class="tab-btn" data-canteen="白南山" onclick="switchMultiCanteenTab('白南山')">白南山</button>
+ </div>
+
+ <!-- 多食堂模式: 联华+厨房 (JS动态创建，按Tab显隐) -->
+ <div id="multi-canteen-area"></div>
+
+ <!-- 小所食堂模式 Tab -->
+ <div id="small-canteen-tabs" class="tab-bar" style="display:none;">
+ </div>
+ <!-- 小所食堂模式: 操作栏 -->
+ <div id="small-canteen-actions" style="display:none;margin-bottom:12px;">
+ <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" data-tooltip="展开或隐藏矩阵视图中的备注列"> 备注</button>
+ <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()" data-tooltip="将当前小所的采购数据复制到另一个小所"> 复用单个小所</button>
+ <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()" data-tooltip="将当前小所的数据同步覆盖到所有其他小所"> 一键同步到所有小所</button>
+ <div class="dropdown-wrap" style="margin-left:auto;">
+ <button class="btn btn-sm" onclick="toggleDropdown(event)" data-tooltip="快速将联华商品添加到当前小所的采购单">联华加购 ▾</button>
+ <div class="dropdown-menu" id="lianhua-dropdown"></div>
+ </div>
+ </div>
+ <!-- 小所食堂模式: 并排区域 (样式1) -->
+ <div id="small-canteen-area" style="display:none;"></div>
+ <!-- 小所食堂模式: 矩阵区域 (样式2) -->
+ <div id="small-matrix-area" style="display:none;"></div>
+
+ <!-- 洋安/新安模式: 联华（基础输入模板，数据源为 lianhua_items） -->
+ <div class="purchase-group" id="purchase-lianhua" data-source="联华">
+ <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠联华超市采购组">
+ <span class="group-toggle">▶</span>
+ <h3 id="lianhua-title">联华超市</h3>
+ <div class="group-actions">
+ <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('联华')" data-tooltip="为联华采购组添加新的到货日期">+ 添加日期</button>
+ </div>
+ </div>
+ <div class="group-content" style="display:none;"></div>
+ </div>
+
+ <!-- 洋安/新安模式: 厨房 -->
+ <div class="purchase-group" id="purchase-kitchen" data-source="">
+ <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠厨房采购组">
+ <span class="group-toggle">▶</span>
+ <h3 id="kitchen-title">厨房</h3>
+ <div class="group-actions">
+ <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog(getKitchenSource())">+ 添加日期</button>
+ </div>
+ </div>
+ <div class="group-content" style="display:none;"></div>
+ </div>
+
+ <!-- 洋安/新安模式: 面点房 -->
+ <div class="purchase-group" id="purchase-pastry" data-source="">
+ <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠面点房采购组">
+ <span class="group-toggle">▶</span>
+ <h3 id="pastry-title">面点房</h3>
+ <div class="group-actions">
+ <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog(getPastrySource())">+ 添加日期</button>
+ </div>
+ </div>
+ <div class="group-content" style="display:none;"></div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Purchase History -->
+ <div class="page" id="page-history">
+ <div class="page-header">
+ <h2> 历史采购记录</h2>
+ <div class="header-actions">
+ <span style="color:var(--text-muted);font-size:13px;">保留最近3天的采购数据</span>
+ </div>
+ </div>
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-body" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+ <span style="font-weight:500;">选择日期：</span>
+ <div id="history-dates" style="display:flex;gap:8px;">
+ <span style="color:var(--text-muted);">加载中...</span>
+ </div>
+ </div>
+ </div>
+ <div id="history-content">
+ <div style="text-align:center;padding:40px;color:var(--text-muted);">请选择日期查看历史记录</div>
+ </div>
+ </div>
+
+ <!-- Inquiry Management -->
+ <div class="page" id="page-inquiry">
+ <div class="page-header">
+ <h2>询价管理</h2>
+ <div class="header-actions">
+ <button class="btn" onclick="showImportInquiryDialog()" data-tooltip="从 xlsx 文件导入询价鉴证表数据"> 导入鉴证表</button>
+ <button class="btn btn-primary" onclick="showAddInquiryItem()" data-tooltip="手动添加一条询价记录">+ 新增单品</button>
+ </div>
+ </div>
+
+ <!-- 月份和分类筛选 -->
+ <div class="inquiry-filters">
+ <div class="filter-group">
+ <label>月份：</label>
+ <select id="inquiry-month" class="form-control" onchange="loadInquiryItems()" data-tooltip="选择要查看的询价月份">
+ <option value="">请选择月份</option>
+ </select>
+ </div>
+ <div class="filter-group">
+ <label>分类：</label>
+ <select id="inquiry-category" class="form-control" onchange="loadInquiryItems()" data-tooltip="按食材分类筛选询价数据">
+ <option value="">全部分类</option>
+ <option value="米面粮油类">米面粮油类</option>
+ <option value="肉禽蛋类">肉禽蛋类</option>
+ <option value="水果蔬菜及豆制品类">水果蔬菜及豆制品类</option>
+ <option value="速冻食品类">速冻食品类</option>
+ <option value="乳品饮料类">乳品饮料类</option>
+ <option value="海鲜水产类">海鲜水产类</option>
+ <option value="干货调料及腌制品类">干货调料及腌制品类</option>
+ </select>
+ </div>
+ <div class="filter-group">
+ <label>搜索：</label>
+ <input type="text" id="inquiry-search" class="form-control" placeholder=" 搜索品名..." oninput="searchInquiry()" data-tooltip="按品名搜索询价记录">
+ </div>
+ <div class="filter-group">
+ <label>盛销折扣率：</label>
+ <input type="text" id="discount-shengxiao" class="form-control" value="0.9008" style="width:80px;" readonly tabindex="-1" data-tooltip="盛销供应商的折扣率，在设置页修改">
+ </div>
+ <div class="filter-group">
+ <label>优宏折扣率：</label>
+ <input type="text" id="discount-youhong" class="form-control" value="0.9058" style="width:80px;" readonly tabindex="-1" data-tooltip="优宏供应商的折扣率，在设置页修改">
+ </div>
+ </div>
+
+ <!-- 询价数据表格 -->
+ <div class="card">
+ <div class="card-header">
+ <h3>询价数据 <span id="inquiry-count" class="tag tag-info">0 条</span></h3>
+ </div>
+ <div class="inquiry-table-wrapper">
+ <table class="table table-inquiry" id="inquiry-table">
+ <thead>
+ <tr>
+ <th style="width:40px;">序号</th>
+ <th style="width:120px;">分类</th>
+ <th style="width:200px;">品名</th>
+ <th style="width:80px;">评估价</th>
+ <th style="width:80px;" id="header-discount1">盛销价</th>
+ <th style="width:80px;" id="header-discount2">优宏价</th>
+ <th style="width:60px;">单位</th>
+ <th style="width:100px;">规格</th>
+ <th style="width:80px;">涨跌</th>
+ <th style="width:100px;">备注</th>
+ <th style="width:80px;">实物图</th>
+ <th style="width:100px;">操作</th>
+ </tr>
+ </thead>
+ <tbody id="inquiry-body">
+ <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted);">请先导入鉴证表数据</td></tr>
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+
+ <!-- Settings -->
+ <div class="page" id="page-settings">
+ <div class="page-header">
+ <h2> 设置</h2>
+ </div>
+ <div class="settings-grid">
+ <div class="card">
+ <div class="card-header"><h3> 录入表格</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: repeat(3, 1fr);">
+ <div class="form-group">
+ <label>入库添加行数</label>
+ <input type="number" class="form-control" id="setting-inbound-rows" min="1" max="50" value="5" data-tooltip="入库页面每次点击"添加行"时增加的行数">
+ </div>
+ <div class="form-group">
+ <label>出库添加行数</label>
+ <input type="number" class="form-control" id="setting-outbound-rows" min="1" max="50" value="5" data-tooltip="出库页面每次点击"添加行"时增加的行数">
+ </div>
+ <div class="form-group">
+ <label>采购单添加行数</label>
+ <input type="number" class="form-control" id="setting-purchase-rows" min="1" max="50" value="10" data-tooltip="采购单页面每次点击"添加行"时增加的行数">
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 历史记录</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
+ <div class="form-group">
+ <label>入库页面展示历史</label>
+ <select class="form-control" id="setting-inbound-history" data-tooltip="是否在入库页面底部显示最近入库记录">
+ <option value="on">开启</option>
+ <option value="off">关闭</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>入库历史展示天数</label>
+ <input type="number" class="form-control" id="setting-inbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
+ </div>
+ <div class="form-group">
+ <label>出库页面展示历史</label>
+ <select class="form-control" id="setting-outbound-history" data-tooltip="是否在出库页面底部显示最近出库记录">
+ <option value="on">开启</option>
+ <option value="off">关闭</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>出库历史展示天数</label>
+ <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 过期预警</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
+ <div class="form-group">
+ <label>短期预警天数</label>
+ <input type="number" class="form-control" id="setting-alert-short-days" min="1" max="365" value="30" data-tooltip="临期预警的短期天数阈值">
+ </div>
+ <div class="form-group">
+ <label>长期预警天数</label>
+ <input type="number" class="form-control" id="setting-alert-long-days" min="1" max="365" value="60" data-tooltip="临期预警的长期天数阈值">
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 库存查询</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
+ <div class="form-group">
+ <label>最近入库记录数</label>
+ <input type="number" class="form-control" id="setting-inv-inbound-limit" min="1" max="50" value="5" data-tooltip="库存查询页面中入库记录表格显示的条数">
+ </div>
+ <div class="form-group">
+ <label>最近出库记录数</label>
+ <input type="number" class="form-control" id="setting-inv-outbound-limit" min="1" max="50" value="10" data-tooltip="库存查询页面中出库记录表格显示的条数">
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 询价管理</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: repeat(2, 1fr);">
+ <div class="form-group">
+ <label>折扣一名称</label>
+ <input type="text" class="form-control" id="setting-discount1-name" value="盛销" data-tooltip="询价管理中第一个折扣供应商的名称">
+ </div>
+ <div class="form-group">
+ <label>折扣一折扣率</label>
+ <input type="text" class="form-control" id="setting-discount1-rate" value="0.9008" data-tooltip="询价管理中第一个折扣供应商的折扣系数">
+ </div>
+ <div class="form-group">
+ <label>折扣二名称</label>
+ <input type="text" class="form-control" id="setting-discount2-name" value="优宏" data-tooltip="询价管理中第二个折扣供应商的名称">
+ </div>
+ <div class="form-group">
+ <label>折扣二折扣率</label>
+ <input type="text" class="form-control" id="setting-discount2-rate" value="0.9058" data-tooltip="询价管理中第二个折扣供应商的折扣系数">
+ </div>
+ <div class="form-group">
+ <label>单价小数位数</label>
+ <input type="number" class="form-control" id="setting-price-decimals" min="0" max="4" value="2" data-tooltip="询价管理中价格显示的小数位数">
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 食堂模式</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+ <div class="form-group">
+ <label>运行模式</label>
+ <select class="form-control" id="setting-canteen-mode" onchange="toggleSmallCanteenConfig()" data-tooltip="切换采购单的食堂模式，影响采购单页的布局和功能">
+ <option value="default">默认模式（洋安/新安，采购单页可切换）</option>
+ <option value="multi">多食堂分页（下涯/制杆厂/白南山）</option>
+ <option value="small">小所食堂</option>
+ </select>
+ </div>
+ <div id="small-canteen-config" style="display:none;">
+ <div class="form-group">
+ <label>采购单填写样式</label>
+ <select class="form-control" id="setting-small-display-style" onchange="onSmallDisplayStyleChange(this.value)" data-tooltip="小所模式下：逐所分页输入或品名x所名矩阵输入">
+ <option value="groups">样式1：逐所输入（分页切换）</option>
+ <option value="matrix">样式2：矩阵输入（品名×所名）</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>小所列表（可拖拽排序）</label>
+ <div id="small-canteen-list" data-tooltip="配置小所名称和显示顺序"></div>
+ <button class="btn btn-sm" onclick="addSmallCanteen()" style="margin-top:8px;">+ 添加小所</button>
+ </div>
+ <div class="form-group">
+ <label>厨房导出样式</label>
+ <select class="form-control" id="setting-small-export-style" data-tooltip="小所模式导出 Excel 时的排版样式">
+ <option value="matrix">样式1：矩阵式（品名×小所，紧凑）</option>
+ <option value="paired">样式2：两两并列（每组完整列）</option>
+ </select>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3>键盘导航</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+ <div class="form-group">
+ <label>回车键导航模式</label>
+ <select class="form-control" id="setting-enter-mode" data-tooltip="回车后跳到下一行同列还是下一行首格，可用 Ctrl+Enter 快速切换">
+ <option value="next-row">跳到下一行同列</option>
+ <option value="next-cell">跳到下一行首格</option>
+ </select>
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 实物图片</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+ <div class="form-group">
+ <label>照片文件夹路径</label>
+ <div style="display:flex;gap:8px;">
+ <input type="text" class="form-control" id="setting-photo-folder" placeholder="选择存放实物图片的文件夹路径" style="flex:1;" data-tooltip="存放询价实物图片的文件夹路径，建议使用内网共享文件夹">
+ <button class="btn" onclick="selectPhotoFolder()">浏览...</button>
+ </div>
+ <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block;">建议使用内网共享文件夹，图片按"品名_规格.ext"命名</small>
+ </div>
+ </div>
+ </div>
+
+ <div class="card">
+ <div class="card-header"><h3> 界面主题</h3></div>
+ <div class="card-body form-grid" style="grid-template-columns: 1fr;">
+ <div class="form-group">
+ <label>主题风格</label>
+ <select class="form-control" id="setting-theme" data-tooltip="切换界面视觉风格，保存后立即生效">
+ <option value="default">默认风格</option>
+ <option value="biophilic"> 有机自然（Organic Biophilic）</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label>主题字体（仅有机自然主题生效）</label>
+ <select class="form-control" id="setting-theme-font" data-tooltip="选择有机自然主题下使用的字体">
+ <option value="Cheese"> 日系可爱奶酪体</option>
+ <option value="Bayu"> 叶根友霸域行书</option>
+ <option value="Erciyuan"> 手指二次元体</option>
+ <option value="Xuesong"> 禅意雪松体</option>
+ <option value="Yangmao"> 汉标榜羊毛笔拼音体</option>
+ <option value="Tengxiang"> 腾祥亲圆简体</option>
+ </select>
+ </div>
+ <div class="form-group" style="display:flex;gap:16px;">
+ <div style="flex:1;">
+ <label>导航栏字号 (px)</label>
+ <input type="number" class="form-control" id="setting-theme-nav-size" min="12" max="40" value="21" data-tooltip="侧边栏导航文字大小" style="width:100%;">
+ </div>
+ <div style="flex:1;">
+ <label>正文字号 (px)</label>
+ <input type="number" class="form-control" id="setting-theme-body-size" min="12" max="40" value="20" data-tooltip="页面正文内容文字大小" style="width:100%;">
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ <div style="text-align:right;margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
+ <button class="btn" onclick="startTour(0)" data-tooltip="重新播放新手引导教程"> 查看新手引导</button>
+ <button class="btn btn-primary btn-lg" onclick="saveSettings()" data-tooltip="保存所有配置项并立即生效"> 保存设置</button>
+ </div>
+ </div>
+
+ <!-- Help -->
+ <div class="page" id="page-help">
+ <div class="page-header">
+ <h2> 使用帮助</h2>
+ <div class="header-actions">
+ <button class="btn btn-primary" onclick="startTour(0)" data-tooltip="重新播放新手引导教程，一步步带你熟悉各功能"> 启动新手教程</button>
+ </div>
+ </div>
+ <div class="help-container">
+ <!-- 搜索框 -->
+ <div class="card" style="margin-bottom:16px;">
+ <div class="card-body" style="display:flex;gap:12px;align-items:center;">
+ <div style="position:relative;flex:1;">
+ <input type="text" class="form-control" id="help-search-input" placeholder=" 搜索帮助内容... 如：入库、采购单、过期预警" autocomplete="off" style="width:100%;" oninput="searchHelp(this.value)">
+ <div class="autocomplete-dropdown" id="help-search-dropdown" style="display:none;"></div>
+ </div>
+ <span class="text-muted" id="help-search-hint">输入关键词快速定位</span>
+ </div>
+ </div>
+
+ <!-- 目录 -->
+ <div class="card help-section" id="help-toc">
+ <div class="card-header">
+ <h3> 功能目录</h3>
+ </div>
+ <div class="card-body">
+ <p>欢迎使用<strong>食堂出入库管理系统</strong>！本系统专为食堂仓储管理设计，帮助您轻松管理食材的入库、出库、采购和库存。</p>
+ <div class="help-tip">
+ <strong> 新手建议：</strong>首次使用请点击上方的"启动新手教程"按钮，系统会一步步带您了解各功能。
+ </div>
+ <h4>点击跳转到对应章节</h4>
+ <div class="help-toc-grid">
+ <a href="#section-products" class="help-toc-item" onclick="scrollToHelpSection('section-products')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">产品管理</span>
+ <span class="toc-desc">添加、编辑、停用材料</span>
+ </a>
+ <a href="#section-inbound" class="help-toc-item" onclick="scrollToHelpSection('section-inbound')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">入库登记</span>
+ <span class="toc-desc">批量录入入库记录</span>
+ </a>
+ <a href="#section-outbound" class="help-toc-item" onclick="scrollToHelpSection('section-outbound')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">出库登记</span>
+ <span class="toc-desc">批量登记出库记录</span>
+ </a>
+ <a href="#section-inventory" class="help-toc-item" onclick="scrollToHelpSection('section-inventory')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">库存查询</span>
+ <span class="toc-desc">查看库存和过期预警</span>
+ </a>
+ <a href="#section-ledger" class="help-toc-item" onclick="scrollToHelpSection('section-ledger')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">月度台账</span>
+ <span class="toc-desc">按日查看出入库汇总</span>
+ </a>
+ <a href="#section-purchase" class="help-toc-item" onclick="scrollToHelpSection('section-purchase')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">采购单</span>
+ <span class="toc-desc">编制采购计划</span>
+ </a>
+ <a href="#section-inquiry" class="help-toc-item" onclick="scrollToHelpSection('section-inquiry')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">询价管理</span>
+ <span class="toc-desc">管理价格数据</span>
+ </a>
+ <a href="#section-data-io" class="help-toc-item" onclick="scrollToHelpSection('section-data-io')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">数据导入导出</span>
+ <span class="toc-desc">批量数据操作</span>
+ </a>
+ <a href="#section-history" class="help-toc-item" onclick="scrollToHelpSection('section-history')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">历史采购</span>
+ <span class="toc-desc">查看历史记录</span>
+ </a>
+ <a href="#section-settings" class="help-toc-item" onclick="scrollToHelpSection('section-settings')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">设置</span>
+ <span class="toc-desc">配置系统参数</span>
+ </a>
+ <a href="#section-faq" class="help-toc-item" onclick="scrollToHelpSection('section-faq')">
+ <span class="toc-icon"></span>
+ <span class="toc-text">常见问题</span>
+ <span class="toc-desc">问题解答</span>
+ </a>
+ </div>
+ </div>
+ </div>
+
+ <!-- 产品管理 -->
+ <div class="card help-section" id="section-products" data-keywords="产品 物料 添加 编辑 停用 恢复 保质期">
+ <div class="card-header">
+ <h3> 产品管理</h3>
+ </div>
+ <div class="card-body">
+ <p>产品管理是整个系统的基础，所有入库、出库、库存查询都依赖于这里的产品数据。</p>
+
+ <h4>添加新产品</h4>
+ <ol>
+ <li>点击右上角的<strong>"+ 新增产品"</strong>按钮</li>
+ <li>填写产品信息：
+ <ul>
+ <li><strong>材料名称</strong>（必填）：如"大米"、"面粉"、"猪肉"等</li>
+ <li><strong>规格</strong>：如"50斤/袋"、"散装"等</li>
+ <li><strong>单位</strong>：如"斤"、"袋"、"箱"等</li>
+ <li><strong>保质期</strong>：填写月数和天数，系统会自动计算过期日期</li>
+ </ul>
+ </li>
+ <li>点击保存完成添加</li>
+ </ol>
+
+ <h4>搜索和筛选产品</h4>
+ <ul>
+ <li>在搜索框输入产品名称可快速查找</li>
+ <li>使用筛选下拉框可查看：有效产品、已停用产品或全部产品</li>
+ </ul>
+
+ <h4>停用和恢复产品</h4>
+ <ul>
+ <li>点击产品右侧的<strong>"停用"</strong>按钮可停用产品（不会删除数据）</li>
+ <li>切换到"已停用"筛选可查看被停用的产品</li>
+ <li>点击<strong>"恢复"</strong>按钮可重新启用产品</li>
+ </ul>
+
+ <div class="help-tip">
+ <strong> 提示：</strong>产品被停用后，在入库、出库时将无法选择该产品，但历史记录会保留。
+ </div>
+ </div>
+ </div>
+
+ <!-- 入库登记 -->
+ <div class="card help-section" id="section-inbound" data-keywords="入库 进货 录入 批量 生产日期 到期日 自动补全">
+ <div class="card-header">
+ <h3> 入库登记</h3>
+ </div>
+ <div class="card-body">
+ <p>入库登记用于记录食材的进货入库，支持批量录入，提高工作效率。</p>
+
+ <h4>录入入库记录</h4>
+ <ol>
+ <li>在<strong>材料名称</strong>列输入产品名称（支持自动补全，输入1个字就会显示匹配的产品）</li>
+ <li>从下拉列表中选择正确的产品，系统会自动填入规格和单位</li>
+ <li>输入<strong>数量</strong>和<strong>入库日期</strong></li>
+ <li>如果需要记录<strong>生产日期</strong>，系统会根据保质期自动计算<strong>到期日</strong></li>
+ <li>填写<strong>备注</strong>（可选）</li>
+ <li>继续填写下一行，或点击<strong>" 批量提交"</strong>按钮保存所有记录</li>
+ </ol>
+
+ <h4>快捷操作</h4>
+ <ul>
+ <li><strong>回车键</strong>：跳到下一行同列（可在设置中改为跳到下一行首格）</li>
+ <li><strong>方向键</strong>：上下左右移动光标</li>
+ <li><strong>粘贴功能</strong>：可以从Excel复制一列数据，粘贴到表格中自动向下填充</li>
+ <li><strong>添加行</strong>：点击"+ 添加行"按钮可增加更多录入行</li>
+ </ul>
+
+ <div class="help-warning">
+ <strong> 注意：</strong>输入的产品名称必须在"产品管理"中已存在，否则系统会提示"该产品不存在"。如果是新产品，请先到产品管理中添加。
+ </div>
+ </div>
+ </div>
+
+ <!-- 出库登记 -->
+ <div class="card help-section" id="section-outbound" data-keywords="出库 领用 领取人 库存校验 批量">
+ <div class="card-header">
+ <h3> 出库登记</h3>
+ </div>
+ <div class="card-body">
+ <p>出库登记用于记录食材的领用出库，支持批量录入和库存校验。</p>
+
+ <h4>录入出库记录</h4>
+ <ol>
+ <li>在<strong>材料名称</strong>列输入产品名称（支持自动补全）</li>
+ <li>选择产品后，系统会显示当前<strong>库存数量</strong></li>
+ <li>输入<strong>数量</strong>和<strong>出库日期</strong></li>
+ <li>选择<strong>领取人</strong>（默认有：厨房、小食堂、面点房、烧饭、明档）</li>
+ <li>点击<strong>" 批量提交"</strong>按钮保存所有记录</li>
+ </ol>
+
+ <h4>库存校验</h4>
+ <p>系统会在提交前检查库存是否充足。如果出库数量超过当前库存，系统会显示警告，防止超领。</p>
+
+ <h4>管理领取人</h4>
+ <p>点击页面右上角的<strong>" 管理领取人"</strong>按钮，可以：</p>
+ <ul>
+ <li><strong>新增</strong>：添加新的领取人名称</li>
+ <li><strong>编辑</strong>：修改现有领取人名称</li>
+ <li><strong>删除</strong>：移除不需要的领取人</li>
+ <li><strong>排序</strong>：拖拽调整领取人的显示顺序</li>
+ </ul>
+ <p>默认领取人有：厨房、小食堂、面点房、烧饭、明档。您可以根据实际情况自由调整。</p>
+ </div>
+ </div>
+
+ <!-- 库存查询 -->
+ <div class="card help-section" id="section-inventory" data-keywords="库存 查询 搜索 过期 预警 临期 红色徽章">
+ <div class="card-header">
+ <h3> 库存查询</h3>
+ </div>
+ <div class="card-body">
+ <p>库存查询页面帮助您实时了解各种食材的库存情况，并提供过期预警功能。</p>
+
+ <h4>查询库存</h4>
+ <ol>
+ <li>在搜索框输入产品名称</li>
+ <li>从下拉列表中选择产品</li>
+ <li>系统会显示该产品的详细库存信息：
+ <ul>
+ <li><strong>上月结存</strong>：上个月的库存数量</li>
+ <li><strong>本月入库</strong>：本月累计入库数量</li>
+ <li><strong>本月出库</strong>：本月累计出库数量</li>
+ <li><strong>当前库存</strong>：实时库存数量</li>
+ </ul>
+ </li>
+ <li>页面下方还会显示最近的入库和出库记录</li>
+ </ol>
+
+ <h4>过期预警</h4>
+ <p>点击<strong>" 过期预警"</strong>标签页，可以查看所有临期和已过期的食材：</p>
+ <ul>
+ <li><strong>已过期</strong>（红色）：已经超过保质期的食材</li>
+ <li><strong>即将到期</strong>（橙色）：短期内将要过期的食材（天数可在设置中配置）</li>
+ <li><strong>长期预警</strong>（黄色）：较长期内将要过期的食材</li>
+ </ul>
+
+ <div class="help-warning">
+ <strong> 重要：</strong>当有过期或临期食材时，总览页面和库存查询标签会显示<strong>红色徽章</strong>提醒，请及时处理！
+ </div>
+ </div>
+ </div>
+
+ <!-- 月度台账 -->
+ <div class="card help-section" id="section-ledger" data-keywords="台账 月度 日明细 汇总 导出 按日">
+ <div class="card-header">
+ <h3> 月度台账</h3>
+ </div>
+ <div class="card-body">
+ <p>月度台账以表格形式展示每月的出入库明细，方便核对和存档。</p>
+
+ <h4>查看台账</h4>
+ <ol>
+ <li>选择<strong>年份</strong>和<strong>月份</strong></li>
+ <li>系统会显示该月所有产品的出入库记录：
+ <ul>
+ <li>每一列代表一天（1日-31日）</li>
+ <li>显示每天的入库和出库数量</li>
+ <li>汇总列显示：上月结存、本月入库、本月出库、当前库存</li>
+ </ul>
+ </li>
+ <li>点击产品行可展开查看详细记录</li>
+ </ol>
+
+ <h4>导出台账</h4>
+ <p>点击<strong>" 导出 xlsx"</strong>按钮，可将当前月份的台账导出为Excel文件，方便打印和存档。</p>
+ </div>
+ </div>
+
+ <!-- 采购单 -->
+ <div class="card help-section" id="section-purchase" data-keywords="采购 食堂模式 默认 多食堂 小所 联华 厨房 面点房">
+ <div class="card-header">
+ <h3> 采购单</h3>
+ </div>
+ <div class="card-body">
+ <p>采购单模块用于编制每日的采购计划，支持多种食堂模式。</p>
+
+ <h4>食堂模式</h4>
+ <p>系统支持三种食堂模式（在设置中切换）：</p>
+ <ul>
+ <li><strong>默认模式</strong>：适用于洋安和新安食堂，可切换标签页</li>
+ <li><strong>多食堂模式</strong>：适用于下涯、制杆厂、白南山食堂</li>
+ <li><strong>小所模式</strong>：适用于7个卫星食堂（寿昌、梅城等），支持分组和矩阵两种显示样式</li>
+ </ul>
+
+ <h4>录入采购数据</h4>
+ <ol>
+ <li>选择对应的食堂标签页</li>
+ <li>在<strong>厨房</strong>区域录入食材采购：
+ <ul>
+ <li>输入品名时会从询价数据自动补全</li>
+ <li>选择后自动填入规格、单位</li>
+ <li>输入数量和单价</li>
+ </ul>
+ </li>
+ <li>在<strong>联华超市</strong>区域录入联华商品采购</li>
+ <li>点击<strong>" 保存所有"</strong>按钮保存数据</li>
+ </ol>
+
+ <h4>快捷功能</h4>
+ <ul>
+ <li><strong>添加日期</strong>：为采购组添加新的送货日期</li>
+ <li><strong>复制行</strong>：快速复制一行数据</li>
+ <li><strong>导出</strong>：将采购单导出为Excel（含产品图片）</li>
+ </ul>
+
+ <div class="help-tip">
+ <strong> 提示：</strong>采购单每天会自动清空，但数据会保留3天，可在"历史采购"中查看。
+ </div>
+ </div>
+ </div>
+
+ <!-- 询价管理 -->
+ <div class="card help-section" id="section-inquiry" data-keywords="询价 价格 折扣 鉴证表 盛销 优宏 涨跌">
+ <div class="card-header">
+ <h3> 询价管理</h3>
+ </div>
+ <div class="card-body">
+ <p>询价管理用于管理每月的价格验证数据，是采购单自动补全的数据源。</p>
+
+ <h4>导入询价数据</h4>
+ <ol>
+ <li>点击<strong>" 导入鉴证表"</strong>按钮</li>
+ <li>选择鉴证表xlsx文件</li>
+ <li>系统会自动解析并导入询价数据</li>
+ </ol>
+
+ <h4>查看询价数据</h4>
+ <ul>
+ <li>选择<strong>月份</strong>查看该月的询价数据</li>
+ <li>按<strong>分类</strong>筛选：米面粮油类、肉禽蛋类、水果蔬菜及豆制品类等</li>
+ <li>使用<strong>搜索</strong>功能按品名查找</li>
+ </ul>
+
+ <h4>价格变动</h4>
+ <p>系统会自动比较本月和上月的价格：</p>
+ <ul>
+ <li><strong>↑</strong>：价格上涨</li>
+ <li><strong>↓</strong>：价格下降</li>
+ </ul>
+
+ <h4>折扣计算</h4>
+ <p>系统支持两个折扣率（在设置中配置）：</p>
+ <ul>
+ <li><strong>盛销价</strong>：原价 × 第一折扣率</li>
+ <li><strong>优宏价</strong>：原价 × 第二折扣率</li>
+ </ul>
+
+ <div class="help-tip">
+ <strong> 提示：</strong>询价数据会作为采购单的自动补全数据源，建议每月及时更新。
+ </div>
+ </div>
+ </div>
+
+ <!-- 数据导入导出 -->
+ <div class="card help-section" id="section-data-io" data-keywords="导入 导出 xlsx excel 备份 拖拽 批量">
+ <div class="card-header">
+ <h3> 数据导入导出</h3>
+ </div>
+ <div class="card-body">
+ <p>系统支持通过Excel文件进行批量数据导入和导出。</p>
+
+ <h4>导入数据</h4>
+ <p>在<strong>月度台账</strong>页面，点击<strong>" 导入数据"</strong>按钮，可导入：</p>
+ <ul>
+ <li><strong>产品数据</strong>：材料清单</li>
+ <li><strong>入库流水账</strong>：入库记录</li>
+ <li><strong>出库流水账</strong>：出库记录</li>
+ <li><strong>期初库存</strong>：台账sheet中的期初数据</li>
+ </ul>
+ <p>支持<strong>拖拽上传</strong>或点击选择文件。</p>
+
+ <h4>导出数据</h4>
+ <ul>
+ <li><strong> 导出库存</strong>：导出当前库存快照</li>
+ <li><strong> 导出台账</strong>：导出月度台账（含日明细）</li>
+ <li><strong> 导出全部</strong>：导出所有数据（产品+入库+出库）</li>
+ <li><strong>采购单导出</strong>：导出采购单（含产品图片）</li>
+ </ul>
+
+ <div class="help-warning">
+ <strong> 注意：</strong>导入数据会<strong>覆盖</strong>已有数据，请谨慎操作。建议先导出备份，再进行导入。
+ </div>
+ </div>
+ </div>
+
+ <!-- 历史采购 -->
+ <div class="card help-section" id="section-history" data-keywords="历史 采购 3天 保留 查看">
+ <div class="card-header">
+ <h3> 历史采购</h3>
+ </div>
+ <div class="card-body">
+ <p>历史采购页面用于查看最近3天的采购单记录。</p>
+
+ <h4>查看历史</h4>
+ <ol>
+ <li>点击日期标签选择要查看的日期（默认显示最近一天）</li>
+ <li>系统会按食堂模式分组显示采购数据</li>
+ <li>每个分组可展开/折叠查看详情</li>
+ </ol>
+
+ <h4>数据保留规则</h4>
+ <ul>
+ <li>采购单每天会自动清空显示</li>
+ <li>数据库中的记录保留<strong>3天</strong></li>
+ <li>超过3天的记录会自动清理</li>
+ </ul>
+
+ <div class="help-tip">
+ <strong> 提示：</strong>历史记录为只读，不支持编辑。如需修改，请在采购单页面重新录入。
+ </div>
+ </div>
+ </div>
+
+ <!-- 设置 -->
+ <div class="card help-section" id="section-settings" data-keywords="设置 配置 参数 食堂模式 键盘 图片 预警天数">
+ <div class="card-header">
+ <h3> 设置</h3>
+ </div>
+ <div class="card-body">
+ <p>设置页面用于配置系统的各项参数，所有设置修改后会<strong>立即生效</strong>。</p>
+
+ <h4>主要设置项</h4>
+ <ul>
+ <li><strong>录入表格</strong>：配置入库、出库、采购单每次添加的行数</li>
+ <li><strong>历史记录</strong>：配置是否显示历史记录及显示天数</li>
+ <li><strong>过期预警</strong>：配置短期和长期预警天数</li>
+ <li><strong>询价管理</strong>：配置折扣名称和折扣率</li>
+ <li><strong>食堂模式</strong>：切换默认/多食堂/小所模式</li>
+ <li><strong>键盘导航</strong>：配置回车键的导航方式</li>
+ <li><strong>实物图片</strong>：配置产品图片文件夹路径</li>
+ </ul>
+
+ <h4>保存设置</h4>
+ <p>修改设置后，点击<strong>" 保存设置"</strong>按钮保存。</p>
+
+ <div class="help-tip">
+ <strong> 提示：</strong>切换食堂模式时，系统会提示可能的数据丢失，请谨慎操作。
+ </div>
+ </div>
+ </div>
+
+ <!-- 常见问题 -->
+ <div class="card help-section" id="section-faq" data-keywords="问题 解答 FAQ 怎么办 如何 为什么">
+ <div class="card-header">
+ <h3> 常见问题</h3>
+ </div>
+ <div class="card-body">
+ <h4>Q: 为什么入库时提示"该产品不存在"？</h4>
+ <p>A: 输入的产品名称必须在"产品管理"中已存在。如果是新产品，请先到产品管理中添加。</p>
+
+ <h4>Q: 如何查看过期食材？</h4>
+ <p>A: 在"库存查询"页面，点击" 过期预警"标签页，可查看所有临期和已过期的食材。</p>
+
+ <h4>Q: 采购单数据丢失了怎么办？</h4>
+ <p>A: 采购单每天会自动清空，但数据保留3天。可在"历史采购"中查看。如需更长时间保留，请及时导出备份。</p>
+
+ <h4>Q: 如何备份数据？</h4>
+ <p>A: 在"月度台账"页面，点击" 导入数据"展开面板，然后点击" 导出全部"可导出所有数据。建议定期备份。</p>
+
+ <h4>Q: 如何添加新的领取人？</h4>
+ <p>A: 默认领取人有：厨房、小食堂、面点房、烧饭、明档。如需添加新的领取人，请联系管理员修改数据库。</p>
+
+ <h4>Q: 键盘快捷键有哪些？</h4>
+ <p>A:
+ <ul>
+ <li><strong>回车</strong>：跳到下一行（可在设置中配置跳到同列或首格）</li>
+ <li><strong>Ctrl+Enter</strong>：快速切换回车导航模式</li>
+ <li><strong>方向键</strong>：在表格中移动光标</li>
+ <li><strong>Tab</strong>：跳到下一列</li>
+ <li><strong>Escape</strong>：关闭下拉菜单或失焦当前输入</li>
+ </ul>
+ </p>
+ </div>
+ </div>
+
+ <!-- 联系支持 -->
+ <div class="card help-section">
+ <div class="card-header">
+ <h3> 联系支持</h3>
+ </div>
+ <div class="card-body">
+ <p>如果以上内容无法解决您的问题，请联系系统管理员获取帮助。</p>
+ <div class="help-tip">
+ <strong> 建议：</strong>遇到问题时，请先尝试：
+ <ol>
+ <li>刷新页面（按F5）</li>
+ <li>重新启动应用</li>
+ <li>查看是否有未保存的数据</li>
+ </ol>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </main>
+ </div>
+
+ <!-- Toast notification -->
+ <div class="toast-container" id="toast-container"></div>
+
+ <!-- 返回目录悬浮按钮 -->
+ <button class="back-to-toc-btn" id="back-to-toc-btn" onclick="scrollToHelpSection('help-toc')" title="返回目录" style="display:none;">
+ <span></span>
+ <span class="btn-text">目录</span>
+ </button>
+
+ <!-- Modal -->
+ <div class="modal-overlay" id="modal-overlay">
+ <div class="modal" id="modal">
+ <div class="modal-header">
+ <h3 id="modal-title">标题</h3>
+ <button class="modal-close" onclick="closeModal()">&times;</button>
+ </div>
+ <div class="modal-body" id="modal-body"></div>
+ <div class="modal-footer" id="modal-footer"></div>
+ </div>
+ </div>
+
+ <script src="chart.umd.min.js"></script>
+ <script src="../node_modules/xlsx/dist/xlsx.full.min.js"></script>
+ <script src="utils.js"></script>
+ <script src="dashboard.js"></script>
+ <script src="settings.js"></script>
+ <script src="products.js"></script>
+ <script src="inbound.js"></script>
+ <script src="outbound.js"></script>
+ <script src="app.js"></script>
+ <script src="data-io.js"></script>
+ <script src="purchase.js"></script>
+ <script src="lianhua.js"></script>
+ <script src="history.js"></script>
+ <script src="inquiry.js"></script>
+ <script src="inventory.js"></script>
+ <script src="ledger.js"></script>
+ <script src="tour.js"></script>
 </body>
 </html>
