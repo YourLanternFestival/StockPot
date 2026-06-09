@@ -9,29 +9,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- 自定义标题栏 -->
-  <div class="custom-titlebar" id="custom-titlebar">
-    <div class="titlebar-drag-region">
-      <span class="titlebar-title">📦 食堂出入库管理系统</span>
-    </div>
-    <div class="titlebar-controls">
-      <button class="titlebar-btn" id="btn-minimize" onclick="minimizeWindow()" title="最小化">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <rect fill="currentColor" width="10" height="1" x="1" y="5.5"/>
-        </svg>
-      </button>
-      <button class="titlebar-btn" id="btn-maximize" onclick="maximizeWindow()" title="最大化">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/>
-        </svg>
-      </button>
-      <button class="titlebar-btn titlebar-btn-close" id="btn-close" onclick="closeWindow()" title="关闭">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-    </div>
+  <!-- 浮动窗口控制按钮 -->
+  <div class="window-controls" id="window-controls">
+    <button id="btn-minimize" onclick="minimizeWindow()" title="最小化">
+      <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="currentColor" width="10" height="1" x="1" y="5.5"/></svg>
+    </button>
+    <button id="btn-maximize" onclick="maximizeWindow()" title="最大化">
+      <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="none" stroke="currentColor" width="9" height="9" x="1.5" y="1.5"/></svg>
+    </button>
+    <button class="btn-close" id="btn-close" onclick="closeWindow()" title="关闭">
+      <svg width="12" height="12" viewBox="0 0 12 12">
+        <line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
 
   <div class="app">
@@ -94,6 +85,7 @@
 
     <!-- Main Content -->
     <main class="main-content">
+      <div class="drag-region"></div>
       <!-- Dashboard -->
       <div class="page active" id="page-dashboard">
         <div class="page-header">

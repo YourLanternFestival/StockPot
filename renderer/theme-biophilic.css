@@ -259,9 +259,16 @@ body.theme-biophilic .alert-card::before {
   background: white;
 }
 
-/* ===== Custom Titlebar ===== */
-body.theme-biophilic .custom-titlebar {
-  background: #3E4A32;
+/* ===== Window Controls (biophilic) ===== */
+body.theme-biophilic .window-controls button {
+  color: var(--text-secondary, #5D6B4D);
+}
+body.theme-biophilic .window-controls button:hover {
+  background: rgba(62,74,50,0.08);
+}
+body.theme-biophilic .window-controls .btn-close:hover {
+  background: #C04A1A;
+  color: #fff;
 }
 
 /* ===== Scrollbar ===== */

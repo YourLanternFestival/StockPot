@@ -1,73 +1,66 @@
 /* ===== Reset & Base ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ===== Custom Titlebar ===== */
+/* ===== Custom Titlebar (merged into content) ===== */
 .custom-titlebar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 32px;
-  background: var(--sidebar-bg);
-  color: #fff;
-  -webkit-app-region: drag; /* 拖拽区域 */
-  user-select: none;
+  display: none; /* 隐藏独立标题栏，控件浮在内容区 */
+}
+
+/* ===== Floating Window Controls ===== */
+.window-controls {
   position: fixed;
   top: 0;
-  left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  height: 36px;
   z-index: 10000;
-}
-
-/* 标题栏按钮不参与拖拽 */
-.custom-titlebar button {
   -webkit-app-region: no-drag;
 }
 
-.titlebar-drag-region {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding-left: 12px;
-  height: 100%;
-}
-
-.titlebar-title {
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.9;
-}
-
-.titlebar-controls {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  -webkit-app-region: no-drag;
-}
-
-.titlebar-btn {
+.window-controls button {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 46px;
-  height: 100%;
+  height: 36px;
   border: none;
   background: transparent;
-  color: #fff;
+  color: var(--text-secondary, #64748b);
   cursor: pointer;
   transition: background-color 0.15s;
+  -webkit-app-region: no-drag;
 }
 
-.titlebar-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.window-controls button:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
-.titlebar-btn-close:hover {
+.window-controls .btn-close:hover {
   background: #e81123;
+  color: #fff;
 }
 
-.titlebar-btn svg {
+.window-controls button svg {
   width: 12px;
   height: 12px;
+}
+
+/* ===== Drag Region (top of main content) ===== */
+.drag-region {
+  position: fixed;
+  top: 0;
+  left: 220px; /* sidebar width */
+  right: 0;
+  height: 8px; /* thin drag strip at very top */
+  -webkit-app-region: drag;
+  z-index: 9999;
+  pointer-events: auto;
+  transition: left 0.2s ease;
+}
+.sidebar.collapsed ~ .main-content .drag-region,
+.sidebar.collapsed + .main-content .drag-region {
+  left: 62px;
 }
 
 :root {
@@ -112,8 +105,7 @@ body {
 /* ===== Layout ===== */
 .app {
   display: flex;
-  height: calc(100vh - 32px);
-  margin-top: 32px;
+  height: 100vh;
 }
 
 /* ===== Sidebar ===== */

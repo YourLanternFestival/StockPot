@@ -40,13 +40,11 @@ function closeWindow() {
   window.electronAPI?.closeWindow();
 }
 
-// 双击标题栏切换最大化
+// 双击拖拽区域切换最大化
 document.addEventListener('DOMContentLoaded', () => {
-  const titlebar = document.getElementById('custom-titlebar');
-  if (titlebar) {
-    titlebar.addEventListener('dblclick', (e) => {
-      // 排除按钮区域
-      if (e.target.closest('.titlebar-controls')) return;
+  const dragRegion = document.querySelector('.drag-region');
+  if (dragRegion) {
+    dragRegion.addEventListener('dblclick', () => {
       maximizeWindow();
     });
   }
