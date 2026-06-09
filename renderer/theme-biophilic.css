@@ -3,7 +3,25 @@
 
 @font-face {
   font-family: 'Cheese';
-  src: url('../assets/cheese-font.ttf') format('truetype');
+  src: url('../assets/font-cheese.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bayu';
+  src: url('../assets/font-bayu.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Erciyuan';
+  src: url('../assets/font-erciyuan.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Xuesong';
+  src: url('../assets/font-xuesong.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
@@ -33,7 +51,7 @@ body.theme-biophilic {
   --shadow: 0 2px 8px rgba(62,74,50,0.06);
   --shadow-md: 0 4px 16px rgba(62,74,50,0.08);
 
-  font-family: 'Cheese', 'Noto Sans SC', -apple-system, sans-serif;
+  font-family: var(--theme-font, 'Cheese'), 'Noto Sans SC', -apple-system, sans-serif;
   font-size: 17px;
   font-weight: 500;
 }

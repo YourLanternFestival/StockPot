@@ -18,6 +18,7 @@ const SETTING_KEYS = [
   'alert_short_days', 'alert_long_days',
   'last_purchase_date',
   'theme',
+  'theme_font',
 ];
 
 const SETTING_DEFAULTS = {
@@ -40,6 +41,7 @@ const SETTING_DEFAULTS = {
   alert_long_days: '60',
   last_purchase_date: '',
   theme: 'default',
+  theme_font: 'Cheese',
 };
 
 async function initSettingsPage() {
@@ -64,6 +66,8 @@ async function initSettingsPage() {
     // 主题
     const themeEl = document.getElementById('setting-theme');
     if (themeEl) themeEl.value = settings.theme || SETTING_DEFAULTS.theme;
+    const fontEl = document.getElementById('setting-theme-font');
+    if (fontEl) fontEl.value = settings.theme_font || SETTING_DEFAULTS.theme_font;
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
     // 食堂模式：兼容旧格式
@@ -164,13 +168,13 @@ async function loadAppSettings() {
     // 同步到询价页内联折扣输入框
     syncDiscountToInquiry();
     // 应用主题
-    applyTheme(g('theme'));
+    applyTheme(g('theme'), g('theme_font'));
   } catch (err) {
     console.error('Load app settings error:', err);
   }
 }
 
-function applyTheme(theme) {
+function applyTheme(theme, font) {
   const css = document.getElementById('theme-biophilic-css');
   if (!css) return;
   if (theme === 'biophilic') {
@@ -179,6 +183,10 @@ function applyTheme(theme) {
   } else {
     css.disabled = true;
     document.body.classList.remove('theme-biophilic');
+  }
+  // 应用字体
+  if (font) {
+    document.documentElement.style.setProperty('--theme-font', font);
   }
 }
 
