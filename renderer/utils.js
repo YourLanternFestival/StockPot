@@ -112,6 +112,7 @@ function handleAutocompleteKeydown(e, input, selectFn) {
 
 // 绑定自动补全的 input/focus/blur 事件
 function bindAutocompleteEvents(input, searchFn, selectFn, onBlur) {
+  input._autocompleteSelectFn = selectFn;
   input.addEventListener('input', () => searchFn(input));
   input.addEventListener('focus', () => searchFn(input));
   input.addEventListener('blur', () => setTimeout(() => {

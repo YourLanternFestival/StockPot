@@ -643,6 +643,7 @@ async function saveMatrixData(silent) {
   // Record the save date
   const today = todayStr();
   await window.api.setSetting('last_purchase_date', today);
+  APP_SETTINGS.last_purchase_date = today;
 
   if (!silent) {
     showToast(`矩阵数据已保存 ${savedCount} 条`);
@@ -1189,10 +1190,11 @@ async function handleProductAutocomplete(input) {
     autocompleteIndex = -1;
 
     // Click to select
+    const selectFn = input._autocompleteSelectFn || selectAutocompleteItem;
     dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
       item.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        selectAutocompleteItem(input, item);
+        selectFn(input, item);
       });
     });
   } catch (err) {
@@ -1259,7 +1261,12 @@ async function saveAllSmallGroupsData() {
 
   // 事务保护：clear + insert 在同一个事务中
   const sources = canteens.flatMap(c => [`${c}-厨房`, `${c}-联华`]);
-  await window.api.savePurchaseOrdersBatch(sources, allOrders);
+  const result = await window.api.savePurchaseOrdersBatch(sources, allOrders);
+  if (result.success) {
+    const today = todayStr();
+    await window.api.setSetting('last_purchase_date', today);
+    APP_SETTINGS.last_purchase_date = today;
+  }
 }
 
 // Save all purchase orders (including 联华)
@@ -1325,6 +1332,7 @@ async function saveAllPurchaseOrders(opts = {}) {
     // Record the save date
     const today = todayStr();
     await window.api.setSetting('last_purchase_date', today);
+    APP_SETTINGS.last_purchase_date = today;
 
     if (!silent) showToast(`已保存 ${allOrders.length} 条采购记录`);
   } catch (err) {
