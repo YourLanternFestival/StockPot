@@ -276,7 +276,7 @@ function showAddLianhuaDate(source) {
   openModal(`${canteenName} 联华加购`, `
     <div class="form-group" style="margin-bottom:12px;">
       <label>发货日期</label>
-      <input type="date" class="form-control" id="modal-lianhua-date" value="${defaultDate}" style="width:160px;">
+      <input type="date" class="form-control" id="modal-lianhua-date" value="${defaultDate}" style="width:160px;" onchange="reloadLianhuaModalData('${source}')">
     </div>
     <div class="purchase-table-wrapper">
       <table class="table table-purchase" id="modal-lianhua-table">
@@ -302,11 +302,83 @@ function showAddLianhuaDate(source) {
     <button class="btn btn-primary" onclick="doSaveLianhuaFromModal('${source}')">保存</button>
   `);
 
-  // 添加 5 行空行
+  // 加载已有数据或添加空行
+  loadLianhuaModalData(source, defaultDate);
+}
+
+// 加载联华弹窗数据：按 source + 日期从 DOM 中读取已有数据
+function loadLianhuaModalData(source, date) {
   const tbody = document.getElementById('modal-lianhua-tbody');
-  for (let i = 0; i < 5; i++) {
+  tbody.innerHTML = '';
+
+  // 在 DOM 中查找该 source 下匹配日期的 date-group
+  const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
+  let existingRows = [];
+  if (group) {
+    group.querySelectorAll('.date-group').forEach(dg => {
+      const dgDate = getDateFromGroup(dg);
+      if (dgDate === date) {
+        dg.querySelectorAll('tbody tr').forEach(tr => {
+          const data = getRowData(tr);
+          if (data) existingRows.push(data);
+        });
+      }
+    });
+  }
+
+  if (existingRows.length > 0) {
+    // 填充已有数据
+    existingRows.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      const price = item.unit_price || 0;
+      const qty = parseFloat(item.quantity) || 0;
+      const amount = price * qty;
+      const dec = APP_SETTINGS.price_decimals || 2;
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td style="position:relative;">
+          <input type="text" class="cell-input cell-editable" value="${escHtml(item.product_name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+          <div class="autocomplete-dropdown" style="display:none;"></div>
+        </td>
+        <td><input type="text" class="cell-input cell-readonly" value="${escHtml(item.spec)}" data-field="spec" readonly tabindex="-1"></td>
+        <td><input type="text" class="cell-input cell-readonly" value="${price}" data-field="unit_price" readonly tabindex="-1"></td>
+        <td><input type="text" class="cell-input cell-editable" value="${escHtml(item.quantity)}" data-field="quantity" placeholder="数量"></td>
+        <td><input type="text" class="cell-input cell-readonly" value="${escHtml(item.unit)}" data-field="unit" readonly tabindex="-1"></td>
+        <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(dec) : ''}</td>
+        <td><input type="text" class="cell-input cell-editable" value="${escHtml(item.remark)}" data-field="remark" placeholder="备注"></td>
+        <td style="white-space:nowrap;"><button class="btn-delete-row" onclick="deleteModalLianhuaRow(this)">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+      attachLianhuaCellEvents(tr, tbody);
+    });
+  }
+
+  // 补充空行到至少 5 行
+  const current = tbody.querySelectorAll('tr').length;
+  for (let i = current; i < 5; i++) {
     appendLianhuaRow(tbody, i);
   }
+}
+
+// 切换日期时重新加载弹窗数据
+function reloadLianhuaModalData(source) {
+  const date = document.getElementById('modal-lianhua-date')?.value;
+  if (!date) return;
+  loadLianhuaModalData(source, date);
+}
+
+// 删除弹窗中的行
+function deleteModalLianhuaRow(btn) {
+  const tr = btn.closest('tr');
+  const tbody = tr.closest('tbody');
+  tr.remove();
+  tbody.querySelectorAll('tr').forEach((row, idx) => {
+    row.querySelector('td:first-child').textContent = idx + 1;
+  });
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function modalLianhuaAddRows() {
