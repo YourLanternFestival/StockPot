@@ -21,6 +21,7 @@ const SETTING_KEYS = [
   'theme_font',
   'theme_nav_size',
   'theme_body_size',
+  'sidebar_collapsed',
 ];
 
 const SETTING_DEFAULTS = {
@@ -46,6 +47,7 @@ const SETTING_DEFAULTS = {
   theme_font: 'Cheese',
   theme_nav_size: '21',
   theme_body_size: '20',
+  sidebar_collapsed: 'off',
 };
 
 async function initSettingsPage() {

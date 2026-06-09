@@ -9,6 +9,24 @@ window.api.getAppVersion().then(v => {
   if (el) el.textContent = `v${v}`;
 });
 
+// ===== 侧栏折叠 =====
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const main = document.querySelector('.main-content');
+  const titlebar = document.querySelector('.custom-titlebar');
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  // 保存状态
+  window.api.setSetting('sidebar_collapsed', isCollapsed ? 'on' : 'off');
+}
+
+async function applySidebarState() {
+  const s = await window.api.getAllSettings();
+  if (s.sidebar_collapsed === 'on') {
+    document.querySelector('.sidebar')?.classList.add('collapsed');
+  }
+}
+applySidebarState();
+
 // ===== Window Controls =====
 function minimizeWindow() {
   window.electronAPI?.minimizeWindow();
