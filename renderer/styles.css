@@ -172,7 +172,8 @@ body {
   border-radius: 0 2px 2px 0;
 }
 
-.nav-icon { font-size: 18px; }
+.nav-icon { font-size: 18px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .nav-text { font-size: 14px; }
 
 /* ===== Sidebar Collapsed ===== */

@@ -40,15 +40,15 @@ function renderTrendChart(days) {
         {
           label: '入库',
           data: days.map(d => d.inQty),
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16,185,129,0.1)',
+          borderColor: '#5D8A3C',
+          backgroundColor: 'rgba(93,138,60,0.08)',
           fill: true, tension: 0.3, pointRadius: 2,
         },
         {
           label: '出库',
           data: days.map(d => d.outQty),
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239,68,68,0.1)',
+          borderColor: '#C04A1A',
+          backgroundColor: 'rgba(192,74,26,0.06)',
           fill: true, tension: 0.3, pointRadius: 2,
         }
       ]
@@ -74,8 +74,8 @@ function renderPieChart(top10) {
       datasets: [{
         data: data.map(x => x.stock),
         backgroundColor: [
-          '#4f6ef7', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-          '#06b6d4', '#f97316', '#ec4899', '#14b8a6', '#6366f1'
+          '#3E4A32', '#5D6B4D', '#8FBC8F', '#C8B89E', '#D4E4C1',
+          '#A8C898', '#7BA06F', '#B8D4A0', '#D0C8B0', '#E8E0D0'
         ],
       }]
     },
