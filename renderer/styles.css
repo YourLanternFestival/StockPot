@@ -13,8 +13,8 @@
   right: 0;
   display: flex;
   align-items: center;
-  height: 36px;
-  z-index: 10000;
+  height: 38px;
+  z-index: 10001;
   -webkit-app-region: no-drag;
 }
 
@@ -52,14 +52,13 @@
   top: 0;
   left: 220px; /* sidebar width */
   right: 0;
-  height: 8px; /* thin drag strip at very top */
+  height: 38px;
   -webkit-app-region: drag;
   z-index: 9999;
   pointer-events: auto;
   transition: left 0.2s ease;
 }
-.sidebar.collapsed ~ .main-content .drag-region,
-.sidebar.collapsed + .main-content .drag-region {
+.sidebar.collapsed ~ .drag-region {
   left: 62px;
 }
 

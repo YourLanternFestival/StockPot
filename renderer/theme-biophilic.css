@@ -128,7 +128,7 @@ body.theme-biophilic .nav-item.active::before {
 
 /* ===== Page Header ===== */
 body.theme-biophilic .page-header {
-  background: linear-gradient(180deg, #D4E4C1 0%, #F5F1E8 100%);
+  background: transparent;
 }
 body.theme-biophilic .page-header h2 {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
