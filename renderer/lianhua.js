@@ -417,20 +417,41 @@ function doSaveLianhuaFromModal(source) {
     const productName = getData('product_name').trim();
     if (!productName) return;
 
+    // 自动补全：如果单价为空，从 lianhuaItems 反查
+    let spec = getData('spec');
+    let unitPrice = getData('unit_price');
+    let unit = getData('unit');
+    if (!unitPrice || unitPrice === '0') {
+      const match = lianhuaItems.find(i => i.name.toLowerCase() === productName.toLowerCase());
+      if (match) {
+        if (!spec) spec = match.spec || '';
+        unitPrice = String(match.price || 0);
+        if (!unit || unit === '件') unit = match.unit || '件';
+      }
+    }
+
     const esc = escHtml;
     const newTr = document.createElement('tr');
+    const quantity = getData('quantity');
+    const remark = getData('remark');
+    const amountText = tr.querySelector('.amount-cell')?.textContent || '';
+    const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
+    const priceNum = parseFloat(unitPrice) || 0;
+    const qtyNum = parseFloat(quantity) || 0;
+    const amount = priceNum * qtyNum;
+
     newTr.innerHTML = `
       <td>0</td>
       <td style="position:relative;">
         <input type="text" class="cell-input cell-editable" value="${esc(productName)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(getData('spec'))}" data-field="spec" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(getData('unit_price'))}" data-field="unit_price" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-editable" value="${esc(getData('quantity'))}" data-field="quantity" placeholder="数量"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(getData('unit'))}" data-field="unit" readonly tabindex="-1"></td>
-      <td class="amount-cell cell-readonly">${esc(tr.querySelector('.amount-cell')?.textContent || '')}</td>
-      <td><input type="text" class="cell-input cell-editable" value="${esc(getData('remark'))}" data-field="remark" placeholder="备注"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(spec)}" data-field="spec" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(unitPrice)}" data-field="unit_price" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-editable" value="${esc(quantity)}" data-field="quantity" placeholder="数量"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${esc(unit)}" data-field="unit" readonly tabindex="-1"></td>
+      <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(dec) : ''}</td>
+      <td><input type="text" class="cell-input cell-editable" value="${esc(remark)}" data-field="remark" placeholder="备注"></td>
       <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" data-tooltip="复制当前行数据到新行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
     `;
     targetTbody.appendChild(newTr);
