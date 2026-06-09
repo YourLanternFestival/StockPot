@@ -350,7 +350,8 @@ async function switchSmallDisplayStyle(style) {
     if (currentStyle === 'matrix' && document.getElementById('matrix-tbody')) {
       await saveMatrixData();
     } else if (currentStyle === 'groups') {
-      await saveAllSmallGroupsData();
+      // onlySourcesWithData: 避免矩阵模式下空的联华 group 误删已有联华数据
+      await saveAllSmallGroupsData({ onlySourcesWithData: true });
     }
 
     if (style === 'matrix') {
@@ -1230,9 +1231,11 @@ function selectAutocompleteItem(input, item) {
 }
 
 // 保存小所食堂所有 groups 数据（厨房+联华，所有小所）
-async function saveAllSmallGroupsData() {
+// opts.onlySourcesWithData: true 时只清理有数据的 source（用于矩阵→groups切换，避免误删联华）
+async function saveAllSmallGroupsData(opts = {}) {
   const canteens = getSmallCanteens();
   const allOrders = [];
+  const sourcesWithData = new Set();
 
   for (const canteen of canteens) {
     for (const suffix of ['厨房', '联华']) {
@@ -1257,13 +1260,20 @@ async function saveAllSmallGroupsData() {
             remark: data.remark,
             sort_order: idx,
           });
+          sourcesWithData.add(source);
         });
       });
     }
   }
 
-  // 事务保护：clear + insert 在同一个事务中
-  const sources = canteens.flatMap(c => [`${c}-厨房`, `${c}-联华`]);
+  // onlySourcesWithData: 只清理实际有 DOM 数据的 source
+  // 否则：清理所有 source（包括被用户清空的分组）
+  let sources;
+  if (opts.onlySourcesWithData) {
+    sources = [...sourcesWithData];
+  } else {
+    sources = canteens.flatMap(c => [`${c}-厨房`, `${c}-联华`]);
+  }
   const result = await window.api.savePurchaseOrdersBatch(sources, allOrders);
   if (result.success) {
     const today = todayStr();
