@@ -25,6 +25,18 @@
   font-weight: normal;
   font-style: normal;
 }
+@font-face {
+  font-family: 'Yangmao';
+  src: url('../assets/HanBiaoBangYangMaoBiPinYin-2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Tengxiang';
+  src: url('../assets/TengXiangQinYuanJianTi-1.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 
 body.theme-biophilic {
   --primary: #5D6B4D;
