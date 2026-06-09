@@ -41,10 +41,53 @@ async function loadHistoryByDate(date, btn) {
 
   try {
     const orders = await window.api.getPurchaseOrdersByDate(date);
+
+    // 对 unit_price=0 的记录从询价表反查价格（矩阵模式保存时不带价格）
+    await enrichOrderPrices(orders);
+
     historyData = orders;
     renderHistoryContent(orders, date);
   } catch (err) {
     console.error('Load history by date error:', err);
+  }
+}
+
+// 从询价表反查价格，填充 unit_price=0 的记录
+async function enrichOrderPrices(orders) {
+  const needPrice = orders.filter(o => (!o.unit_price || o.unit_price === 0) && o.product_name);
+  if (needPrice.length === 0) return;
+
+  const discountRate = parseFloat(APP_SETTINGS.discount1_rate) || 1;
+  const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
+  const factor = Math.pow(10, dec);
+
+  // 获取最新月份的询价数据
+  let currentMonth = null;
+  try {
+    const months = await window.api.getInquiryMonths();
+    currentMonth = months.length > 0 ? months[0].month : null;
+  } catch (e) { /* ignore */ }
+
+  if (!currentMonth) return;
+
+  // 逐条反查（批量查询避免全表扫描）
+  for (const order of needPrice) {
+    try {
+      const results = await window.api.searchInquiryItems(order.product_name, currentMonth);
+      const match = results.find(r => r.name.toLowerCase() === order.product_name.toLowerCase()) || results[0];
+      if (match && match.price) {
+        const rawPrice = match.price;
+        order.unit_price = Math.round(rawPrice * discountRate * factor) / factor;
+        // 纯数字校验：与 recalcRowAmount 一致，"60片" 等非纯数字 quantity 的 amount 为 0
+        const qtyStr = String(order.quantity || '').trim();
+        const qtyNum = parseFloat(qtyStr);
+        if (qtyStr && !isNaN(qtyNum) && String(qtyNum) === qtyStr) {
+          order.amount = Math.round(order.unit_price * qtyNum * factor) / factor;
+        } else {
+          order.amount = 0;
+        }
+      }
+    } catch (e) { /* skip */ }
   }
 }
 
