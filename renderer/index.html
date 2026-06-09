@@ -94,28 +94,28 @@
  </div>
  <div class="stats-grid">
  <div class="stat-card" data-tooltip="当前有库存的材料品种数">
- <div class="stat-icon"></div>
+ <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
  <div class="stat-info">
  <div class="stat-value" id="stat-products">0</div>
  <div class="stat-label">在库品种</div>
  </div>
  </div>
  <div class="stat-card" data-tooltip="历史入库记录总条数">
- <div class="stat-icon"></div>
+ <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
  <div class="stat-info">
  <div class="stat-value" id="stat-inbound">0</div>
  <div class="stat-label">累计入库笔数</div>
  </div>
  </div>
  <div class="stat-card" data-tooltip="历史出库记录总条数">
- <div class="stat-icon"></div>
+ <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 8 12 13 17 8"/><line x1="12" y1="13" x2="12" y2="3"/></svg></div>
  <div class="stat-info">
  <div class="stat-value" id="stat-outbound">0</div>
  <div class="stat-label">累计出库笔数</div>
  </div>
  </div>
  <div class="stat-card warning" style="cursor:pointer;" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')" data-tooltip="点击跳转到库存查询的过期预警标签页">
- <div class="stat-icon"></div>
+ <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
  <div class="stat-info">
  <div class="stat-value" id="stat-alerts">0</div>
  <div class="stat-label">临期/过期预警</div>
@@ -125,7 +125,7 @@
  <div class="dashboard-grid">
  <div class="card">
  <div class="card-header">
- <h3> 近30天入出库趋势</h3>
+ <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>近30天入出库趋势</h3>
  </div>
  <div class="card-body" data-tooltip="近30天每日入库(绿)和出库(红)数量折线图">
  <canvas id="trend-chart" height="250"></canvas>
@@ -133,7 +133,7 @@
  </div>
  <div class="card">
  <div class="card-header">
- <h3> 库存分布 (Top 10)</h3>
+ <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>库存分布 (Top 10)</h3>
  </div>
  <div class="card-body" data-tooltip="按当前库存量排序的前10大品种分布">
  <canvas id="pie-chart" height="250"></canvas>
@@ -142,7 +142,7 @@
  </div>
  <div class="card">
  <div class="card-header">
- <h3> 临期预警</h3>
+ <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>临期预警</h3>
  <button class="btn btn-sm" onclick="navigateTo('inventory'); switchInvTab('inv-alerts')">查看全部</button>
  </div>
  <div class="card-body" style="text-align:center;padding:20px;color:var(--text-muted);">
@@ -156,11 +156,11 @@
  <div class="page-header">
  <h2>库存管理</h2>
  <div class="header-actions">
- <button class="btn btn-primary" onclick="exportInventory()" data-tooltip="将当前库存数据导出为 Excel 文件"> 导出 xlsx</button>
+ <button class="btn btn-primary" onclick="exportInventory()" data-tooltip="将当前库存数据导出为 Excel 文件">导出 xlsx</button>
  </div>
  </div>
  <div class="tab-bar">
- <button class="tab-btn active" data-tab="inv-search" onclick="switchInvTab('inv-search')" data-tooltip="按材料查看详细库存和出入库流水"> 库存查询</button>
+ <button class="tab-btn active" data-tab="inv-search" onclick="switchInvTab('inv-search')" data-tooltip="按材料查看详细库存和出入库流水">库存查询</button>
  <button class="tab-btn" data-tab="inv-alerts" onclick="switchInvTab('inv-alerts')" data-tooltip="查看临期和已过期的材料清单">
  过期预警 <span class="badge" id="alert-badge" style="display:none;">0</span>
  </button>
@@ -171,7 +171,7 @@
  <div class="card card-no-clip" style="margin-bottom: 16px;">
  <div class="card-body" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
  <div style="position:relative;flex:1;min-width:250px;">
- <input type="text" class="form-control" id="inv-search-input" placeholder=" 输入材料名称搜索..." autocomplete="off" style="width:100%;">
+ <input type="text" class="form-control" id="inv-search-input" placeholder="输入材料名称搜索..." autocomplete="off" style="width:100%;">
  <div class="autocomplete-dropdown" id="inv-search-dropdown" style="display:none;"></div>
  </div>
  <span class="text-muted" id="inv-search-hint">输入名称后选择材料查看详情</span>
@@ -223,7 +223,7 @@
  <div class="inv-records-grid">
  <div class="card">
  <div class="card-header">
- <h3> 最近入库记录 <span class="tag tag-info" id="inv-inbound-count">0</span></h3>
+ <h3>最近入库记录 <span class="tag tag-info" id="inv-inbound-count">0</span></h3>
  </div>
  <table class="table">
  <thead>
@@ -234,7 +234,7 @@
  </div>
  <div class="card">
  <div class="card-header">
- <h3> 最近出库记录 <span class="tag tag-info" id="inv-outbound-count">0</span></h3>
+ <h3>最近出库记录 <span class="tag tag-info" id="inv-outbound-count">0</span></h3>
  </div>
  <table class="table">
  <thead>
@@ -289,7 +289,7 @@
  <div class="page-header">
  <h2>入库登记</h2>
  <div class="header-actions">
- <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录"> 批量提交</button>
+ <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录">批量提交</button>
  </div>
  </div>
  <div class="card">
@@ -337,8 +337,8 @@
  <div class="page-header">
  <h2>出库登记</h2>
  <div class="header-actions">
- <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序"> 管理领取人</button>
- <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录"> 批量提交</button>
+ <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>管理领取人</button>
+ <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录">批量提交</button>
  </div>
  </div>
  <div class="card">
@@ -393,8 +393,8 @@
  <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
  <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
  </select>
- <button class="btn" onclick="toggleImportPanel()" data-tooltip="展开导入面板，从 xlsx 文件批量导入产品和出入库数据"> 导入数据</button>
- <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件"> 导出 xlsx</button>
+ <button class="btn" onclick="toggleImportPanel()" data-tooltip="展开导入面板，从 xlsx 文件批量导入产品和出入库数据"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>导入数据</button>
+ <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件">导出 xlsx</button>
  </div>
  </div>
 
@@ -402,8 +402,8 @@
  <div class="import-panel" id="import-panel" style="display:none;">
  <div class="card" style="margin-bottom: 16px;">
  <div class="card-header">
- <h3> 从 xlsx 文件导入数据</h3>
- <button class="btn btn-sm" onclick="toggleImportPanel()"> 关闭</button>
+ <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>从 xlsx 文件导入数据</h3>
+ <button class="btn btn-sm" onclick="toggleImportPanel()">关闭</button>
  </div>
  <div class="card-body">
  <div class="import-dropzone" id="dropzone">
@@ -420,10 +420,10 @@
  <input type="checkbox" checked disabled> 产品数据（材料清单）
  </label>
  <label class="checkbox-label">
- <input type="checkbox" checked id="import-inbound"> 入库流水账
+ <input type="checkbox" checked id="import-inbound">入库流水账
  </label>
  <label class="checkbox-label">
- <input type="checkbox" checked id="import-outbound"> 出库流水账
+ <input type="checkbox" checked id="import-outbound">出库流水账
  </label>
  </div>
  <div class="import-preview" id="import-preview" style="display:none;">
@@ -435,10 +435,10 @@
  </div>
  </div>
  <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
- <button class="btn" onclick="exportInventory()"> 导出库存</button>
- <button class="btn" onclick="exportLedger()"> 导出台账</button>
- <button class="btn" onclick="exportAll()"> 导出全部</button>
- <button class="btn" style="color:var(--danger);border-color:var(--danger);margin-left:auto;" onclick="clearAndReimport()"> 清空所有数据</button>
+ <button class="btn" onclick="exportInventory()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出库存</button>
+ <button class="btn" onclick="exportLedger()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出台账</button>
+ <button class="btn" onclick="exportAll()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出全部</button>
+ <button class="btn" style="color:var(--danger);border-color:var(--danger);margin-left:auto;" onclick="clearAndReimport()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>清空所有数据</button>
  </div>
  </div>
  </div>
@@ -504,8 +504,8 @@
  <option value="inactive">已停用</option>
  <option value="all">全部</option>
  </select>
- <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()" data-tooltip="批量停用勾选的产品"> 停用选中</button>
- <input type="text" class="search-input" placeholder=" 搜索产品..." id="prod-search" data-tooltip="按材料名称搜索产品">
+ <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()" data-tooltip="批量停用勾选的产品"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>停用选中</button>
+ <input type="text" class="search-input" placeholder="搜索产品..." id="prod-search" data-tooltip="按材料名称搜索产品">
  <button class="btn btn-primary" onclick="showAddProduct()" data-tooltip="添加新产品到材料清单">+ 新增产品</button>
  </div>
  </div>
@@ -527,9 +527,9 @@
  <div class="page-header">
  <h2>采购单</h2>
  <div class="header-actions">
- <button class="btn" onclick="exportAllPurchaseOrders()" data-tooltip="将所有采购组导出为 Excel（含实物图片）"> 导出全部</button>
- <button class="btn" onclick="showImportLianhuaDialog()" data-tooltip="从 xlsx 文件导入联华超市商品目录"> 导入联华商品</button>
- <button class="btn btn-primary" onclick="saveAllPurchaseOrders()" data-tooltip="保存当前所有采购组的数据"> 保存所有</button>
+ <button class="btn" onclick="exportAllPurchaseOrders()" data-tooltip="将所有采购组导出为 Excel（含实物图片）"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出全部</button>
+ <button class="btn" onclick="showImportLianhuaDialog()" data-tooltip="从 xlsx 文件导入联华超市商品目录"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>导入联华商品</button>
+ <button class="btn btn-primary" onclick="saveAllPurchaseOrders()" data-tooltip="保存当前所有采购组的数据"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存所有</button>
  </div>
  </div>
  <div class="purchase-container" id="purchase-container">
@@ -553,9 +553,9 @@
  </div>
  <!-- 小所食堂模式: 操作栏 -->
  <div id="small-canteen-actions" style="display:none;margin-bottom:12px;">
- <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" data-tooltip="展开或隐藏矩阵视图中的备注列"> 备注</button>
- <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()" data-tooltip="将当前小所的采购数据复制到另一个小所"> 复用单个小所</button>
- <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()" data-tooltip="将当前小所的数据同步覆盖到所有其他小所"> 一键同步到所有小所</button>
+ <button class="btn btn-sm" id="btn-toggle-remarks" onclick="toggleMatrixRemarks()" style="display:none;" data-tooltip="展开或隐藏矩阵视图中的备注列">备注</button>
+ <button class="btn btn-sm" id="btn-copy-canteen" onclick="showCopyCanteenDialog()" data-tooltip="将当前小所的采购数据复制到另一个小所"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>复用单个小所</button>
+ <button class="btn btn-sm" id="btn-sync-all" onclick="showSyncAllDialog()" data-tooltip="将当前小所的数据同步覆盖到所有其他小所">一键同步到所有小所</button>
  <div class="dropdown-wrap" style="margin-left:auto;">
  <button class="btn btn-sm" onclick="toggleDropdown(event)" data-tooltip="快速将联华商品添加到当前小所的采购单">联华加购 ▾</button>
  <div class="dropdown-menu" id="lianhua-dropdown"></div>
@@ -607,7 +607,7 @@
  <!-- Purchase History -->
  <div class="page" id="page-history">
  <div class="page-header">
- <h2> 历史采购记录</h2>
+ <h2>历史采购记录</h2>
  <div class="header-actions">
  <span style="color:var(--text-muted);font-size:13px;">保留最近3天的采购数据</span>
  </div>
@@ -630,7 +630,7 @@
  <div class="page-header">
  <h2>询价管理</h2>
  <div class="header-actions">
- <button class="btn" onclick="showImportInquiryDialog()" data-tooltip="从 xlsx 文件导入询价鉴证表数据"> 导入鉴证表</button>
+ <button class="btn" onclick="showImportInquiryDialog()" data-tooltip="从 xlsx 文件导入询价鉴证表数据"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>导入鉴证表</button>
  <button class="btn btn-primary" onclick="showAddInquiryItem()" data-tooltip="手动添加一条询价记录">+ 新增单品</button>
  </div>
  </div>
@@ -658,7 +658,7 @@
  </div>
  <div class="filter-group">
  <label>搜索：</label>
- <input type="text" id="inquiry-search" class="form-control" placeholder=" 搜索品名..." oninput="searchInquiry()" data-tooltip="按品名搜索询价记录">
+ <input type="text" id="inquiry-search" class="form-control" placeholder="搜索品名..." oninput="searchInquiry()" data-tooltip="按品名搜索询价记录">
  </div>
  <div class="filter-group">
  <label>盛销折扣率：</label>
@@ -704,11 +704,11 @@
  <!-- Settings -->
  <div class="page" id="page-settings">
  <div class="page-header">
- <h2> 设置</h2>
+ <h2>设置</h2>
  </div>
  <div class="settings-grid">
  <div class="card">
- <div class="card-header"><h3> 录入表格</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>录入表格</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: repeat(3, 1fr);">
  <div class="form-group">
  <label>入库添加行数</label>
@@ -726,7 +726,7 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 历史记录</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>历史记录</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
  <div class="form-group">
  <label>入库页面展示历史</label>
@@ -754,7 +754,7 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 过期预警</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>过期预警</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
  <div class="form-group">
  <label>短期预警天数</label>
@@ -768,7 +768,7 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 库存查询</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>库存查询</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: 1fr 1fr;">
  <div class="form-group">
  <label>最近入库记录数</label>
@@ -782,7 +782,7 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 询价管理</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>询价管理</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: repeat(2, 1fr);">
  <div class="form-group">
  <label>折扣一名称</label>
@@ -808,7 +808,7 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 食堂模式</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M3 3h18v18H3z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>食堂模式</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: 1fr;">
  <div class="form-group">
  <label>运行模式</label>
@@ -856,7 +856,7 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 实物图片</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>实物图片</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: 1fr;">
  <div class="form-group">
  <label>照片文件夹路径</label>
@@ -870,24 +870,24 @@
  </div>
 
  <div class="card">
- <div class="card-header"><h3> 界面主题</h3></div>
+ <div class="card-header"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16c3.3 0 6-2.7 6-6 0-5.4-4.4-9.3-10-9.3z"/></svg>界面主题</h3></div>
  <div class="card-body form-grid" style="grid-template-columns: 1fr;">
  <div class="form-group">
  <label>主题风格</label>
  <select class="form-control" id="setting-theme" data-tooltip="切换界面视觉风格，保存后立即生效">
  <option value="default">默认风格</option>
- <option value="biophilic"> 有机自然（Organic Biophilic）</option>
+ <option value="biophilic">有机自然（Organic Biophilic）</option>
  </select>
  </div>
  <div class="form-group">
  <label>主题字体（仅有机自然主题生效）</label>
  <select class="form-control" id="setting-theme-font" data-tooltip="选择有机自然主题下使用的字体">
- <option value="Cheese"> 日系可爱奶酪体</option>
- <option value="Bayu"> 叶根友霸域行书</option>
- <option value="Erciyuan"> 手指二次元体</option>
- <option value="Xuesong"> 禅意雪松体</option>
- <option value="Yangmao"> 汉标榜羊毛笔拼音体</option>
- <option value="Tengxiang"> 腾祥亲圆简体</option>
+ <option value="Cheese">日系可爱奶酪体</option>
+ <option value="Bayu">叶根友霸域行书</option>
+ <option value="Erciyuan">手指二次元体</option>
+ <option value="Xuesong">禅意雪松体</option>
+ <option value="Yangmao">汉标榜羊毛笔拼音体</option>
+ <option value="Tengxiang">腾祥亲圆简体</option>
  </select>
  </div>
  <div class="form-group" style="display:flex;gap:16px;">
@@ -900,21 +900,36 @@
  <input type="number" class="form-control" id="setting-theme-body-size" min="12" max="40" value="20" data-tooltip="页面正文内容文字大小" style="width:100%;">
  </div>
  </div>
+ <div class="form-group">
+ <label>主色调（自动生成配色方案）</label>
+ <div style="display:flex;gap:12px;align-items:center;">
+ <input type="color" id="setting-theme-color" value="#3E4A32" onchange="previewThemeColor(this.value)" data-tooltip="选择主色调，系统自动计算配套色阶">
+ <span id="theme-color-hex" style="font-family:monospace;font-size:14px;">#3E4A32</span>
+ <button class="btn btn-sm" onclick="resetThemeColor()">重置默认</button>
+ </div>
+ <div id="theme-color-preview" style="display:flex;gap:4px;margin-top:8px;">
+ <div style="width:32px;height:32px;border-radius:6px;background:#3E4A32;" id="tc-primary"></div>
+ <div style="width:32px;height:32px;border-radius:6px;background:#5D6B4D;" id="tc-sage"></div>
+ <div style="width:32px;height:32px;border-radius:6px;background:#8FBC8F;" id="tc-moss"></div>
+ <div style="width:32px;height:32px;border-radius:6px;background:#D4E4C1;" id="tc-leaf"></div>
+ <div style="width:32px;height:32px;border-radius:6px;background:#F5F1E8;border:1px solid #E0D8C8;" id="tc-cream"></div>
+ </div>
+ </div>
  </div>
  </div>
  </div>
  <div style="text-align:right;margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
- <button class="btn" onclick="startTour(0)" data-tooltip="重新播放新手引导教程"> 查看新手引导</button>
- <button class="btn btn-primary btn-lg" onclick="saveSettings()" data-tooltip="保存所有配置项并立即生效"> 保存设置</button>
+ <button class="btn" onclick="startTour(0)" data-tooltip="重新播放新手引导教程"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>查看新手引导</button>
+ <button class="btn btn-primary btn-lg" onclick="saveSettings()" data-tooltip="保存所有配置项并立即生效"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存设置</button>
  </div>
  </div>
 
  <!-- Help -->
  <div class="page" id="page-help">
  <div class="page-header">
- <h2> 使用帮助</h2>
+ <h2>使用帮助</h2>
  <div class="header-actions">
- <button class="btn btn-primary" onclick="startTour(0)" data-tooltip="重新播放新手引导教程，一步步带你熟悉各功能"> 启动新手教程</button>
+ <button class="btn btn-primary" onclick="startTour(0)" data-tooltip="重新播放新手引导教程，一步步带你熟悉各功能"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>启动新手教程</button>
  </div>
  </div>
  <div class="help-container">
@@ -922,7 +937,7 @@
  <div class="card" style="margin-bottom:16px;">
  <div class="card-body" style="display:flex;gap:12px;align-items:center;">
  <div style="position:relative;flex:1;">
- <input type="text" class="form-control" id="help-search-input" placeholder=" 搜索帮助内容... 如：入库、采购单、过期预警" autocomplete="off" style="width:100%;" oninput="searchHelp(this.value)">
+ <input type="text" class="form-control" id="help-search-input" placeholder="搜索帮助内容... 如：入库、采购单、过期预警" autocomplete="off" style="width:100%;" oninput="searchHelp(this.value)">
  <div class="autocomplete-dropdown" id="help-search-dropdown" style="display:none;"></div>
  </div>
  <span class="text-muted" id="help-search-hint">输入关键词快速定位</span>
@@ -932,7 +947,7 @@
  <!-- 目录 -->
  <div class="card help-section" id="help-toc">
  <div class="card-header">
- <h3> 功能目录</h3>
+ <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>功能目录</h3>
  </div>
  <div class="card-body">
  <p>欢迎使用<strong>食堂出入库管理系统</strong>！本系统专为食堂仓储管理设计，帮助您轻松管理食材的入库、出库、采购和库存。</p>
@@ -942,57 +957,57 @@
  <h4>点击跳转到对应章节</h4>
  <div class="help-toc-grid">
  <a href="#section-products" class="help-toc-item" onclick="scrollToHelpSection('section-products')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
  <span class="toc-text">产品管理</span>
  <span class="toc-desc">添加、编辑、停用材料</span>
  </a>
  <a href="#section-inbound" class="help-toc-item" onclick="scrollToHelpSection('section-inbound')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
  <span class="toc-text">入库登记</span>
  <span class="toc-desc">批量录入入库记录</span>
  </a>
  <a href="#section-outbound" class="help-toc-item" onclick="scrollToHelpSection('section-outbound')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 8 12 13 17 8"/><line x1="12" y1="13" x2="12" y2="3"/></svg></span>
  <span class="toc-text">出库登记</span>
  <span class="toc-desc">批量登记出库记录</span>
  </a>
  <a href="#section-inventory" class="help-toc-item" onclick="scrollToHelpSection('section-inventory')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
  <span class="toc-text">库存查询</span>
  <span class="toc-desc">查看库存和过期预警</span>
  </a>
  <a href="#section-ledger" class="help-toc-item" onclick="scrollToHelpSection('section-ledger')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
  <span class="toc-text">月度台账</span>
  <span class="toc-desc">按日查看出入库汇总</span>
  </a>
  <a href="#section-purchase" class="help-toc-item" onclick="scrollToHelpSection('section-purchase')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
  <span class="toc-text">采购单</span>
  <span class="toc-desc">编制采购计划</span>
  </a>
  <a href="#section-inquiry" class="help-toc-item" onclick="scrollToHelpSection('section-inquiry')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
  <span class="toc-text">询价管理</span>
  <span class="toc-desc">管理价格数据</span>
  </a>
  <a href="#section-data-io" class="help-toc-item" onclick="scrollToHelpSection('section-data-io')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
  <span class="toc-text">数据导入导出</span>
  <span class="toc-desc">批量数据操作</span>
  </a>
  <a href="#section-history" class="help-toc-item" onclick="scrollToHelpSection('section-history')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
  <span class="toc-text">历史采购</span>
  <span class="toc-desc">查看历史记录</span>
  </a>
  <a href="#section-settings" class="help-toc-item" onclick="scrollToHelpSection('section-settings')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
  <span class="toc-text">设置</span>
  <span class="toc-desc">配置系统参数</span>
  </a>
  <a href="#section-faq" class="help-toc-item" onclick="scrollToHelpSection('section-faq')">
- <span class="toc-icon"></span>
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
  <span class="toc-text">常见问题</span>
  <span class="toc-desc">问题解答</span>
  </a>
@@ -1003,7 +1018,7 @@
  <!-- 产品管理 -->
  <div class="card help-section" id="section-products" data-keywords="产品 物料 添加 编辑 停用 恢复 保质期">
  <div class="card-header">
- <h3> 产品管理</h3>
+ <h3>产品管理</h3>
  </div>
  <div class="card-body">
  <p>产品管理是整个系统的基础，所有入库、出库、库存查询都依赖于这里的产品数据。</p>
@@ -1044,7 +1059,7 @@
  <!-- 入库登记 -->
  <div class="card help-section" id="section-inbound" data-keywords="入库 进货 录入 批量 生产日期 到期日 自动补全">
  <div class="card-header">
- <h3> 入库登记</h3>
+ <h3>入库登记</h3>
  </div>
  <div class="card-body">
  <p>入库登记用于记录食材的进货入库，支持批量录入，提高工作效率。</p>
@@ -1076,7 +1091,7 @@
  <!-- 出库登记 -->
  <div class="card help-section" id="section-outbound" data-keywords="出库 领用 领取人 库存校验 批量">
  <div class="card-header">
- <h3> 出库登记</h3>
+ <h3>出库登记</h3>
  </div>
  <div class="card-body">
  <p>出库登记用于记录食材的领用出库，支持批量录入和库存校验。</p>
@@ -1108,7 +1123,7 @@
  <!-- 库存查询 -->
  <div class="card help-section" id="section-inventory" data-keywords="库存 查询 搜索 过期 预警 临期 红色徽章">
  <div class="card-header">
- <h3> 库存查询</h3>
+ <h3>库存查询</h3>
  </div>
  <div class="card-body">
  <p>库存查询页面帮助您实时了解各种食材的库存情况，并提供过期预警功能。</p>
@@ -1145,7 +1160,7 @@
  <!-- 月度台账 -->
  <div class="card help-section" id="section-ledger" data-keywords="台账 月度 日明细 汇总 导出 按日">
  <div class="card-header">
- <h3> 月度台账</h3>
+ <h3>月度台账</h3>
  </div>
  <div class="card-body">
  <p>月度台账以表格形式展示每月的出入库明细，方便核对和存档。</p>
@@ -1171,7 +1186,7 @@
  <!-- 采购单 -->
  <div class="card help-section" id="section-purchase" data-keywords="采购 食堂模式 默认 多食堂 小所 联华 厨房 面点房">
  <div class="card-header">
- <h3> 采购单</h3>
+ <h3>采购单</h3>
  </div>
  <div class="card-body">
  <p>采购单模块用于编制每日的采购计划，支持多种食堂模式。</p>
@@ -1214,7 +1229,7 @@
  <!-- 询价管理 -->
  <div class="card help-section" id="section-inquiry" data-keywords="询价 价格 折扣 鉴证表 盛销 优宏 涨跌">
  <div class="card-header">
- <h3> 询价管理</h3>
+ <h3>询价管理</h3>
  </div>
  <div class="card-body">
  <p>询价管理用于管理每月的价格验证数据，是采购单自动补全的数据源。</p>
@@ -1256,7 +1271,7 @@
  <!-- 数据导入导出 -->
  <div class="card help-section" id="section-data-io" data-keywords="导入 导出 xlsx excel 备份 拖拽 批量">
  <div class="card-header">
- <h3> 数据导入导出</h3>
+ <h3>数据导入导出</h3>
  </div>
  <div class="card-body">
  <p>系统支持通过Excel文件进行批量数据导入和导出。</p>
@@ -1288,7 +1303,7 @@
  <!-- 历史采购 -->
  <div class="card help-section" id="section-history" data-keywords="历史 采购 3天 保留 查看">
  <div class="card-header">
- <h3> 历史采购</h3>
+ <h3>历史采购</h3>
  </div>
  <div class="card-body">
  <p>历史采购页面用于查看最近3天的采购单记录。</p>
@@ -1316,7 +1331,7 @@
  <!-- 设置 -->
  <div class="card help-section" id="section-settings" data-keywords="设置 配置 参数 食堂模式 键盘 图片 预警天数">
  <div class="card-header">
- <h3> 设置</h3>
+ <h3>设置</h3>
  </div>
  <div class="card-body">
  <p>设置页面用于配置系统的各项参数，所有设置修改后会<strong>立即生效</strong>。</p>
@@ -1344,7 +1359,7 @@
  <!-- 常见问题 -->
  <div class="card help-section" id="section-faq" data-keywords="问题 解答 FAQ 怎么办 如何 为什么">
  <div class="card-header">
- <h3> 常见问题</h3>
+ <h3>常见问题</h3>
  </div>
  <div class="card-body">
  <h4>Q: 为什么入库时提示"该产品不存在"？</h4>
@@ -1378,7 +1393,7 @@
  <!-- 联系支持 -->
  <div class="card help-section">
  <div class="card-header">
- <h3> 联系支持</h3>
+ <h3>联系支持</h3>
  </div>
  <div class="card-body">
  <p>如果以上内容无法解决您的问题，请联系系统管理员获取帮助。</p>

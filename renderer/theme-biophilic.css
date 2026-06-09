@@ -178,12 +178,8 @@ body.theme-biophilic .stat-card:nth-child(3)::before { background: #C8B89E; top:
 body.theme-biophilic .stat-card:nth-child(4)::before { background: #6B8E5A; top: -15px; right: -25px; border-radius: 70% 30% 30% 70% / 70% 70% 30% 30%; }
 
 body.theme-biophilic .stat-card .stat-icon {
-  border-radius: 5% 95% 10% 90% / 85% 15% 85% 15%;
+  background: none;
 }
-body.theme-biophilic .stat-card:nth-child(1) .stat-icon { background: #8FBC8F; }
-body.theme-biophilic .stat-card:nth-child(2) .stat-icon { background: #5D6B4D; }
-body.theme-biophilic .stat-card:nth-child(3) .stat-icon { background: #C8B89E; }
-body.theme-biophilic .stat-card:nth-child(4) .stat-icon { background: #B8860B; }
 
 body.theme-biophilic .stat-value {
   font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
@@ -286,5 +282,5 @@ body.theme-biophilic .dashboard-grid {
 
 /* ===== Stat Card warning border ===== */
 body.theme-biophilic .stat-card.warning {
-  border: 2px solid #B8860B;
+  border: none;
 }

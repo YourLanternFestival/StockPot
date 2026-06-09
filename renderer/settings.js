@@ -21,6 +21,7 @@ const SETTING_KEYS = [
   'theme_font',
   'theme_nav_size',
   'theme_body_size',
+  'theme_color',
   'sidebar_collapsed',
 ];
 
@@ -47,6 +48,7 @@ const SETTING_DEFAULTS = {
   theme_font: 'Cheese',
   theme_nav_size: '21',
   theme_body_size: '20',
+  theme_color: '#3E4A32',
   sidebar_collapsed: 'off',
 };
 
@@ -78,6 +80,12 @@ async function initSettingsPage() {
     if (navSizeEl) navSizeEl.value = settings.theme_nav_size || SETTING_DEFAULTS.theme_nav_size;
     const bodySizeEl = document.getElementById('setting-theme-body-size');
     if (bodySizeEl) bodySizeEl.value = settings.theme_body_size || SETTING_DEFAULTS.theme_body_size;
+    const colorEl = document.getElementById('setting-theme-color');
+    if (colorEl) {
+      const c = settings.theme_color || SETTING_DEFAULTS.theme_color;
+      colorEl.value = c;
+      previewThemeColor(c);
+    }
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
     // 食堂模式：兼容旧格式
@@ -178,13 +186,13 @@ async function loadAppSettings() {
     // 同步到询价页内联折扣输入框
     syncDiscountToInquiry();
     // 应用主题
-    applyTheme(g('theme'), g('theme_font'), g('theme_nav_size'), g('theme_body_size'));
+    applyTheme(g('theme'), g('theme_font'), g('theme_nav_size'), g('theme_body_size'), g('theme_color'));
   } catch (err) {
     console.error('Load app settings error:', err);
   }
 }
 
-function applyTheme(theme, font, navSize, bodySize) {
+function applyTheme(theme, font, navSize, bodySize, color) {
   const css = document.getElementById('theme-biophilic-css');
   if (!css) return;
   if (theme === 'biophilic') {
@@ -199,6 +207,82 @@ function applyTheme(theme, font, navSize, bodySize) {
   // 应用字号
   if (navSize) document.documentElement.style.setProperty('--theme-nav-size', navSize + 'px');
   if (bodySize) document.documentElement.style.setProperty('--theme-body-size', bodySize + 'px');
+  // 应用主色调
+  if (color) applyThemeColor(color);
+}
+
+// ===== 主色调配色生成 =====
+function hexToHSL(hex) {
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); };
+  const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+
+function generatePalette(primaryHex) {
+  const hsl = hexToHSL(primaryHex);
+  return {
+    primary: primaryHex,
+    sage: hslToHex(hsl.h, Math.max(hsl.s - 10, 10), Math.min(hsl.l + 12, 55)),
+    moss: hslToHex(hsl.h, Math.min(hsl.s + 15, 60), Math.min(hsl.l + 25, 70)),
+    leaf: hslToHex(hsl.h, Math.min(hsl.s + 10, 50), Math.min(hsl.l + 45, 90)),
+    cream: hslToHex(hsl.h, Math.min(hsl.s, 30), Math.min(hsl.l + 55, 96)),
+  };
+}
+
+function applyThemeColor(hex) {
+  const palette = generatePalette(hex);
+  const root = document.documentElement;
+  // 全局应用色板到所有 CSS 变量
+  root.style.setProperty('--primary', palette.primary);
+  root.style.setProperty('--primary-hover', palette.sage);
+  root.style.setProperty('--primary-light', palette.leaf);
+  root.style.setProperty('--sidebar-bg', palette.primary);
+  root.style.setProperty('--sidebar-active', palette.moss + '30');
+  root.style.setProperty('--text', palette.primary);
+  root.style.setProperty('--text-secondary', palette.sage);
+  root.style.setProperty('--border', palette.leaf);
+  root.style.setProperty('--bg', palette.cream);
+  root.style.setProperty('--card-bg', 'rgba(255,255,255,0.75)');
+  // 更新预览色块
+  const ids = { 'tc-primary': palette.primary, 'tc-sage': palette.sage, 'tc-moss': palette.moss, 'tc-leaf': palette.leaf, 'tc-cream': palette.cream };
+  for (const [id, color] of Object.entries(ids)) {
+    const el = document.getElementById(id);
+    if (el) el.style.background = color;
+  }
+  const hexEl = document.getElementById('theme-color-hex');
+  if (hexEl) hexEl.textContent = hex;
+}
+
+function previewThemeColor(hex) {
+  applyThemeColor(hex);
+}
+
+function resetThemeColor() {
+  const defaultColor = '#3E4A32';
+  document.getElementById('setting-theme-color').value = defaultColor;
+  applyThemeColor(defaultColor);
 }
 
 function syncDiscountToInquiry() {

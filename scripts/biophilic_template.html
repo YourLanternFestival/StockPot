@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>食社区 · 有机自然风</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #2a2a2a; display: flex; justify-content: center; align-items: flex-start; gap: 40px; padding: 40px; min-height: 100vh; flex-wrap: wrap; font-family: 'Noto Sans SC', sans-serif; }
+  .phone-label { text-align: center; color: #aaa; font-size: 13px; margin-bottom: 10px; font-style: italic; letter-spacing: 0.05em; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  /* Linen texture overlay for cards */
+  .linen-bg {
+    background-image: url('data:image/jpeg;base64,___LINEN___');
+    background-size: 200px;
+    background-repeat: repeat;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+// ===== Image Data =====
+const IMG = {
+  food1: "data:image/jpeg;base64,___FOOD1___",
+  food2: "data:image/jpeg;base64,___FOOD2___",
+  food3: "data:image/jpeg;base64,___FOOD3___",
+  food_bread: "data:image/jpeg;base64,___FOOD_BREAD___",
+};
+
+// ===== Biophilic Design Tokens =====
+const T = {
+  forest: '#3E4A32',
+  sage: '#5D6B4D',
+  moss: '#8FBC8F',
+  leaf: '#D4E4C1',
+  sand: '#C8B89E',
+  cream: '#F5F1E8',
+  warmWhite: '#FAF7F0',
+  serif: "'Noto Serif SC', serif",
+  sans: "'Noto Sans SC', sans-serif",
+};
+
+// ===== iPhone Frame =====
+function IphoneFrame({ children, time = '9:41' }) {
+  return (
+    <div style={{
+      width: 375, height: 812, borderRadius: 44, border: '4px solid #1a1a1a',
+      overflow: 'hidden', position: 'relative', background: '#000',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)',
+      flexShrink: 0,
+    }}>
+      {/* Dynamic Island */}
+      <div style={{
+        position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+        width: 124, height: 36, background: '#000', borderRadius: 20, zIndex: 100,
+      }} />
+      {/* Status Bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 54, zIndex: 99,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+        padding: '0 28px 4px', color: '#333', fontSize: 14, fontWeight: 600,
+      }}>
+        <span>{time}</span>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="5" width="3" height="7" rx="0.5" fill="#333"/><rect x="4.5" y="3" width="3" height="9" rx="0.5" fill="#333"/><rect x="9" y="1" width="3" height="11" rx="0.5" fill="#333"/><rect x="13.5" y="0" width="3" height="12" rx="0.5" fill="#333"/></svg>
+          <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="0" width="22" height="12" rx="3" stroke="#333" strokeWidth="1" fill="none"/><rect x="22.5" y="3.5" width="2" height="5" rx="1" fill="#333"/><rect x="1.5" y="1.5" width="15" height="9" rx="1.5" fill="#333"/></svg>
+        </div>
+      </div>
+      {/* Content */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
+        {children}
+      </div>
+      {/* Home Indicator */}
+      <div style={{
+        position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+        width: 134, height: 5, background: '#333', borderRadius: 3, zIndex: 100,
+      }} />
+    </div>
+  );
+}
+
+// ===== Tab Bar =====
+function TabBar({ active }) {
+  const tabs = [
+    { id: 'discover', label: '发现' },
+    { id: 'category', label: '分类' },
+    { id: 'recipe', label: '食谱' },
+    { id: 'me', label: '我的' },
+  ];
+  const icons = {
+    discover: (a) => <svg width="22" height="22" viewBox="0 0 24 24" fill={a ? T.forest : 'none'} stroke={a ? T.forest : T.sage} strokeWidth="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88"/></svg>,
+    category: (a) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={a ? T.forest : T.sage} strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+    recipe: (a) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={a ? T.forest : T.sage} strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>,
+    me: (a) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={a ? T.forest : T.sage} strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  };
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, zIndex: 50,
+      background: `linear-gradient(180deg, ${T.cream}ee 0%, ${T.cream} 30%)`,
+      backdropFilter: 'blur(10px)',
+      display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start',
+      paddingTop: 10, paddingBottom: 20,
+      borderTop: '1px solid rgba(200,184,158,0.3)',
+    }}>
+      {tabs.map(tab => (
+        <div key={tab.id} style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer',
+          minWidth: 60,
+        }}>
+          {icons[tab.id](active === tab.id)}
+          <span style={{
+            fontSize: 11, fontWeight: active === tab.id ? 600 : 400,
+            color: active === tab.id ? T.forest : T.sage,
+          }}>{tab.label}</span>
+          {active === tab.id && (
+            <div style={{ width: 4, height: 4, borderRadius: 2, background: T.moss, marginTop: -1 }} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ===== Screen 1: Trending =====
+function TrendingScreen() {
+  const [activeTab, setActiveTab] = useState('today');
+  const tabs = [{ id: 'today', label: '今日' }, { id: 'week', label: '本周' }, { id: 'month', label: '本月' }];
+  const posts = [
+    { id: 1, title: '外婆的红烧肉', author: '苏小厨', likes: 2847, img: IMG.food1, tag: '家常菜', desc: '肥而不腻，入口即化' },
+    { id: 2, title: '云南菌菇火锅', author: '菌子猎人', likes: 1923, img: IMG.food2, tag: '火锅', desc: '雨季限定的鲜美' },
+    { id: 3, title: '手作全麦面包', author: '面包窑', likes: 1456, img: IMG.food_bread, tag: '烘焙', desc: '72小时低温发酵' },
+    { id: 4, title: '潮汕牛肉丸', author: '牛肉丸老师', likes: 3201, img: IMG.food3, tag: '潮汕', desc: '手打三千次的弹牙' },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: T.cream }}>
+      {/* Nav Gradient: light leaf → cream */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
+        background: `linear-gradient(180deg, ${T.leaf} 0%, ${T.cream} 100%)`,
+        paddingTop: 54, paddingBottom: 12, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h1 style={{ fontFamily: T.serif, fontSize: 26, color: T.forest, fontWeight: 700, letterSpacing: '0.02em' }}>发现好味道</h1>
+          <div style={{ width: 36, height: 36, borderRadius: 18, background: T.sage, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+              padding: '6px 18px', borderRadius: 20, border: 'none', cursor: 'pointer',
+              fontSize: 14, fontWeight: activeTab === tab.id ? 600 : 400,
+              background: activeTab === tab.id ? T.forest : 'rgba(255,255,255,0.6)',
+              color: activeTab === tab.id ? 'white' : T.sage,
+              transition: 'all 0.2s',
+            }}>{tab.label}</button>
+          ))}
+        </div>
+      </div>
+      {/* Scrollable Content */}
+      <div style={{ position: 'absolute', top: 148, left: 0, right: 0, bottom: 80, overflowY: 'auto', padding: '0 16px 16px' }}>
+        {/* Hero Card with food image */}
+        <div style={{ borderRadius: 20, overflow: 'hidden', marginBottom: 16, position: 'relative', height: 200, cursor: 'pointer' }}>
+          <img src={IMG.food1} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, padding: '40px 16px 14px',
+            background: 'linear-gradient(0deg, rgba(62,74,50,0.9) 0%, transparent 100%)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ background: T.moss, color: T.forest, fontSize: 12, padding: '3px 10px', borderRadius: 10, fontWeight: 600 }}>🔥 热门</span>
+            </div>
+            <h3 style={{ fontFamily: T.serif, fontSize: 22, color: 'white', fontWeight: 600 }}>{posts[0].title}</h3>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>{posts[0].desc}</p>
+          </div>
+        </div>
+        {/* Recipe Cards Grid with linen texture */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {posts.slice(1).map(post => (
+            <div key={post.id} className="linen-bg" style={{
+              borderRadius: 16, overflow: 'hidden', background: 'white',
+              boxShadow: '0 2px 12px rgba(62,74,50,0.08)', cursor: 'pointer',
+              position: 'relative',
+            }}>
+              {/* Linen texture overlay from CSS class */}
+              <div style={{ height: 110, position: 'relative', overflow: 'hidden' }}>
+                <img src={post.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <span style={{
+                  position: 'absolute', top: 8, left: 8,
+                  background: 'rgba(255,255,255,0.92)', color: T.sage,
+                  fontSize: 11, padding: '3px 10px', borderRadius: 8, fontWeight: 500, zIndex: 2,
+                }}>{post.tag}</span>
+              </div>
+              <div style={{ padding: '12px 14px', position: 'relative', zIndex: 2 }}>
+                <h4 style={{ fontFamily: T.serif, fontSize: 16, color: T.forest, fontWeight: 600, marginBottom: 4 }}>{post.title}</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, color: T.sand }}>{post.author}</span>
+                  <span style={{ fontSize: 12, color: T.moss }}>♥ {post.likes}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <TabBar active="discover" />
+    </div>
+  );
+}
+
+// ===== Screen 2: Categories =====
+function CategoryScreen() {
+  const categories = [
+    { id: 'homecook', label: '家常菜', icon: '🍳', color: '#E8D5B7', desc: '妈妈的味道' },
+    { id: 'baking', label: '烘焙', icon: '🍞', color: '#D4C4A8', desc: '面点甜品' },
+    { id: 'hotpot', label: '火锅', icon: '🍲', color: '#C8B89E', desc: '围炉聚餐' },
+    { id: 'dimsum', label: '早茶点心', icon: '🥟', color: '#E0D0B8', desc: '粤式经典' },
+    { id: 'bbq', label: '烧烤', icon: '🥩', color: '#D8C8A8', desc: '烟火气息' },
+    { id: 'healthy', label: '轻食', icon: '🥗', color: '#D4E4C1', desc: '健康低脂' },
+    { id: 'snack', label: '小吃', icon: '🍡', color: '#E8D8C0', desc: '街边美味' },
+    { id: 'drink', label: '饮品', icon: '🧋', color: '#C8D8B8', desc: '奶茶咖啡' },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: T.cream }}>
+      {/* Nav Gradient: sand → cream */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
+        background: `linear-gradient(180deg, ${T.sand} 0%, ${T.cream} 100%)`,
+        paddingTop: 54, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <h1 style={{ fontFamily: T.serif, fontSize: 26, color: T.forest, fontWeight: 700, marginBottom: 4 }}>美食分类</h1>
+        <p style={{ fontSize: 14, color: T.sage }}>找到你心仪的味道</p>
+      </div>
+      {/* Category Grid */}
+      <div style={{ position: 'absolute', top: 132, left: 0, right: 0, bottom: 80, overflowY: 'auto', padding: '0 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {categories.map(cat => (
+            <div key={cat.id} style={{
+              background: `linear-gradient(135deg, ${cat.color} 0%, ${T.cream} 100%)`,
+              borderRadius: 20, padding: '20px 16px', cursor: 'pointer',
+              position: 'relative', overflow: 'hidden', minHeight: 110,
+              border: '1px solid rgba(200,184,158,0.3)',
+            }}>
+              <div style={{
+                position: 'absolute', top: -10, right: -10, width: 60, height: 60,
+                borderRadius: '50%', background: 'rgba(255,255,255,0.3)',
+              }} />
+              <div style={{ fontSize: 34, marginBottom: 8 }}>{cat.icon}</div>
+              <h3 style={{ fontFamily: T.serif, fontSize: 18, color: T.forest, fontWeight: 600, marginBottom: 2 }}>{cat.label}</h3>
+              <p style={{ fontSize: 13, color: T.sage }}>{cat.desc}</p>
+            </div>
+          ))}
+        </div>
+        {/* Featured Banner */}
+        <div style={{ marginTop: 16, borderRadius: 20, overflow: 'hidden', position: 'relative', height: 150, cursor: 'pointer' }}>
+          <img src={IMG.food2} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div style={{
+            position: 'absolute', inset: 0, padding: 18,
+            background: 'linear-gradient(135deg, rgba(62,74,50,0.8) 0%, rgba(62,74,50,0.3) 100%)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+          }}>
+            <span style={{ fontSize: 12, color: T.moss, marginBottom: 4, fontWeight: 500 }}>编辑推荐</span>
+            <h3 style={{ fontFamily: T.serif, fontSize: 22, color: 'white', fontWeight: 600 }}>本周最佳 · 云南菌菇</h3>
+          </div>
+        </div>
+      </div>
+      <TabBar active="category" />
+    </div>
+  );
+}
+
+// ===== Screen 3: Recipe Feed =====
+function RecipeScreen() {
+  const recipes = [
+    { id: 1, title: '红烧肉', time: '90分钟', difficulty: '中等', img: IMG.food1, author: '苏小厨', rating: 4.9 },
+    { id: 2, title: '菌菇汤锅', time: '60分钟', difficulty: '简单', img: IMG.food2, author: '菌子猎人', rating: 4.8 },
+    { id: 3, title: '全麦面包', time: '3小时', difficulty: '进阶', img: IMG.food_bread, author: '面包窑', rating: 4.7 },
+    { id: 4, title: '清炒时蔬', time: '15分钟', difficulty: '简单', img: IMG.food3, author: '素食小馆', rating: 4.6 },
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: T.cream }}>
+      {/* Nav Gradient: warm sand → cream */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
+        background: `linear-gradient(180deg, #D4C4A8 0%, ${T.cream} 100%)`,
+        paddingTop: 54, paddingBottom: 12, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <h1 style={{ fontFamily: T.serif, fontSize: 26, color: T.forest, fontWeight: 700, marginBottom: 10 }}>精选食谱</h1>
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+          {['全部','家常','烘焙','汤羹','凉菜','主食'].map((t, i) => (
+            <span key={t} style={{
+              padding: '7px 16px', borderRadius: 16, fontSize: 14, whiteSpace: 'nowrap', cursor: 'pointer',
+              background: i === 0 ? T.forest : 'rgba(255,255,255,0.7)',
+              color: i === 0 ? 'white' : T.sage, fontWeight: i === 0 ? 600 : 400,
+            }}>{t}</span>
+          ))}
+        </div>
+      </div>
+      {/* Recipe List */}
+      <div style={{ position: 'absolute', top: 148, left: 0, right: 0, bottom: 80, overflowY: 'auto', padding: '0 16px' }}>
+        {recipes.map(recipe => (
+          <div key={recipe.id} style={{
+            display: 'flex', gap: 12, background: 'white', borderRadius: 16,
+            overflow: 'hidden', marginBottom: 12, cursor: 'pointer',
+            boxShadow: '0 2px 12px rgba(62,74,50,0.06)',
+          }}>
+            <div style={{ width: 120, height: 120, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+              <img src={recipe.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                height: 30, background: 'linear-gradient(0deg, rgba(62,74,50,0.6) 0%, transparent 100%)',
+              }} />
+            </div>
+            <div style={{ flex: 1, padding: '14px 14px 14px 0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <h3 style={{ fontFamily: T.serif, fontSize: 18, color: T.forest, fontWeight: 600, marginBottom: 6 }}>{recipe.title}</h3>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 12, color: T.sage, background: T.leaf, padding: '3px 10px', borderRadius: 8 }}>{recipe.time}</span>
+                <span style={{ fontSize: 12, color: T.sage, background: T.leaf, padding: '3px 10px', borderRadius: 8 }}>{recipe.difficulty}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: T.sand }}>{recipe.author}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <span style={{ color: '#E8A830', fontSize: 13 }}>★</span>
+                  <span style={{ fontSize: 13, color: T.sage, fontWeight: 600 }}>{recipe.rating}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <TabBar active="recipe" />
+    </div>
+  );
+}
+
+// ===== Screen 4: Settings =====
+function SettingsScreen() {
+  const menuGroups = [
+    { title: '账号', items: [
+      { icon: '👤', label: '个人资料', desc: '编辑头像、昵称、签名' },
+      { icon: '🔔', label: '消息通知', desc: '点赞、评论、关注提醒' },
+      { icon: '🌙', label: '深色模式', desc: '跟随系统', toggle: true },
+    ]},
+    { title: '偏好', items: [
+      { icon: '🍳', label: '口味偏好', desc: '辣、甜、咸、清淡' },
+      { icon: '🌍', label: '地区菜系', desc: '川菜、粤菜、西餐…' },
+      { icon: '📊', label: '数据与隐私', desc: '管理你的数据' },
+    ]},
+    { title: '关于', items: [
+      { icon: '📝', label: '意见反馈', desc: '帮助我们做得更好' },
+      { icon: '⭐', label: '给个好评', desc: '去 App Store 评价' },
+    ]},
+  ];
+  return (
+    <div style={{ width: '100%', height: '100%', background: T.cream }}>
+      {/* Nav Gradient: moss → cream */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 50,
+        background: `linear-gradient(180deg, ${T.moss}40 0%, ${T.cream} 100%)`,
+        paddingTop: 54, paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <h1 style={{ fontFamily: T.serif, fontSize: 26, color: T.forest, fontWeight: 700 }}>我的</h1>
+      </div>
+      {/* Profile Card */}
+      <div style={{ position: 'absolute', top: 110, left: 16, right: 16, zIndex: 10 }}>
+        <div style={{
+          background: 'white', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'center', gap: 16,
+          boxShadow: '0 4px 20px rgba(62,74,50,0.08)',
+        }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: 32,
+            background: `linear-gradient(135deg, ${T.moss}, ${T.sage})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 30, color: 'white', fontWeight: 700,
+          }}>苏</div>
+          <div>
+            <h3 style={{ fontFamily: T.serif, fontSize: 20, color: T.forest, fontWeight: 600, marginBottom: 2 }}>苏小厨</h3>
+            <p style={{ fontSize: 14, color: T.sage }}>用心做每一道菜 🌿</p>
+            <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+              <span style={{ fontSize: 13, color: T.sand }}>食谱 <b style={{ color: T.forest }}>42</b></span>
+              <span style={{ fontSize: 13, color: T.sand }}>粉丝 <b style={{ color: T.forest }}>1.2k</b></span>
+              <span style={{ fontSize: 13, color: T.sand }}>获赞 <b style={{ color: T.forest }}>8.6k</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Menu */}
+      <div style={{ position: 'absolute', top: 210, left: 0, right: 0, bottom: 80, overflowY: 'auto', padding: '0 16px' }}>
+        {menuGroups.map((group, gi) => (
+          <div key={gi} style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: T.sand, fontWeight: 500, padding: '0 4px', marginBottom: 8, letterSpacing: '0.05em' }}>{group.title}</div>
+            <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 12px rgba(62,74,50,0.06)' }}>
+              {group.items.map((item, ii) => (
+                <div key={ii} style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
+                  borderBottom: ii < group.items.length - 1 ? '1px solid #f0ece4' : 'none',
+                  cursor: 'pointer',
+                }}>
+                  <span style={{ fontSize: 24 }}>{item.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, color: T.forest, fontWeight: 500 }}>{item.label}</div>
+                    <div style={{ fontSize: 13, color: T.sand, marginTop: 2 }}>{item.desc}</div>
+                  </div>
+                  {item.toggle ? (
+                    <div style={{
+                      width: 48, height: 28, borderRadius: 14, background: T.moss, position: 'relative', cursor: 'pointer',
+                    }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: 12, background: 'white', position: 'absolute', top: 2, right: 2,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                      }} />
+                    </div>
+                  ) : (
+                    <span style={{ color: T.sand, fontSize: 18 }}>›</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <TabBar active="me" />
+    </div>
+  );
+}
+
+// ===== Main App =====
+function App() {
+  return (
+    <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div className="phone-wrap">
+        <div className="phone-label">发现 · 热门推荐</div>
+        <IphoneFrame><TrendingScreen /></IphoneFrame>
+      </div>
+      <div className="phone-wrap">
+        <div className="phone-label">分类 · 美食导航</div>
+        <IphoneFrame><CategoryScreen /></IphoneFrame>
+      </div>
+      <div className="phone-wrap">
+        <div className="phone-label">食谱 · 精选列表</div>
+        <IphoneFrame><RecipeScreen /></IphoneFrame>
+      </div>
+      <div className="phone-wrap">
+        <div className="phone-label">我的 · 个人中心</div>
+        <IphoneFrame time="9:41"><SettingsScreen /></IphoneFrame>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
