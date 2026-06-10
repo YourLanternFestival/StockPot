@@ -275,7 +275,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
         // 获取或追加目标行
         let targetRow = allRows[startRowIdx + i];
         if (!targetRow) {
-          const appendFn = currentTbody._appendRowFn || onAppendRow || appendPurchaseRow;
+          const appendFn = onAppendRow || appendPurchaseRow;
           appendFn(currentTbody, allRows.length + i);
           allRows.length = 0;
           allRows.push(...currentTbody.querySelectorAll('tr'));
@@ -305,7 +305,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
           }
         }
       }
-      // 粘贴新增行后重新编号序号
+      // 粘贴新增行后重新编号序号（仅采购单页面有此函数）
       if (appended && typeof reindexPurchaseRows === 'function') {
         reindexPurchaseRows(currentTbody);
       }
