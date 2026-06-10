@@ -1568,6 +1568,9 @@ function getLianhuaDateGroups(source) {
 // Export all purchase orders (main entry)
 async function exportAllPurchaseOrders() {
   try {
+    // 导出前先静默保存，确保 DB 和 DOM 同步
+    await silentSavePurchaseOrders();
+
     if (lianhuaItems.length === 0) {
       try { await loadLianhuaItems(); } catch (e) { /* ignore */ }
     }
@@ -1633,6 +1636,14 @@ async function exportAllPurchaseOrders() {
     const now = new Date();
     const month = `${now.getMonth() + 1}月`;
     const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.current_canteen || '洋安'));
+    // DEBUG: 导出数据概览
+    console.log('[EXPORT] sheets:', sheets.length, 'mode:', mode);
+    sheets.forEach(s => {
+      const count = s.rows.filter(r => !r.isHeader && !r.isSubHeader).length;
+      console.log(`[EXPORT] sheet "${s.name}": ${count} data rows`);
+      s.rows.filter(r => !r.isHeader && !r.isSubHeader).slice(0, 2).forEach(r => console.log('[EXPORT]   sample:', JSON.stringify(r.data?.slice(0, 4))));
+    });
+
     const result = await window.api.exportPurchaseOrder(sheets, `${month}${modeLabel}采购单.xlsx`);
     if (result.success) {
       showToast(result.retryPath ? `文件被占用，已另存为: ${result.retryPath.split(/[\\/]/).pop()}` : '导出成功！');
