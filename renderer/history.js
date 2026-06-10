@@ -8,7 +8,8 @@ async function initHistoryPage() {
 
 async function loadHistoryDates() {
   try {
-    const dates = await window.api.getPurchaseHistoryDates();
+    const retentionDays = (typeof APP_SETTINGS !== 'undefined' && APP_SETTINGS.purchase_retention_days) || 31;
+    const dates = await window.api.getPurchaseHistoryDates(retentionDays);
     const container = document.getElementById('history-dates');
 
     if (!dates || dates.length === 0) {

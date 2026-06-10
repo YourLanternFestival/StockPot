@@ -192,7 +192,7 @@ ipcMain.handle('purchaseOrders:update', (e, id, data) => db.updatePurchaseOrder(
 ipcMain.handle('purchaseOrders:delete', (e, id) => db.deletePurchaseOrder(id));
 ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(source));
 ipcMain.handle('purchaseOrders:getByDate', (e, date) => db.getPurchaseOrdersByDate(date));
-ipcMain.handle('purchaseOrders:historyDates', () => db.getPurchaseHistoryDates());
+ipcMain.handle('purchaseOrders:historyDates', (_, days) => db.getPurchaseHistoryDates(days));
 ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
 
 // 批量保存采购单（事务保护：先清空再写入，中间崩溃不丢数据）

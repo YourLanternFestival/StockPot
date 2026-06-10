@@ -724,13 +724,14 @@ function getPurchaseOrdersByDate(date) {
   );
 }
 
-function getPurchaseHistoryDates() {
+function getPurchaseHistoryDates(days = 31) {
   return queryAll(
-    `SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != '' ORDER BY date DESC LIMIT 3`
+    `SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != '' ORDER BY date DESC LIMIT ?`,
+    [days]
   );
 }
 
-function cleanOldPurchaseOrders(daysToKeep = 3) {
+function cleanOldPurchaseOrders(daysToKeep = 31) {
   const now = new Date();
   // 用本地日期，不用 toISOString（UTC 会差 8 小时）
   const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToKeep);

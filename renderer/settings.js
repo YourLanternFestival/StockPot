@@ -16,6 +16,7 @@ const SETTING_KEYS = [
   'small_display_style',
   'show_matrix_remarks',
   'alert_short_days', 'alert_long_days',
+  'purchase_retention_days',
   'last_purchase_date',
   'theme',
   'theme_font',
@@ -43,6 +44,7 @@ const SETTING_DEFAULTS = {
   show_matrix_remarks: 'on',
   alert_short_days: '30',
   alert_long_days: '60',
+  purchase_retention_days: '31',
   last_purchase_date: '',
   theme: 'default',
   theme_font: 'Cheese',
@@ -71,6 +73,7 @@ async function initSettingsPage() {
     document.getElementById('setting-photo-folder').value = settings.photo_folder || SETTING_DEFAULTS.photo_folder;
     document.getElementById('setting-alert-short-days').value = settings.alert_short_days || SETTING_DEFAULTS.alert_short_days;
     document.getElementById('setting-alert-long-days').value = settings.alert_long_days || SETTING_DEFAULTS.alert_long_days;
+    document.getElementById('setting-purchase-retention-days').value = settings.purchase_retention_days || SETTING_DEFAULTS.purchase_retention_days;
     // 主题
     const currentTheme = settings.theme || SETTING_DEFAULTS.theme;
     const themeEl = document.getElementById('setting-theme');
@@ -181,9 +184,13 @@ async function loadAppSettings() {
       show_matrix_remarks: g('show_matrix_remarks'),
       alert_short_days: parseInt(g('alert_short_days')) || 30,
       alert_long_days: parseInt(g('alert_long_days')) || 60,
+      purchase_retention_days: parseInt(g('purchase_retention_days')) || 31,
       last_purchase_date: g('last_purchase_date') || '',
     };
     ENTER_MODE = g('enter_mode');
+    // 更新历史页面保留天数提示
+    const hintEl = document.getElementById('history-retention-hint');
+    if (hintEl) hintEl.textContent = `保留最近${APP_SETTINGS.purchase_retention_days}天的采购数据`;
     // 同步到询价页内联折扣输入框
     syncDiscountToInquiry();
     // 应用主题
@@ -384,6 +391,17 @@ function toggleSmallCanteenConfig() {
   const mode = document.getElementById('setting-canteen-mode').value;
   const section = document.getElementById('small-canteen-config');
   if (section) section.style.display = mode === 'small' ? 'block' : 'none';
+}
+
+function switchSettingsTab(btn) {
+  const tabId = btn.dataset.tab;
+  // Deactivate all tabs and content
+  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+  // Activate selected
+  btn.classList.add('active');
+  const content = document.getElementById(tabId);
+  if (content) content.classList.add('active');
 }
 
 // 切换小所填写样式时提示数据丢失

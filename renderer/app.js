@@ -181,8 +181,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load all app settings into cache
   await loadAppSettings();
 
-  // Clean old purchase orders (keep 3 days)
-  await window.api.cleanOldPurchaseOrders(3);
+  // Clean old purchase orders (use configurable retention days)
+  const retentionDays = APP_SETTINGS.purchase_retention_days || 31;
+  await window.api.cleanOldPurchaseOrders(retentionDays);
 
   // Check if first launch and start tutorial
   checkAndStartTour();

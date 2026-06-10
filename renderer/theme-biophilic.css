@@ -248,3 +248,18 @@ body.theme-biophilic .dashboard-grid {
 body.theme-biophilic .stat-card.warning {
   border: none;
 }
+
+/* ===== Settings Tabs ===== */
+body.theme-biophilic .settings-tabs {
+  border-bottom-color: rgba(224,216,200,0.4);
+}
+
+body.theme-biophilic .settings-tab {
+  border-radius: 12px 12px 0 0;
+  font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+}
+
+body.theme-biophilic .settings-tab.active {
+  background: rgba(255,255,255,0.5);
+  border-bottom-color: var(--primary);
+}

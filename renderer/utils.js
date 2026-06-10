@@ -270,6 +270,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
       const startColIdx = Array.from(currentTr.querySelectorAll('.cell-editable')).indexOf(input);
       const totalCols = currentTr.querySelectorAll('.cell-editable').length;
 
+      let appended = false;
       for (let i = 0; i < lines.length; i++) {
         // 获取或追加目标行
         let targetRow = allRows[startRowIdx + i];
@@ -279,6 +280,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
           allRows.length = 0;
           allRows.push(...currentTbody.querySelectorAll('tr'));
           targetRow = allRows[allRows.length - 1];
+          appended = true;
         }
         const editableInputs = targetRow.querySelectorAll('.cell-editable');
 
@@ -302,6 +304,10 @@ function bindTableRowEvents(tr, tbody, options = {}) {
             editableInputs[startColIdx].dispatchEvent(new Event('blur', { bubbles: true }));
           }
         }
+      }
+      // 粘贴新增行后重新编号序号
+      if (appended && typeof reindexPurchaseRows === 'function') {
+        reindexPurchaseRows(currentTbody);
       }
     });
 
