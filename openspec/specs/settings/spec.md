@@ -41,8 +41,8 @@
 - `purchase_rows` — 采购单录入表空行数（默认：10，同上）
 
 ### 历史记录显示
-- `show_inbound_history` — 是否显示入库历史
-- `show_outbound_history` — 是否显示出库历史
+- `inbound_history` — 是否显示入库历史
+- `outbound_history` — 是否显示出库历史
 - `inbound_history_days` — 入库历史显示天数
 - `outbound_history_days` — 出库历史显示天数
 
@@ -50,16 +50,21 @@
 - `purchase_retention_days` — 采购单历史数据保留天数（默认：31，范围：1-365）
 
 ### 询价配置
-- `discount_name_1` — 第一折扣名称（默认："盛销"）
-- `discount_rate_1` — 第一折扣率（默认：0.92）
-- `discount_name_2` — 第二折扣名称（默认："优宏"）
-- `discount_rate_2` — 第二折扣率（默认：0.90）
+- `discount1_name` — 第一折扣名称（默认："盛销"）
+- `discount1_rate` — 第一折扣率（默认：0.92）
+- `discount2_name` — 第二折扣名称（默认："优宏"）
+- `discount2_rate` — 第二折扣率（默认：0.90）
 - `price_decimals` — 价格小数精度
 
 ### 食堂模式
-- `canteen_mode` — "default"、"multi-canteen" 或 "small-canteen"
+- `canteen_mode` — "default"、"multi" 或 "small"（注：持久化的 `canteen_mode` 设置使用旧地名 `'洋安'`、`'下涯'`、`'small'`，下拉框值映射到内部 `xiaosuo_mode` 设置）
 - `small_canteen_list` — 小所名称 JSON 数组（支持拖拽排序）
 - `small_display_style` — "groups" 或 "matrix"
+
+#### 模式映射
+- HTML 下拉框 `"default"` → `xiaosuo_mode='off'`, `show_pastry='on'`
+- HTML 下拉框 `"multi"` → `canteen_mode='下涯'`, `xiaosuo_mode='on'`, `show_pastry='off'`
+- HTML 下拉框 `"small"` → `xiaosuo_mode='small'`, `show_pastry='off'`
 
 ### 图片配置
 - `photo_folder` — 产品图片文件夹路径
@@ -69,7 +74,7 @@
 - `alert_long_days` — 长期预警天数（默认：60）
 
 ### 键盘导航
-- `enter_navigation_mode` — "same-column"（下一行同列）或 "first-column"（下一行首列）
+- `enter_mode` — "next-row"（下一行同列）或 "next-cell"（下一行首列）
 
 ## 需求
 
@@ -80,7 +85,7 @@
 设置更改应尽可能立即生效（无需重启）。
 
 ### 需求：样式切换警告
-更改 small_display_style 时，系统应显示确认对话框警告数据丢失。
+更改 small_display_style 时，下拉框 `onchange` 事件应立即显示确认对话框警告数据丢失（在保存之前触发，而非保存流程中）。
 
 ### 需求：小所列表管理
 系统应支持小所列表的拖拽排序。
