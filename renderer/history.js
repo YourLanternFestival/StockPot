@@ -371,3 +371,162 @@ function toggleHistoryGroup(header) {
   body.style.display = isVisible ? 'none' : 'block';
   toggle.style.transform = isVisible ? '' : 'rotate(90deg)';
 }
+
+// ===== 批量导出历史采购单 =====
+async function exportHistoryBatch() {
+  try {
+    const dates = await window.api.getPurchaseHistoryDates(APP_SETTINGS.purchase_retention_days || 31);
+    if (!dates || dates.length === 0) {
+      showToast('暂无历史记录可导出', 'error');
+      return;
+    }
+
+    // 弹窗让用户选择要导出的日期
+    const selected = await showHistoryExportDialog(dates);
+    if (!selected || selected.length === 0) return;
+
+    const dec = APP_SETTINGS.price_decimals || 2;
+    const sheets = [];
+
+    for (const date of selected) {
+      const orders = await window.api.getPurchaseOrdersByDate(date);
+      await enrichOrderPrices(orders);
+      if (orders.length === 0) continue;
+
+      // 按 source 分组
+      const groups = {};
+      orders.forEach(o => {
+        const src = o.source || '未知';
+        if (!groups[src]) groups[src] = [];
+        groups[src].push(o);
+      });
+
+      // 区分厨房和联华
+      const kitchenRows = [];
+      const lianhuaRows = [];
+
+      for (const [source, items] of Object.entries(groups)) {
+        const isLianhua = source === '联华' || source.endsWith('-联华');
+        const canteenName = isLianhua
+          ? source.replace('-联华', '')
+          : source.replace(/食堂厨房$|厨房$|面点房$/, '');
+
+        items.forEach(item => {
+          const row = {
+            canteen: canteenName,
+            source,
+            product_name: item.product_name,
+            spec: item.spec,
+            unit_price: item.unit_price,
+            quantity: item.quantity,
+            unit: item.unit,
+            amount: item.amount,
+            remark: item.remark,
+          };
+          if (isLianhua) {
+            lianhuaRows.push(row);
+          } else {
+            kitchenRows.push(row);
+          }
+        });
+      }
+
+      // 厨房 sheet
+      if (kitchenRows.length > 0) {
+        const kGroups = {};
+        kitchenRows.forEach(r => {
+          if (!kGroups[r.source]) kGroups[r.source] = [];
+          kGroups[r.source].push(r);
+        });
+
+        const rows = [];
+        for (const [source, items] of Object.entries(kGroups)) {
+          const label = source.replace(/食堂厨房$|厨房$/, '');
+          rows.push({ isHeader: true, data: [label], mergeRange: 'A:I' });
+          rows.push({ isSubHeader: true, data: ['序号', '品名', '规格', '单价', '数量', '单位', '金额', '备注', ''] });
+          items.forEach((item, idx) => {
+            rows.push({ data: [idx + 1, item.product_name, item.spec, item.unit_price, item.quantity, item.unit, item.amount, item.remark, ''] });
+          });
+        }
+
+        sheets.push({
+          name: `${date}-厨房`,
+          title: `${date} 厨房申购单`,
+          headers: [],
+          colWidths: [8, 20, 15, 10, 10, 8, 10, 20],
+          rows,
+        });
+      }
+
+      // 联华 sheet
+      if (lianhuaRows.length > 0) {
+        sheets.push({
+          name: `${date}-联华`,
+          title: `${date} 联华超市`,
+          headers: ['序号', '客户名称', '品名', '单位', '规格', '单价', '数量', '金额', '备注'],
+          colWidths: [8, 14, 24, 10, 8, 12, 18, 14, 14],
+          rows: lianhuaRows.map((row, idx) => ({
+            data: [idx + 1, row.canteen, row.product_name, row.unit, row.spec, row.unit_price, row.quantity, row.amount, row.remark]
+          })),
+        });
+      }
+    }
+
+    if (sheets.length === 0) {
+      showToast('所选日期无数据可导出', 'error');
+      return;
+    }
+
+    const defaultName = `历史采购单(${selected[0]}至${selected[selected.length - 1]}).xlsx`;
+    const result = await window.api.exportPurchaseOrder(sheets, defaultName);
+    if (result.success) {
+      showToast(result.retryPath ? `文件被占用，已另存为: ${result.retryPath.split(/[\\/]/).pop()}` : `导出成功！共 ${selected.length} 天 ${sheets.length} 张表`);
+    } else if (result.error !== '已取消') {
+      showToast('导出失败: ' + result.error, 'error');
+    }
+  } catch (err) {
+    showToast('导出失败: ' + err.message, 'error');
+  }
+}
+
+function showHistoryExportDialog(dates) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10000;display:flex;align-items:center;justify-content:center;';
+
+    const panel = document.createElement('div');
+    panel.style.cssText = 'background:var(--card-bg);border-radius:12px;padding:24px;max-width:480px;width:90%;max-height:70vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+
+    panel.innerHTML = `
+      <h3 style="margin:0 0 16px;">选择导出日期</h3>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="btn btn-sm" onclick="this.closest('.export-dialog').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=true)">全选</button>
+        <button class="btn btn-sm" onclick="this.closest('.export-dialog').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false)">全不选</button>
+      </div>
+      <div class="export-dialog" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+        ${dates.map((d, i) => `
+          <label style="display:flex;align-items:center;gap:4px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;${i === 0 ? 'background:var(--primary-light);' : ''}">
+            <input type="checkbox" value="${d.date}" ${i === 0 ? 'checked' : ''}> ${d.date.slice(5)}
+          </label>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn" id="btn-export-cancel">取消</button>
+        <button class="btn btn-primary" id="btn-export-confirm">导出</button>
+      </div>
+    `;
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) { overlay.remove(); resolve(null); }
+    });
+    panel.querySelector('#btn-export-cancel').onclick = () => { overlay.remove(); resolve(null); };
+    panel.querySelector('#btn-export-confirm').onclick = () => {
+      const checked = Array.from(panel.querySelectorAll('input:checked')).map(c => c.value);
+      overlay.remove();
+      resolve(checked);
+    };
+  });
+}

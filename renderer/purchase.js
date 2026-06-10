@@ -1635,7 +1635,7 @@ async function exportAllPurchaseOrders() {
     const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.current_canteen || '洋安'));
     const result = await window.api.exportPurchaseOrder(sheets, `${month}${modeLabel}采购单.xlsx`);
     if (result.success) {
-      showToast('导出成功！');
+      showToast(result.retryPath ? `文件被占用，已另存为: ${result.retryPath.split(/[\\/]/).pop()}` : '导出成功！');
     } else if (result.error !== '已取消') {
       showToast('导出失败: ' + result.error, 'error');
     }

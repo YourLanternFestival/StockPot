@@ -522,6 +522,25 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
     await wb.xlsx.writeFile(result.filePath);
     return { success: true };
   } catch (err) {
+    // 文件被占用时自动加后缀重试
+    if (err.code === 'EBUSY' || err.code === 'EPERM') {
+      try {
+        const dir = path.dirname(result.filePath);
+        const ext = path.extname(result.filePath);
+        const base = path.basename(result.filePath, ext);
+        for (let n = 2; n <= 10; n++) {
+          const retryPath = path.join(dir, `${base}(${n})${ext}`);
+          try {
+            await wb.xlsx.writeFile(retryPath);
+            return { success: true, retryPath };
+          } catch (retryErr) {
+            if (retryErr.code !== 'EBUSY' && retryErr.code !== 'EPERM') throw retryErr;
+          }
+        }
+      } catch (retryErr) {
+        return { success: false, error: '文件被占用且自动重试失败: ' + retryErr.message };
+      }
+    }
     return { success: false, error: err.message };
   }
 });

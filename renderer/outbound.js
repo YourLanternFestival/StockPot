@@ -85,6 +85,38 @@ function bindOutboundRowEvents(tr) {
     onProductSelect: selectOutboundProduct,
     onAppendRow: appendOutboundRow,
   });
+  // Ctrl+D 向下填充：将当前单元格值复制到下方所有同列空行
+  tr.querySelectorAll('.cell-editable').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        fillDownOutbound(input);
+      }
+    });
+  });
+}
+
+function fillDownOutbound(input) {
+  const tbody = document.getElementById('outbound-tbody');
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  const currentTr = input.closest('tr');
+  const startIdx = allRows.indexOf(currentTr);
+  const field = input.dataset.field;
+  const value = input.value;
+  let filled = 0;
+
+  for (let i = startIdx + 1; i < allRows.length; i++) {
+    const targetInput = allRows[i].querySelector(`[data-field="${field}"]`);
+    if (targetInput && !targetInput.value) {
+      targetInput.value = value;
+      targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+      targetInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      filled++;
+    }
+  }
+  if (filled > 0) {
+    showToast(`已向下填充 ${filled} 行`);
+  }
 }
 
 async function handleOutboundProductAutocomplete(input) {
