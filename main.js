@@ -521,7 +521,8 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
       }
     }
 
-    await wb.xlsx.writeFile(result.filePath);
+    const buffer = await wb.xlsx.writeBuffer();
+    fs.writeFileSync(result.filePath, Buffer.from(buffer));
     return { success: true };
   } catch (err) {
     // 文件被占用时自动加后缀重试
@@ -530,10 +531,11 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
         const dir = path.dirname(result.filePath);
         const ext = path.extname(result.filePath);
         const base = path.basename(result.filePath, ext);
+        const buffer = await wb.xlsx.writeBuffer();
         for (let n = 2; n <= 10; n++) {
           const retryPath = path.join(dir, `${base}(${n})${ext}`);
           try {
-            await wb.xlsx.writeFile(retryPath);
+            fs.writeFileSync(retryPath, Buffer.from(buffer));
             return { success: true, retryPath };
           } catch (retryErr) {
             if (retryErr.code !== 'EBUSY' && retryErr.code !== 'EPERM') throw retryErr;
