@@ -65,7 +65,7 @@ async function createWindow() {
     minHeight: 700,
     frame: false, // 隐藏原生边框和标题栏
     autoHideMenuBar: true, // 隐藏菜单栏
-    icon: path.join(__dirname, 'assets', 'img', 'image.png'),
+    icon: path.join(__dirname, 'assets', 'img', 'icon-256.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

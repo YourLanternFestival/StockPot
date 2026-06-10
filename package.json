@@ -32,7 +32,7 @@
     "productName": "食堂物资管理",
     "win": {
       "target": "nsis",
-      "icon": "assets/img/image.png"
+      "icon": "assets/img/icon-256.png"
     },
     "nsis": {
       "oneClick": false,
