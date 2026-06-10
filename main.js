@@ -432,6 +432,7 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
                 dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
                 for (let c = colStart; c <= colEnd; c++) {
                   dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
+                  dataRow.getCell(c).border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
                 }
               }
             }
@@ -439,15 +440,18 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
             const colStart = colLetterToNum(row.mergeRange.split(':')[0]);
             const colEnd = colLetterToNum(row.mergeRange.split(':')[1]);
             if (colStart && colEnd) {
+              dataRow.getCell(colStart).value = row.data ? row.data[0] : undefined;
               dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
               for (let c = colStart; c <= colEnd; c++) {
                 dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
+                dataRow.getCell(c).border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
               }
             }
           } else {
             dataRow.getCell(1).font = { name: '宋体', bold: true, size: 15 };
             for (let c = 1; c <= colCount; c++) {
               dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
+              dataRow.getCell(c).border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
             }
           }
           continue;

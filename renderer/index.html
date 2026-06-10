@@ -880,8 +880,8 @@
  </select>
  </div>
  <div class="form-group">
- <label>主题字体（仅有机自然主题生效）</label>
- <select class="form-control" id="setting-theme-font" data-tooltip="选择有机自然主题下使用的字体">
+ <label>主题字体</label>
+ <select class="form-control" id="setting-theme-font" data-tooltip="选择主题字体，保存后立即生效">
  <option value="Cheese">日系可爱奶酪体</option>
  <option value="Bayu">叶根友霸域行书</option>
  <option value="Erciyuan">手指二次元体</option>
@@ -903,7 +903,7 @@
  <div class="form-group">
  <label>主色调（自动生成配色方案）</label>
  <div style="display:flex;gap:12px;align-items:center;">
- <input type="color" id="setting-theme-color" value="#3E4A32" onchange="previewThemeColor(this.value)" data-tooltip="选择主色调，系统自动计算配套色阶">
+ <input type="color" id="setting-theme-color" value="#3E4A32" onchange="onThemeColorChange(this.value)" data-tooltip="选择主色调，系统自动计算配套色阶">
  <span id="theme-color-hex" style="font-family:monospace;font-size:14px;">#3E4A32</span>
  <button class="btn btn-sm" onclick="resetThemeColor()">重置默认</button>
  </div>
@@ -920,6 +920,7 @@
  </div>
  <div style="text-align:right;margin-top:16px;display:flex;gap:12px;justify-content:flex-end;">
  <button class="btn" onclick="startTour(0)" data-tooltip="重新播放新手引导教程"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>查看新手引导</button>
+ <button class="btn" onclick="restoreDefaultTheme()" data-tooltip="一键恢复默认主题（默认风格+系统字体+14px+原始配色）" style="border-color:var(--border);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>恢复默认主题</button>
  <button class="btn btn-primary btn-lg" onclick="saveSettings()" data-tooltip="保存所有配置项并立即生效"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>保存设置</button>
  </div>
  </div>

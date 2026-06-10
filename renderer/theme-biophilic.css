@@ -1,42 +1,6 @@
 /* ===== Organic Biophilic Theme ===== */
 /* 叠加在 styles.css 之上，通过 body.theme-biophilic 激活 */
-
-@font-face {
-  font-family: 'Cheese';
-  src: url('../assets/font-cheese.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Bayu';
-  src: url('../assets/font-bayu.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Erciyuan';
-  src: url('../assets/font-erciyuan.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Xuesong';
-  src: url('../assets/font-xuesong.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Yangmao';
-  src: url('../assets/HanBiaoBangYangMaoBiPinYin-2.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
-@font-face {
-  font-family: 'Tengxiang';
-  src: url('../assets/TengXiangQinYuanJianTi-1.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
+/* @font-face 已移至 styles.css 全局加载 */
 
 body.theme-biophilic {
   --primary: #5D6B4D;

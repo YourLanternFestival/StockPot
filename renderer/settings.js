@@ -72,8 +72,9 @@ async function initSettingsPage() {
     document.getElementById('setting-alert-short-days').value = settings.alert_short_days || SETTING_DEFAULTS.alert_short_days;
     document.getElementById('setting-alert-long-days').value = settings.alert_long_days || SETTING_DEFAULTS.alert_long_days;
     // 主题
+    const currentTheme = settings.theme || SETTING_DEFAULTS.theme;
     const themeEl = document.getElementById('setting-theme');
-    if (themeEl) themeEl.value = settings.theme || SETTING_DEFAULTS.theme;
+    if (themeEl) themeEl.value = currentTheme;
     const fontEl = document.getElementById('setting-theme-font');
     if (fontEl) fontEl.value = settings.theme_font || SETTING_DEFAULTS.theme_font;
     const navSizeEl = document.getElementById('setting-theme-nav-size');
@@ -82,9 +83,9 @@ async function initSettingsPage() {
     if (bodySizeEl) bodySizeEl.value = settings.theme_body_size || SETTING_DEFAULTS.theme_body_size;
     const colorEl = document.getElementById('setting-theme-color');
     if (colorEl) {
-      const c = settings.theme_color || SETTING_DEFAULTS.theme_color;
+      const c = settings.theme_color || (currentTheme === 'default' ? '#4f6ef7' : SETTING_DEFAULTS.theme_color);
       colorEl.value = c;
-      previewThemeColor(c);
+      if (currentTheme === 'biophilic') previewThemeColor(c);
     }
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
@@ -201,14 +202,26 @@ function applyTheme(theme, font, navSize, bodySize, color) {
   } else {
     css.disabled = true;
     document.body.classList.remove('theme-biophilic');
+    // 默认模式：清除内联样式，恢复 :root 中的原始 CSS 变量
+    document.documentElement.style.removeProperty('--primary');
+    document.documentElement.style.removeProperty('--primary-hover');
+    document.documentElement.style.removeProperty('--primary-light');
+    document.documentElement.style.removeProperty('--sidebar-bg');
+    document.documentElement.style.removeProperty('--sidebar-active');
+    document.documentElement.style.removeProperty('--text');
+    document.documentElement.style.removeProperty('--text-secondary');
+    document.documentElement.style.removeProperty('--border');
+    document.documentElement.style.removeProperty('--bg');
+    document.documentElement.style.removeProperty('--card-bg');
+    document.documentElement.style.removeProperty('--theme-font');
   }
-  // 应用字体
+  // 应用字体（生物亲和主题）
   if (font) document.documentElement.style.setProperty('--theme-font', font);
-  // 应用字号
+  // 应用字号（两个主题共用）
   if (navSize) document.documentElement.style.setProperty('--theme-nav-size', navSize + 'px');
   if (bodySize) document.documentElement.style.setProperty('--theme-body-size', bodySize + 'px');
-  // 应用主色调
-  if (color) applyThemeColor(color);
+  // 应用主色调（仅生物亲和主题使用调色盘）
+  if (theme === 'biophilic' && color) applyThemeColor(color);
 }
 
 // ===== 主色调配色生成 =====
@@ -280,9 +293,34 @@ function previewThemeColor(hex) {
 }
 
 function resetThemeColor() {
-  const defaultColor = '#3E4A32';
+  const theme = document.getElementById('setting-theme').value;
+  const defaultColor = theme === 'default' ? '#4f6ef7' : '#3E4A32';
   document.getElementById('setting-theme-color').value = defaultColor;
-  applyThemeColor(defaultColor);
+  if (theme === 'biophilic') {
+    applyThemeColor(defaultColor);
+  }
+}
+
+function onThemeColorChange(hex) {
+  const theme = document.getElementById('setting-theme').value;
+  if (theme === 'biophilic') {
+    applyThemeColor(hex);
+  } else {
+    // 默认模式：应用自定义配色（用户可选择覆盖默认蓝色）
+    applyThemeColor(hex);
+  }
+}
+
+function restoreDefaultTheme() {
+  // 重置所有主题相关设置到出厂默认值
+  document.getElementById('setting-theme').value = 'default';
+  document.getElementById('setting-theme-font').value = 'Cheese';
+  document.getElementById('setting-theme-nav-size').value = '14';
+  document.getElementById('setting-theme-body-size').value = '14';
+  document.getElementById('setting-theme-color').value = '#4f6ef7';
+  // 立即应用：切到默认模式，清除内联配色和自定义字体
+  applyTheme('default', '', '14', '14', '#4f6ef7');
+  showToast('已恢复默认主题，点击「保存设置」永久生效');
 }
 
 function syncDiscountToInquiry() {

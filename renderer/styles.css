@@ -62,6 +62,44 @@
   left: 62px;
 }
 
+/* ===== 全局字体定义（两个主题共用） ===== */
+@font-face {
+  font-family: 'Cheese';
+  src: url('../assets/font-cheese.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Bayu';
+  src: url('../assets/font-bayu.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Erciyuan';
+  src: url('../assets/font-erciyuan.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Xuesong';
+  src: url('../assets/font-xuesong.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Yangmao';
+  src: url('../assets/HanBiaoBangYangMaoBiPinYin-2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Tengxiang';
+  src: url('../assets/TengXiangQinYuanJianTi-1.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --primary: #4f6ef7;
   --primary-hover: #3d5bd9;
@@ -86,15 +124,18 @@
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --theme-font: unset;
+  --theme-nav-size: 14px;
+  --theme-body-size: 14px;
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: var(--theme-font, -apple-system), BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--theme-body-size, 14px);
   line-height: 1.5;
   overflow: hidden;
   height: 100vh;
@@ -174,7 +215,7 @@ body {
 
 .nav-icon { font-size: 18px; width: 20px; text-align: center; flex-shrink: 0; }
 .nav-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.nav-text { font-size: 14px; }
+.nav-text { font-size: var(--theme-nav-size, 14px); }
 
 /* ===== Sidebar Collapsed ===== */
 .sidebar.collapsed {
