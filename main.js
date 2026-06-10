@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const db = require('./db');
@@ -486,11 +486,13 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
         // Right-align amount column (col 8) — only for standard layout (10 columns)
         if (colCount === 10 && colCount >= 8) dataRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
 
-        // Embed image in last column
+        // Embed image in last column (resized to reduce file size)
         if (row.imagePath && fs.existsSync(row.imagePath)) {
           try {
-            const ext = path.extname(row.imagePath).toLowerCase().replace('.', '');
-            const imageId = wb.addImage({ filename: row.imagePath, extension: ext === 'jpg' ? 'jpeg' : ext });
+            const img = nativeImage.createFromPath(row.imagePath);
+            const resized = img.resize({ width: 240, height: 180, quality: 'best' });
+            const buffer = resized.toJPEG(80);
+            const imageId = wb.addImage({ buffer, extension: 'jpeg' });
             ws.addImage(imageId, {
               tl: { col: colCount - 1, row: rowNum - 1 },
               ext: { width: imgWidth, height: imgHeight },
