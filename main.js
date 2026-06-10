@@ -369,8 +369,8 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
     return num;
   }
 
+  const wb = new ExcelJS.Workbook();
   try {
-    const wb = new ExcelJS.Workbook();
     const imgWidth = 80, imgHeight = 60;
 
     for (const sheet of sheets) {
@@ -537,6 +537,7 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
             if (retryErr.code !== 'EBUSY' && retryErr.code !== 'EPERM') throw retryErr;
           }
         }
+        return { success: false, error: '文件被占用，请关闭 Excel 后重试' };
       } catch (retryErr) {
         return { success: false, error: '文件被占用且自动重试失败: ' + retryErr.message };
       }
