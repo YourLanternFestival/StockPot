@@ -2,14 +2,14 @@
 const TOUR_STEPS = [
   {
     target: null,
-    title: '欢迎使用洋安出入库管理系统',
-    content: '本系统帮助您管理食堂物资的入库、出库、库存和采购。接下来将用1分钟带您了解核心功能。如果已经熟悉，可以随时点击"跳过引导"。',
+    title: '欢迎使用食堂出入库管理系统',
+    content: '本系统帮助您管理食堂物资的入库、出库、库存和采购。接下来将带您了解核心功能。如果已经熟悉，可以随时点击"跳过引导"。',
     placement: 'center',
   },
   {
     target: '.sidebar',
     title: '功能导航',
-    content: '所有功能页面通过左侧菜单切换。从上到下依次是：总览、库存查询、入库、出库、月度台账、产品管理、采购单、询价和设置。',
+    content: '所有功能页面通过左侧菜单切换。从上到下依次是：总览、库存查询、入库、出库、月度台账、产品管理、采购单、询价、历史采购和设置。',
     placement: 'right',
   },
   {
@@ -29,7 +29,7 @@ const TOUR_STEPS = [
   {
     target: '[data-page="inbound"]',
     title: '入库登记',
-    content: '在"入库登记"页面批量录入入库记录。输入材料名称时会自动补全已有产品，按回车键可快速跳到下一行。支持 Excel 粘贴批量录入。点击此处可跳转体验。',
+    content: '在"入库登记"页面批量录入入库记录。输入材料名称时会自动补全已有产品，按回车键可快速跳到下一行。支持从 Excel 粘贴多行数据批量录入。点击此处可跳转体验。',
     placement: 'right',
     clickable: true,
     action: () => navigateTo('inbound'),
@@ -37,7 +37,7 @@ const TOUR_STEPS = [
   {
     target: '[data-page="outbound"]',
     title: '出库登记',
-    content: '"出库登记"与入库类似，但多了领取人字段和库存校验。出库数量不能超过当前库存，系统会自动提示。点击此处可跳转体验。',
+    content: '"出库登记"与入库类似，但多了领取人字段和库存校验。出库数量不能超过当前库存。\n\n新增快捷操作：填好一个值后按 Ctrl+D 可向下填充到所有空行（品名、日期、领取人均支持）。点击此处可跳转体验。',
     placement: 'right',
     clickable: true,
     action: () => navigateTo('outbound'),
@@ -45,7 +45,7 @@ const TOUR_STEPS = [
   {
     target: '[data-page="inventory"]',
     title: '库存查询与预警',
-    content: '在"库存查询"中搜索任意材料查看详细库存和出入库流水。"过期预警"标签页会列出临期和已过期的物资，方便及时处理。',
+    content: '在"库存查询"中搜索任意材料查看详细库存和出入库流水。"过期预警"标签页会列出临期和已过期的物资，预警天数可在设置中配置。',
     placement: 'right',
     clickable: true,
     action: () => navigateTo('inventory'),
@@ -53,13 +53,27 @@ const TOUR_STEPS = [
   {
     target: '[data-page="purchase"]',
     title: '采购单管理',
-    content: '采购单是最复杂的模块，支持三种食堂模式（默认/多食堂/小所）。可在"设置"页面切换食堂模式。小所模式下还支持分组输入和矩阵输入两种样式。',
+    content: '采购单支持三种食堂模式（默认/多食堂/小所），可在设置中切换。\n\n录入技巧：\n• 输入品名自动从询价数据补全\n• 从 Excel 粘贴多行或多列数据，自动追加行并重排序号\n• 文件被占用时导出会自动加后缀重试',
+    placement: 'right',
+  },
+  {
+    target: '[data-page="history"]',
+    title: '历史采购',
+    content: '采购单每天自动清空，但数据默认保留 31 天（可在设置中调整）。在"历史采购"页面可按日期查看。\n\n点击"批量导出"可勾选多天数据，导出为一个 Excel 文件（厨房和联华各一张 sheet）。',
+    placement: 'right',
+    clickable: true,
+    action: () => navigateTo('history'),
+  },
+  {
+    target: '[data-page="settings"]',
+    title: '设置中心',
+    content: '设置页使用标签页分组：\n• 通用：录入行数、键盘导航\n• 数据：历史记录、采购单保留天数、预警天数\n• 业务：折扣率、食堂模式、实物图片\n• 外观：主题、字体、字号、主色调\n\n修改后点击"保存设置"立即生效。',
     placement: 'right',
   },
   {
     target: null,
     title: '快速上手提示',
-    content: '• 按 Ctrl+Enter 可在两种回车导航模式间快速切换\n• 出入库录入表格支持 Excel 格式的列粘贴\n• 设置页面可配置每页显示行数、历史记录天数等\n• 随时可在设置页面重新查看本引导',
+    content: '常用快捷键：\n• Ctrl+Enter — 快速切换回车导航模式\n• Ctrl+D — 出库表向下填充当前值\n• 方向键 — 表格中移动光标\n• Escape — 关闭下拉菜单\n\n其他技巧：\n• 支持从 Excel 粘贴多行/多列数据\n• 设置页面随时可查看本引导',
     placement: 'center',
   },
 ];
@@ -112,7 +126,7 @@ function showStep(index) {
   // Update content
   stepIndicator.textContent = `${index + 1}/${TOUR_STEPS.length}`;
   title.textContent = step.title;
-  content.textContent = step.content;
+  content.innerHTML = step.content.replace(/\n/g, '<br>');
 
   // Update buttons
   prevBtn.style.display = index === 0 ? 'none' : 'inline-flex';
