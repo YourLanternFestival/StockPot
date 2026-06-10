@@ -77,10 +77,11 @@ let APP_SETTINGS = {
   inbound_rows: 5, outbound_rows: 5, purchase_rows: 10,
   inbound_history: 'on', inbound_history_days: 20,
   outbound_history: 'on', outbound_history_days: 20,
-  discount1_name: '盛销', discount1_rate: '0.9008',
-  discount2_name: '优宏', discount2_rate: '0.9058',
+  discount1_name: '盛销', discount1_rate: '0.92',
+  discount2_name: '优宏', discount2_rate: '0.90',
   price_decimals: 2,
   inv_inbound_limit: 5, inv_outbound_limit: 10,
+  purchase_retention_days: 31,
   small_canteens: ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'],
 };
 
