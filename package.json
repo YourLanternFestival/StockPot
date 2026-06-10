@@ -1,6 +1,6 @@
 {
   "name": "in-out",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -29,15 +29,15 @@
   },
   "build": {
     "appId": "com.yang-an.inventory",
-    "productName": "洋安出入库管理系统",
+    "productName": "食堂物资管理",
     "win": {
       "target": "nsis",
-      "icon": null
+      "icon": "assets/img/image.png"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "洋安出入库管理系统"
+      "shortcutName": "食堂物资管理"
     },
     "files": [
       "main.js",

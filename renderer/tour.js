@@ -2,7 +2,7 @@
 const TOUR_STEPS = [
   {
     target: null,
-    title: '欢迎使用食堂出入库管理系统',
+    title: '欢迎使用食堂物资管理',
     content: '本系统帮助您管理食堂物资的入库、出库、库存和采购。接下来将带您了解核心功能。如果已经熟悉，可以随时点击"跳过引导"。',
     placement: 'center',
   },

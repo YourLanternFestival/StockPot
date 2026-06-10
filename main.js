@@ -65,12 +65,13 @@ async function createWindow() {
     minHeight: 700,
     frame: false, // 隐藏原生边框和标题栏
     autoHideMenuBar: true, // 隐藏菜单栏
+    icon: path.join(__dirname, 'assets', 'img', 'image.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    title: '食堂出入库管理系统',
+    title: '食堂物资管理',
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
