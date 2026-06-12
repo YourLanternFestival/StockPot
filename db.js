@@ -745,7 +745,7 @@ function cleanOldPurchaseOrders(daysToKeep = 31) {
   // 用本地日期，不用 toISOString（UTC 会差 8 小时）
   const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToKeep);
   const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
-  run('DELETE FROM purchase_orders WHERE created_at < ?', [cutoffStr]);
+  run('DELETE FROM purchase_orders WHERE receive_date < ?', [cutoffStr]);
   save();
 }
 

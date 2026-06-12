@@ -334,20 +334,11 @@ function loadLianhuaModalData(source, date) {
       const qty = parseFloat(item.quantity) || 0;
       const amount = price * qty;
       const dec = APP_SETTINGS.price_decimals || 2;
-      tr.innerHTML = `
-        <td>${idx + 1}</td>
-        <td style="position:relative;">
-          <input type="text" class="cell-input cell-editable" value="${escHtml(item.product_name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
-          <div class="autocomplete-dropdown" style="display:none;"></div>
-        </td>
-        <td><input type="text" class="cell-input cell-readonly" value="${escHtml(item.spec)}" data-field="spec" readonly tabindex="-1"></td>
-        <td><input type="text" class="cell-input cell-readonly" value="${price}" data-field="unit_price" readonly tabindex="-1"></td>
-        <td><input type="text" class="cell-input cell-editable" value="${escHtml(item.quantity)}" data-field="quantity" placeholder="数量"></td>
-        <td><input type="text" class="cell-input cell-readonly" value="${escHtml(item.unit)}" data-field="unit" readonly tabindex="-1"></td>
-        <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(dec) : ''}</td>
-        <td><input type="text" class="cell-input cell-editable" value="${escHtml(item.remark)}" data-field="remark" placeholder="备注"></td>
-        <td style="white-space:nowrap;"><button class="btn-delete-row" onclick="deleteModalLianhuaRow(this)">✕</button></td>
-      `;
+      const amtText = amount > 0 ? '¥' + amount.toFixed(dec) : '';
+      tr.innerHTML = buildPurchaseRowHTML(idx, {
+        product_name: item.product_name, spec: item.spec,
+        unit_price: price, quantity: item.quantity, unit: item.unit, remark: item.remark,
+      }, amtText, { showCopyBtn: false, deleteHandler: 'deleteModalLianhuaRow' });
       tbody.appendChild(tr);
       attachLianhuaCellEvents(tr, tbody);
     });
@@ -426,30 +417,19 @@ function doSaveLianhuaFromModal(source) {
       }
     }
 
-    const esc = escHtml;
     const newTr = document.createElement('tr');
     const quantity = getData('quantity');
     const remark = getData('remark');
-    const amountText = tr.querySelector('.amount-cell')?.textContent || '';
     const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
     const priceNum = parseFloat(unitPrice) || 0;
     const qtyNum = parseFloat(quantity) || 0;
     const amount = priceNum * qtyNum;
+    const amountText = amount > 0 ? '¥' + amount.toFixed(dec) : '';
 
-    newTr.innerHTML = `
-      <td>0</td>
-      <td style="position:relative;">
-        <input type="text" class="cell-input cell-editable" value="${esc(productName)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
-        <div class="autocomplete-dropdown" style="display:none;"></div>
-      </td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(spec)}" data-field="spec" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(unitPrice)}" data-field="unit_price" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-editable" value="${esc(quantity)}" data-field="quantity" placeholder="数量"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(unit)}" data-field="unit" readonly tabindex="-1"></td>
-      <td class="amount-cell cell-readonly">${amount > 0 ? '¥' + amount.toFixed(dec) : ''}</td>
-      <td><input type="text" class="cell-input cell-editable" value="${esc(remark)}" data-field="remark" placeholder="备注"></td>
-      <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" data-tooltip="复制当前行数据到新行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
-    `;
+    newTr.innerHTML = buildPurchaseRowHTML(0, {
+      product_name: productName, spec, unit_price: unitPrice,
+      quantity, unit, remark,
+    }, amountText);
     targetTbody.appendChild(newTr);
     attachLianhuaCellEvents(newTr, targetTbody);
     addedCount++;
@@ -548,20 +528,7 @@ function addLianhuaDateGroup(date, source) {
 // 联华专用行：自动补全从 lianhuaItems 搜索
 function appendLianhuaRow(tbody, idx) {
   const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>${idx + 1}</td>
-    <td style="position:relative;">
-      <input type="text" class="cell-input cell-editable" value="" data-field="product_name" autocomplete="off" placeholder="输入品名...">
-      <div class="autocomplete-dropdown" style="display:none;"></div>
-    </td>
-    <td><input type="text" class="cell-input cell-readonly" value="" data-field="spec" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit_price" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-editable" value="" data-field="quantity" placeholder="数量"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="" data-field="unit" readonly tabindex="-1"></td>
-    <td class="amount-cell cell-readonly"></td>
-    <td><input type="text" class="cell-input cell-editable" value="" data-field="remark" placeholder="备注"></td>
-    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" data-tooltip="复制当前行数据到新行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
-  `;
+  tr.innerHTML = buildPurchaseRowHTML(idx, {}, '');
   tbody.appendChild(tr);
   attachLianhuaCellEvents(tr, tbody);
 }
@@ -706,7 +673,7 @@ async function exportLianhuaOrderByDate(date) {
       title: `联华超市 ${date}`,
       headers: ['序号', '客户名称', '发货时间', '编码', '品名', '单位', '规格', '单价', '数量', '金额', '拆分单件', '备注', '实物图'],
       rows: orders.map((order, idx) => ({
-        data: [order.index, '洋安', date.replace(/-/g, '.'), order.code, order.name, order.unit, order.spec, order.price, order.quantity, order.amount, (order.quantity || 0) * (order.split_qty || 1), order.remark, ''],
+        data: [order.index, APP_SETTINGS.current_canteen || '洋安', date.replace(/-/g, '.'), order.code, order.name, order.unit, order.spec, order.price, order.quantity, order.amount, (order.quantity || 0) * (order.split_qty || 1), order.remark, ''],
         imagePath: images[idx]
       }))
     }];

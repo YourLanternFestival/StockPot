@@ -310,13 +310,24 @@ async function searchInquiry() {
 }
 
 // Show import inquiry dialog
-function showImportInquiryDialog() {
+async function showImportInquiryDialog() {
+  // 动态加载可用月份
+  let monthOptions = '<option value="2026-06">2026年6月</option><option value="2026-05">2026年5月</option>';
+  try {
+    const months = await window.api.getInquiryMonths();
+    if (months && months.length > 0) {
+      monthOptions = months.map(m => {
+        const [y, mo] = m.month.split('-');
+        return `<option value="${m.month}">${y}年${parseInt(mo)}月</option>`;
+      }).join('');
+    }
+  } catch (e) { /* fallback to defaults */ }
+
   openModal('导入鉴证表', `
     <div class="form-group" style="margin-bottom:16px;">
       <label>选择月份</label>
       <select class="form-control" id="import-month">
-        <option value="2026-06">2026年6月</option>
-        <option value="2026-05">2026年5月</option>
+        ${monthOptions}
       </select>
     </div>
     <div class="form-group" style="margin-bottom:16px;">

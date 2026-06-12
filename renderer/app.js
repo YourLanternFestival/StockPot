@@ -128,6 +128,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // ===== Toast =====
 function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
+  // 限制最多 3 个 toast，超出移除最早的
+  const existing = container.querySelectorAll('.toast');
+  if (existing.length >= 3) existing[0].remove();
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.textContent = message;
@@ -315,7 +318,13 @@ function hasTableData(tbodyId) {
 }
 
 function hasPurchaseData() {
-  // 采购单已有自动保存机制，不需要关闭提醒
+  // 检查采购页是否有已填写但可能未自动保存的输入
+  const purchasePage = document.getElementById('page-purchase');
+  if (!purchasePage || !purchasePage.classList.contains('active')) return false;
+  const inputs = purchasePage.querySelectorAll('.cell-editable');
+  for (const input of inputs) {
+    if (input.value && input.value.trim()) return true;
+  }
   return false;
 }
 

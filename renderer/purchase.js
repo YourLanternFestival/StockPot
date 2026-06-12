@@ -62,9 +62,11 @@ function buildDateGroupHTML(date, summaryText, labelSuffix) {
   `;
 }
 
-function buildPurchaseRowHTML(idx, values, amountText) {
+function buildPurchaseRowHTML(idx, values, amountText, opts = {}) {
   const v = values || {};
   const amt = amountText || '';
+  const showCopy = opts.showCopyBtn !== false;
+  const delFn = opts.deleteHandler || 'deletePurchaseRow';
   return `
     <td>${idx + 1}</td>
     <td style="position:relative;">
@@ -77,7 +79,7 @@ function buildPurchaseRowHTML(idx, values, amountText) {
     <td><input type="text" class="cell-input cell-readonly" value="${escHtml(v.unit || '')}" data-field="unit" readonly tabindex="-1"></td>
     <td class="amount-cell cell-readonly">${escHtml(amt)}</td>
     <td><input type="text" class="cell-input cell-editable" value="${escHtml(v.remark || '')}" data-field="remark" placeholder="备注"></td>
-    <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
+    <td style="white-space:nowrap;">${showCopy ? '<button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> ' : ''}<button class="btn-delete-row" onclick="${delFn}(this)">✕</button></td>
   `;
 }
 
@@ -693,7 +695,8 @@ async function doCopyCanteen() {
 
   copyKitchenData(fromCanteen, toCanteen);
   closeModal();
-  showToast(`已将 ${fromCanteen} 厨房数据复制到 ${toCanteen}`);
+  await silentSavePurchaseOrders();
+  showToast(`已将 ${fromCanteen} 厨房数据复制到 ${toCanteen}，已自动保存`);
 }
 
 // 复用：单对多（一键同步到所有小所）
@@ -725,7 +728,8 @@ async function doSyncAll() {
   }
 
   closeModal();
-  showToast(`已将 ${source} 厨房数据同步到 ${targets.length} 个小所`);
+  await silentSavePurchaseOrders();
+  showToast(`已将 ${source} 厨房数据同步到 ${targets.length} 个小所，已自动保存`);
 }
 
 // 核心：复制厨房数据（从源到目标）
