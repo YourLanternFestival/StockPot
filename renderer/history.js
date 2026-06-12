@@ -42,9 +42,14 @@ async function loadHistoryByDate(date, btn) {
 
   try {
     const orders = await window.api.getPurchaseOrdersByDate(date);
+    console.log(`[history] loadHistoryByDate: date=${date}, orders=${orders ? orders.length : 0}`);
 
     // 对 unit_price=0 的记录从询价表反查价格（矩阵模式保存时不带价格）
-    await enrichOrderPrices(orders);
+    try {
+      await enrichOrderPrices(orders);
+    } catch (e) {
+      console.error('[history] enrichOrderPrices failed:', e);
+    }
 
     historyData = orders;
     renderHistoryContent(orders, date);
@@ -355,13 +360,17 @@ function renderHistoryContent(orders, date) {
     return;
   }
 
+  let html = '';
   if (xiaosuoMode === 'small') {
-    container.innerHTML = renderSmallCanteenHistory(orders, date);
+    html = renderSmallCanteenHistory(orders, date);
   } else if (xiaosuoMode === 'on') {
-    container.innerHTML = renderMultiCanteenHistory(orders, date);
-  } else {
-    container.innerHTML = renderDefaultHistory(orders);
+    html = renderMultiCanteenHistory(orders, date);
   }
+  // 模式专属渲染器无结果时（如历史数据来自其他模式），回退到通用渲染
+  if (!html || html.includes('该日期无采购记录')) {
+    html = renderDefaultHistory(orders);
+  }
+  container.innerHTML = html;
 }
 
 function toggleHistoryGroup(header) {

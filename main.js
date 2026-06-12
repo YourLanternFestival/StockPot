@@ -192,7 +192,11 @@ ipcMain.handle('purchaseOrders:add', (e, data) => db.addPurchaseOrder(data));
 ipcMain.handle('purchaseOrders:update', (e, id, data) => db.updatePurchaseOrder(id, data));
 ipcMain.handle('purchaseOrders:delete', (e, id) => db.deletePurchaseOrder(id));
 ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(source));
-ipcMain.handle('purchaseOrders:getByDate', (e, date) => db.getPurchaseOrdersByDate(date));
+ipcMain.handle('purchaseOrders:getByDate', (e, date) => {
+  const result = db.getPurchaseOrdersByDate(date);
+  console.log(`[main] getByDate: date=${date}, count=${result ? result.length : 0}`);
+  return result;
+});
 ipcMain.handle('purchaseOrders:historyDates', (_, days) => db.getPurchaseHistoryDates(days));
 ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
 
