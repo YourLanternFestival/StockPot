@@ -197,7 +197,7 @@ ipcMain.handle('purchaseOrders:getByDate', (e, date) => {
   console.log(`[main] getByDate: date=${date}, count=${result ? result.length : 0}`);
   return result;
 });
-ipcMain.handle('purchaseOrders:historyDates', (_, days) => db.getPurchaseHistoryDates(days));
+ipcMain.handle('purchaseOrders:historyDates', (_, days, sources, excludeSources) => db.getPurchaseHistoryDates(days, sources, excludeSources));
 ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
 
 // 批量保存采购单（事务保护：先清空再写入，中间崩溃不丢数据）

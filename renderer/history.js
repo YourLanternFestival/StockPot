@@ -2,6 +2,40 @@
 let historySelectedDate = '';
 let historyData = [];
 
+// 多食堂模式 canteen 列表（与 purchase.js 保持一致）
+const MULTI_CANTEEN_NAMES = ['下涯', '制杆厂', '白南山'];
+
+// 获取当前模式下应显示/排除的 source 列表
+function getModeSourceFilter() {
+  const mode = APP_SETTINGS.xiaosuo_mode || 'off';
+  if (mode === 'on') {
+    const sources = [];
+    MULTI_CANTEEN_NAMES.forEach(c => { sources.push(`${c}-厨房`, `${c}-联华`); });
+    return { sources, excludeSources: null };
+  }
+  if (mode === 'small') {
+    const canteens = APP_SETTINGS.small_canteens || [];
+    const sources = [];
+    canteens.forEach(c => { sources.push(`${c}-厨房`, `${c}-面点房`, `${c}-联华`); });
+    return { sources, excludeSources: null };
+  }
+  // 默认模式：排除多食堂和小食堂模式的 source
+  const excludeSources = [];
+  MULTI_CANTEEN_NAMES.forEach(c => { excludeSources.push(`${c}-厨房`, `${c}-联华`); });
+  const smallCanteens = APP_SETTINGS.small_canteens || [];
+  smallCanteens.forEach(c => { excludeSources.push(`${c}-厨房`, `${c}-面点房`, `${c}-联华`); });
+  return { sources: null, excludeSources };
+}
+
+// 判断单条订单是否属于当前模式
+function isOrderInCurrentMode(order) {
+  const { sources, excludeSources } = getModeSourceFilter();
+  const src = order.source || '';
+  if (sources) return sources.includes(src);
+  if (excludeSources) return !excludeSources.includes(src);
+  return true;
+}
+
 async function initHistoryPage() {
   await loadHistoryDates();
 }
@@ -9,7 +43,8 @@ async function initHistoryPage() {
 async function loadHistoryDates() {
   try {
     const retentionDays = APP_SETTINGS.purchase_retention_days || 31;
-    const dates = await window.api.getPurchaseHistoryDates(retentionDays);
+    const { sources, excludeSources } = getModeSourceFilter();
+    const dates = await window.api.getPurchaseHistoryDates(retentionDays, sources, excludeSources);
     const container = document.getElementById('history-dates');
 
     if (!dates || dates.length === 0) {
@@ -32,7 +67,6 @@ async function loadHistoryDates() {
 }
 
 async function loadHistoryByDate(date, btn) {
-  // Update button styles
   document.querySelectorAll('#history-dates button').forEach(b => {
     b.classList.remove('btn-primary');
   });
@@ -41,10 +75,16 @@ async function loadHistoryByDate(date, btn) {
   historySelectedDate = date;
 
   try {
-    const orders = await window.api.getPurchaseOrdersByDate(date);
-    console.log(`[history] loadHistoryByDate: date=${date}, orders=${orders ? orders.length : 0}`);
+    let orders = await window.api.getPurchaseOrdersByDate(date);
 
-    // 对 unit_price=0 的记录从询价表反查价格（矩阵模式保存时不带价格）
+    // 只保留当前模式下的订单
+    orders = (orders || []).filter(isOrderInCurrentMode);
+
+    if (orders.length === 0) {
+      document.getElementById('history-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">该日期在当前模式下无采购记录</div>';
+      return;
+    }
+
     try {
       await enrichOrderPrices(orders);
     } catch (e) {
@@ -148,7 +188,7 @@ function renderSmallCanteenHistory(orders, date) {
     <div class="card" style="margin-bottom:16px;">
       <div class="card-header" style="cursor:pointer;" onclick="toggleHistoryGroup(this)">
         <span class="group-toggle" style="transition:transform 0.2s;">▶</span>
-        <h3>${date} 采购单 <span style="margin-left:auto;font-weight:600;color:var(--primary);">合计: ¥${grandTotal.toFixed(dec)}</span></h3>
+        <h3>${date} 采购单 <span style="margin-left:auto;font-weight:600;color:var(--primary);">合计: ¥${Number(grandTotal).toFixed(dec)}</span></h3>
       </div>
       <div class="card-body" style="display:none;padding:16px;">
   `;
@@ -172,7 +212,7 @@ function renderSmallCanteenHistory(orders, date) {
     }
 
     // 所合计
-    html += `<div style="text-align:right;font-weight:600;padding:8px 4px;color:var(--primary);">${c.name}合计: ¥${canteenTotal.toFixed(dec)}</div>`;
+    html += `<div style="text-align:right;font-weight:600;padding:8px 4px;color:var(--primary);">${c.name}合计: ¥${Number(canteenTotal).toFixed(dec)}</div>`;
     html += `</div>`;
   });
 
@@ -205,10 +245,10 @@ function renderHistoryTable(title, items, subtotal, dec) {
         <td>${idx + 1}</td>
         <td style="text-align:left;">${item.product_name}</td>
         <td>${item.spec || ''}</td>
-        <td>${(item.unit_price || 0).toFixed(dec)}</td>
+        <td>${Number(item.unit_price || 0).toFixed(dec)}</td>
         <td>${item.quantity || ''}</td>
         <td>${item.unit || ''}</td>
-        <td style="text-align:right;">${item.amount != null ? '¥' + item.amount.toFixed(dec) : ''}</td>
+        <td style="text-align:right;">${item.amount != null ? '¥' + Number(item.amount).toFixed(dec) : ''}</td>
         <td>${item.remark || ''}</td>
       </tr>
     `;
@@ -216,7 +256,7 @@ function renderHistoryTable(title, items, subtotal, dec) {
   html += `
         </tbody>
       </table>
-      <div style="text-align:right;font-size:13px;color:var(--text-muted);padding:4px;">小计: ¥${subtotal.toFixed(dec)}</div>
+      <div style="text-align:right;font-size:13px;color:var(--text-muted);padding:4px;">小计: ¥${Number(subtotal).toFixed(dec)}</div>
     </div>
   `;
   return html;
@@ -256,7 +296,7 @@ function renderMultiCanteenHistory(orders, date) {
     <div class="card" style="margin-bottom:16px;">
       <div class="card-header" style="cursor:pointer;" onclick="toggleHistoryGroup(this)">
         <span class="group-toggle" style="transition:transform 0.2s;">▶</span>
-        <h3>${date} 采购单 <span style="margin-left:auto;font-weight:600;color:var(--primary);">合计: ¥${grandTotal.toFixed(dec)}</span></h3>
+        <h3>${date} 采购单 <span style="margin-left:auto;font-weight:600;color:var(--primary);">合计: ¥${Number(grandTotal).toFixed(dec)}</span></h3>
       </div>
       <div class="card-body" style="display:none;padding:16px;">
   `;
@@ -276,7 +316,7 @@ function renderMultiCanteenHistory(orders, date) {
       html += renderHistoryTable('联华加购', c.lianhua, lianhuaSum, dec);
     }
 
-    html += `<div style="text-align:right;font-weight:600;padding:8px 4px;color:var(--primary);">${c.name}合计: ¥${canteenTotal.toFixed(dec)}</div>`;
+    html += `<div style="text-align:right;font-weight:600;padding:8px 4px;color:var(--primary);">${c.name}合计: ¥${Number(canteenTotal).toFixed(dec)}</div>`;
     html += `</div>`;
   });
 
@@ -304,13 +344,13 @@ function renderDefaultHistory(orders) {
   orderedSources.forEach(source => {
     const items = groups[source];
     if (!items || items.length === 0) return;
-    const totalAmount = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const totalAmount = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
     html += `
       <div class="card" style="margin-bottom:16px;">
         <div class="card-header" style="cursor:pointer;" onclick="toggleHistoryGroup(this)">
           <span class="group-toggle" style="transition:transform 0.2s;">▶</span>
-          <h3>${source} <span class="tag tag-info">${items.length} 项</span> <span style="margin-left:auto;font-weight:600;color:var(--primary);">¥${totalAmount.toFixed(dec)}</span></h3>
+          <h3>${source} <span class="tag tag-info">${items.length} 项</span> <span style="margin-left:auto;font-weight:600;color:var(--primary);">¥${Number(totalAmount).toFixed(dec)}</span></h3>
         </div>
         <div class="card-body" style="display:none;padding:0;">
           <table class="table" style="font-size:13px;">
@@ -332,10 +372,10 @@ function renderDefaultHistory(orders) {
                   <td>${idx + 1}</td>
                   <td style="text-align:left;">${item.product_name}</td>
                   <td>${item.spec || ''}</td>
-                  <td>${(item.unit_price || 0).toFixed(dec)}</td>
+                  <td>${Number(item.unit_price || 0).toFixed(dec)}</td>
                   <td>${item.quantity || ''}</td>
                   <td>${item.unit || ''}</td>
-                  <td style="text-align:right;">${item.amount != null ? '¥' + item.amount.toFixed(dec) : ''}</td>
+                  <td style="text-align:right;">${item.amount != null ? '¥' + Number(item.amount).toFixed(dec) : ''}</td>
                   <td>${item.remark || ''}</td>
                 </tr>
               `).join('')}
@@ -360,17 +400,14 @@ function renderHistoryContent(orders, date) {
     return;
   }
 
-  let html = '';
   if (xiaosuoMode === 'small') {
-    html = renderSmallCanteenHistory(orders, date);
+    container.innerHTML = renderSmallCanteenHistory(orders, date);
   } else if (xiaosuoMode === 'on') {
-    html = renderMultiCanteenHistory(orders, date);
+    container.innerHTML = renderMultiCanteenHistory(orders, date);
+  } else {
+    container.innerHTML = renderDefaultHistory(orders);
   }
-  // 模式专属渲染器无结果时（如历史数据来自其他模式），回退到通用渲染
-  if (!html || html.includes('该日期无采购记录')) {
-    html = renderDefaultHistory(orders);
-  }
-  container.innerHTML = html;
+}
 }
 
 function toggleHistoryGroup(header) {

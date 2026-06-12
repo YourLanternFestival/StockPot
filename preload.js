@@ -85,7 +85,7 @@ contextBridge.exposeInMainWorld('api', {
   clearPurchaseOrders: (source) => ipcRenderer.invoke('purchaseOrders:clear', source),
   savePurchaseOrdersBatch: (sources, orders) => ipcRenderer.invoke('purchaseOrders:saveBatch', { sources, orders }),
   getPurchaseOrdersByDate: (date) => ipcRenderer.invoke('purchaseOrders:getByDate', date),
-  getPurchaseHistoryDates: (days) => ipcRenderer.invoke('purchaseOrders:historyDates', days),
+  getPurchaseHistoryDates: (days, sources, excludeSources) => ipcRenderer.invoke('purchaseOrders:historyDates', days, sources, excludeSources),
   cleanOldPurchaseOrders: (days) => ipcRenderer.invoke('purchaseOrders:cleanOld', days),
 
   // Inquiry Items

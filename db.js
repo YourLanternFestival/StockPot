@@ -724,11 +724,20 @@ function getPurchaseOrdersByDate(date) {
   );
 }
 
-function getPurchaseHistoryDates(days = 31) {
-  return queryAll(
-    `SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != '' ORDER BY date DESC LIMIT ?`,
-    [days]
-  );
+function getPurchaseHistoryDates(days = 31, sources, excludeSources) {
+  let sql = 'SELECT DISTINCT receive_date as date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != \'\'';
+  const params = [];
+  if (sources && sources.length > 0) {
+    sql += ` AND source IN (${sources.map(() => '?').join(',')})`;
+    params.push(...sources);
+  }
+  if (excludeSources && excludeSources.length > 0) {
+    sql += ` AND source NOT IN (${excludeSources.map(() => '?').join(',')})`;
+    params.push(...excludeSources);
+  }
+  sql += ' ORDER BY date DESC LIMIT ?';
+  params.push(days);
+  return queryAll(sql, params);
 }
 
 function cleanOldPurchaseOrders(daysToKeep = 31) {
