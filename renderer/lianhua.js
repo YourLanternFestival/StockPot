@@ -377,10 +377,6 @@ function deleteModalLianhuaRow(btn) {
   });
 }
 
-function escHtml(s) {
-  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function modalLianhuaAddRows() {
   const tbody = document.getElementById('modal-lianhua-tbody');
   const current = tbody.querySelectorAll('tr').length;

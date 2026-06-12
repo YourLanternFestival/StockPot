@@ -1,5 +1,4 @@
 // ===== Purchase Orders =====
-let autocompleteDropdown = null;
 
 // Initialize purchase page
 async function initPurchasePage() {
@@ -33,8 +32,8 @@ function buildDateGroupHTML(date, summaryText, labelSuffix) {
   return `
     <div class="date-header expanded" onclick="toggleDateGroup(this)">
       <span class="date-toggle">▶</span>
-      <span class="date-label">${date} ${suffix}</span>
-      <span class="date-summary">${summaryText}</span>
+      <span class="date-label">${escHtml(date)} ${suffix}</span>
+      <span class="date-summary">${escHtml(summaryText)}</span>
       <div class="date-actions">
         <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加${APP_SETTINGS.purchase_rows}行</button>
         <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
@@ -69,15 +68,15 @@ function buildPurchaseRowHTML(idx, values, amountText) {
   return `
     <td>${idx + 1}</td>
     <td style="position:relative;">
-      <input type="text" class="cell-input cell-editable" value="${v.product_name || ''}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+      <input type="text" class="cell-input cell-editable" value="${escHtml(v.product_name || '')}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
       <div class="autocomplete-dropdown" style="display:none;"></div>
     </td>
-    <td><input type="text" class="cell-input cell-readonly" value="${v.spec || ''}" data-field="spec" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${v.unit_price || ''}" data-field="unit_price" readonly tabindex="-1"></td>
-    <td><input type="text" class="cell-input cell-editable" value="${v.quantity || ''}" data-field="quantity" placeholder="数量"></td>
-    <td><input type="text" class="cell-input cell-readonly" value="${v.unit || ''}" data-field="unit" readonly tabindex="-1"></td>
-    <td class="amount-cell cell-readonly">${amt}</td>
-    <td><input type="text" class="cell-input cell-editable" value="${v.remark || ''}" data-field="remark" placeholder="备注"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${escHtml(v.spec || '')}" data-field="spec" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${escHtml(v.unit_price || '')}" data-field="unit_price" readonly tabindex="-1"></td>
+    <td><input type="text" class="cell-input cell-editable" value="${escHtml(v.quantity || '')}" data-field="quantity" placeholder="数量"></td>
+    <td><input type="text" class="cell-input cell-readonly" value="${escHtml(v.unit || '')}" data-field="unit" readonly tabindex="-1"></td>
+    <td class="amount-cell cell-readonly">${escHtml(amt)}</td>
+    <td><input type="text" class="cell-input cell-editable" value="${escHtml(v.remark || '')}" data-field="remark" placeholder="备注"></td>
     <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="copyPurchaseRow(this)" title="复制行">📋</button> <button class="btn-delete-row" onclick="deletePurchaseRow(this)">✕</button></td>
   `;
 }
@@ -511,23 +510,22 @@ function renderSmallMatrix(area, canteens, productNames, allData) {
 
   productNames.forEach((name, idx) => {
     const d = allData[name];
-    const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const tr = document.createElement('tr');
     let html = `
       <td>${idx + 1}</td>
       <td style="position:relative;">
-        <input type="text" class="cell-input cell-editable" value="${esc(name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <input type="text" class="cell-input cell-editable" value="${escHtml(name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(d.spec)}" data-field="spec" readonly tabindex="-1"></td>
-      <td><input type="text" class="cell-input cell-readonly" value="${esc(d.unit)}" data-field="unit" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${escHtml(d.spec)}" data-field="spec" readonly tabindex="-1"></td>
+      <td><input type="text" class="cell-input cell-readonly" value="${escHtml(d.unit)}" data-field="unit" readonly tabindex="-1"></td>
     `;
     for (const c of canteens) {
       const val = d.quantities[c] || '';
-      html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty${val ? ' has-value' : ''}" value="${esc(val)}" data-canteen="${c}" placeholder="0"></td>`;
+      html += `<td><input type="text" class="cell-input cell-editable matrix-cell-qty${val ? ' has-value' : ''}" value="${escHtml(val)}" data-canteen="${c}" placeholder="0"></td>`;
     }
     if (hasRemarks) {
-      html += `<td><input type="text" class="cell-input cell-editable" value="${esc(d.remark)}" data-field="remark" placeholder="备注"></td>`;
+      html += `<td><input type="text" class="cell-input cell-editable" value="${escHtml(d.remark)}" data-field="remark" placeholder="备注"></td>`;
     }
     html += `<td style="white-space:nowrap;"><button class="btn-delete-row" onclick="deleteMatrixRow(this)">✕</button></td>`;
     tr.innerHTML = html;
