@@ -487,7 +487,9 @@ async function loadAllSmallMatrixData(canteens, area) {
     for (const canteen of canteens) {
       const source = `${canteen}-厨房`;
       const orders = await window.api.getPurchaseOrders(source);
+      const today = todayStr();
       for (const order of orders) {
+        if (order.receive_date < today) continue;
         const name = order.product_name;
         if (!name) continue;
         if (!allData[name]) {
@@ -786,8 +788,9 @@ async function loadPurchaseGroupData(source) {
     if (!window._purchaseShouldLoadData) return;
 
     const orders = await window.api.getPurchaseOrders(source);
+    const today = todayStr();
     const byDate = {};
-    orders.forEach(o => {
+    orders.filter(o => o.receive_date >= today).forEach(o => {
       if (!byDate[o.receive_date]) byDate[o.receive_date] = [];
       byDate[o.receive_date].push(o);
     });
@@ -890,13 +893,6 @@ function toggleDateGroup(header) {
 function showAddDateDialog(source) {
   const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
   if (!groupContent) return;
-
-  // Check max 3 dates
-  const existingDates = groupContent.querySelectorAll('.date-group');
-  if (existingDates.length >= 3) {
-    showToast('最多支持3个日期', 'error');
-    return;
-  }
 
   const tomorrow = getTomorrowStr();
 
@@ -1481,15 +1477,41 @@ async function resolveImages(rows) {
   return Promise.all(rows.map(r => window.api.findImage(r.product_name, r.spec, photoFolder).catch(() => null)));
 }
 
+function buildDateLabel(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parseInt(parts[1])}月${parseInt(parts[2])}日 收货`;
+  }
+  return dateStr;
+}
+
 function buildKitchenSheet(title, rows, images) {
+  const outRows = [];
+  let currentDate = null;
+  let seq = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.date !== currentDate) {
+      currentDate = row.date;
+      seq = 0;
+      const label = buildDateLabel(currentDate);
+      outRows.push({ isHeader: true, data: [label], mergeRange: 'A:J', height: 15, bold: false, fontSize: 12 });
+      outRows.push({ isSubHeader: true, data: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'] });
+    }
+    seq++;
+    outRows.push({
+      data: [seq, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
+      imagePath: images[i]
+    });
+  }
+
   return {
     name: title, title,
-    headers: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'],
+    headers: [],
     colWidths: [8, 15, 30, 25, 10, 10, 10, 10, 30, 15],
-    rows: rows.map((row, idx) => ({
-      data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
-      imagePath: images[idx]
-    }))
+    rows: outRows,
   };
 }
 
@@ -1499,19 +1521,29 @@ function buildMultiCanteenKitchenSheet(canteenData, canteenImages) {
   for (const { canteen, rows: cRows, images } of canteenData) {
     // 食堂名标题行
     rows.push({ isHeader: true, data: [canteen], mergeRange: 'A:J' });
-    // 列头行
-    rows.push({ isSubHeader: true, data: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'] });
-    // 数据行（序号按食堂重置）
-    cRows.forEach((row, idx) => {
+
+    let currentDate = null;
+    let seq = 0;
+
+    for (let i = 0; i < cRows.length; i++) {
+      const row = cRows[i];
+      if (row.date !== currentDate) {
+        currentDate = row.date;
+        seq = 0;
+        const label = buildDateLabel(currentDate);
+        rows.push({ isHeader: true, data: [label], mergeRange: 'A:J', height: 15, bold: false, fontSize: 12 });
+        rows.push({ isSubHeader: true, data: ['序号', '收货日期', '品名', '规格', '单价', '数量', '单位', '金额', '备注要求', '实物图'] });
+      }
+      seq++;
       rows.push({
-        data: [idx + 1, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
-        imagePath: images[idx]
+        data: [seq, row.date, row.product_name, row.spec, row.unit_price, row.quantity, row.unit, row.amount, row.remark, ''],
+        imagePath: images[i]
       });
-    });
+    }
   }
   return {
     name: '厨房申购单', title: '厨房申购单',
-    headers: [],  // 不走通用表头逻辑，行内自带
+    headers: [],
     colWidths: [8, 15, 30, 25, 10, 10, 10, 10, 30, 15],
     rows,
   };

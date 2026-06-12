@@ -423,14 +423,14 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
 
         if (isHeaderRow) {
           // Canteen name header — 跨列居中（不合并单元格）
-          dataRow.height = sheet.headerHeight || 30;
+          dataRow.height = row.height || sheet.headerHeight || 30;
           if (row.mergeRanges) {
             for (const mr of row.mergeRanges) {
               const colStart = colLetterToNum(mr.range.split(':')[0]);
               const colEnd = colLetterToNum(mr.range.split(':')[1]);
               if (colStart && colEnd) {
                 dataRow.getCell(colStart).value = mr.text;
-                dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
+                dataRow.getCell(colStart).font = { name: '宋体', bold: row.bold !== false, size: row.fontSize || 15 };
                 for (let c = colStart; c <= colEnd; c++) {
                   dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
                   dataRow.getCell(c).border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
@@ -442,7 +442,7 @@ ipcMain.handle('export:purchaseOrder', async (e, { sheets, defaultName }) => {
             const colEnd = colLetterToNum(row.mergeRange.split(':')[1]);
             if (colStart && colEnd) {
               dataRow.getCell(colStart).value = row.data ? row.data[0] : undefined;
-              dataRow.getCell(colStart).font = { name: '宋体', bold: true, size: 15 };
+              dataRow.getCell(colStart).font = { name: '宋体', bold: row.bold !== false, size: row.fontSize || 15 };
               for (let c = colStart; c <= colEnd; c++) {
                 dataRow.getCell(c).alignment = { vertical: 'middle', horizontal: 'centerContinuous' };
                 dataRow.getCell(c).border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
