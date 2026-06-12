@@ -408,7 +408,6 @@ function renderHistoryContent(orders, date) {
     container.innerHTML = renderDefaultHistory(orders);
   }
 }
-}
 
 function toggleHistoryGroup(header) {
   const body = header.nextElementSibling;
