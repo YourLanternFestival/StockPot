@@ -56,6 +56,18 @@ function excelSerialToDate(serial) {
 // ===== Autocomplete Infrastructure =====
 let autocompleteIndex = -1;
 
+/** 排序自动补全结果：完全匹配最前，其次开头匹配，其余靠后 */
+function sortAutocompleteResults(results, keyword, nameField = 'name') {
+  const kw = keyword.toLowerCase();
+  return [...results].sort((a, b) => {
+    const aName = String(a[nameField] || '').toLowerCase();
+    const bName = String(b[nameField] || '').toLowerCase();
+    const aExact = aName === kw ? 0 : aName.startsWith(kw) ? 1 : 2;
+    const bExact = bName === kw ? 0 : bName.startsWith(kw) ? 1 : 2;
+    return aExact - bExact;
+  });
+}
+
 function updateAutocompleteHighlight(items) {
   items.forEach((item, idx) => {
     item.classList.toggle('active', idx === autocompleteIndex);

@@ -99,8 +99,6 @@ async function exportLedger() {
   try {
     const year = parseInt(document.getElementById('ledger-year').value);
     const month = parseInt(document.getElementById('ledger-month').value);
-    const filePath = await window.api.saveFile(`${year}年${month}月台账表.xlsx`);
-    if (!filePath) return;
 
     const data = await window.api.getInventoryByMonth(year, month);
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -123,7 +121,12 @@ async function exportLedger() {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, `${year}年${month}月台账`);
-    XLSX.writeFile(wb, filePath);
+    const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+    const result = await window.api.exportXlsx(Array.from(new Uint8Array(wbout)), `${year}年${month}月台账表.xlsx`);
+    if (!result.success) {
+      if (result.error === '已取消') return;
+      throw new Error(result.error);
+    }
     showToast('导出成功！');
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');

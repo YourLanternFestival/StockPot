@@ -24,6 +24,7 @@ const SETTING_KEYS = [
   'theme_body_size',
   'theme_color',
   'sidebar_collapsed',
+  'auto_focus_qty',
 ];
 
 const SETTING_DEFAULTS = {
@@ -52,6 +53,7 @@ const SETTING_DEFAULTS = {
   theme_body_size: '20',
   theme_color: '#4f6ef7',
   sidebar_collapsed: 'off',
+  auto_focus_qty: 'on',
 };
 
 async function initSettingsPage() {
@@ -186,6 +188,7 @@ async function loadAppSettings() {
       alert_long_days: parseInt(g('alert_long_days')) || 60,
       purchase_retention_days: parseInt(g('purchase_retention_days')) || 31,
       last_purchase_date: g('last_purchase_date') || '',
+      auto_focus_qty: g('auto_focus_qty') || 'on',
     };
     ENTER_MODE = g('enter_mode');
     // 更新历史页面保留天数提示

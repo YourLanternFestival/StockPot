@@ -311,17 +311,29 @@ async function searchInquiry() {
 
 // Show import inquiry dialog
 async function showImportInquiryDialog() {
-  // 动态加载可用月份
-  let monthOptions = '<option value="2026-06">2026年6月</option><option value="2026-05">2026年5月</option>';
+  // 动态生成可用月份：当前月 + 未来2个月 + 已有月份，去重排序
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const candidateMonths = new Set();
+  // 最近3个月（当前月 + 未来2个月）
+  for (let offset = 0; offset < 3; offset++) {
+    let m = currentMonth + offset;
+    let y = currentYear;
+    if (m > 12) { m -= 12; y++; }
+    candidateMonths.add(`${y}-${String(m).padStart(2, '0')}`);
+  }
+  // 已有月份
   try {
-    const months = await window.api.getInquiryMonths();
-    if (months && months.length > 0) {
-      monthOptions = months.map(m => {
-        const [y, mo] = m.month.split('-');
-        return `<option value="${m.month}">${y}年${parseInt(mo)}月</option>`;
-      }).join('');
+    const existing = await window.api.getInquiryMonths();
+    if (existing && existing.length > 0) {
+      existing.forEach(m => candidateMonths.add(m.month));
     }
-  } catch (e) { /* fallback to defaults */ }
+  } catch (e) { /* ignore */ }
+  const monthOptions = [...candidateMonths].sort().reverse().map(m => {
+    const [y, mo] = m.split('-');
+    return `<option value="${m}">${y}年${parseInt(mo)}月</option>`;
+  }).join('');
 
   openModal('导入鉴证表', `
     <div class="form-group" style="margin-bottom:16px;">
@@ -507,7 +519,8 @@ async function showAddInquiryItem() {
     nameInput.addEventListener('input', () => {
       const keyword = nameInput.value.trim();
       if (keyword.length < 1) { dropdown.style.display = 'none'; return; }
-      const results = PRODUCTS.filter(p => p.name.toLowerCase().includes(keyword.toLowerCase()));
+      let results = PRODUCTS.filter(p => p.name.toLowerCase().includes(keyword.toLowerCase()));
+      results = sortAutocompleteResults(results, keyword);
       if (results.length === 0) { dropdown.style.display = 'none'; return; }
       dropdown.innerHTML = results.map(item => `
         <div class="autocomplete-item" data-name="${item.name}" data-spec="${item.spec || ''}" data-unit="${item.unit || ''}">

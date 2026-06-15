@@ -247,6 +247,9 @@ ipcMain.handle('settings:get', (e, key) => db.getSetting(key));
 ipcMain.handle('settings:set', (e, key, value) => db.setSetting(key, value));
 ipcMain.handle('settings:getAll', () => db.getAllSettings());
 
+// Diagnostic: verify record deletion persisted
+ipcMain.handle('db:recordExists', (e, table, id) => db.recordExists(table, id));
+
 // Remark Memory
 ipcMain.handle('remark:getByName', (e, productName) => db.getRemarksByName(productName));
 ipcMain.handle('remark:add', (e, { productName, remark }) => db.addRemarkMemory(productName, remark));
@@ -349,6 +352,31 @@ ipcMain.handle('image:add', async (e, { name, spec, photoFolder }) => {
     }
     return { success: true, path: targetPath };
   } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Export xlsx binary (from renderer) — write via main process so it respects user-chosen path
+ipcMain.handle('export:xlsx', async (e, { data, defaultName }) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '保存文件',
+    defaultPath: defaultName || '导出数据.xlsx',
+    filters: [{ name: 'Excel 文件', extensions: ['xlsx'] }],
+  });
+  if (result.canceled || !result.filePath) return { success: false, error: '已取消' };
+
+  try {
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(result.filePath, buffer);
+    // Verify the write actually persisted
+    if (fs.existsSync(result.filePath) && fs.statSync(result.filePath).size > 0) {
+      return { success: true, filePath: result.filePath };
+    }
+    return { success: false, error: '文件写入后校验失败（大小为0）' };
+  } catch (err) {
+    if (err.code === 'EBUSY' || err.code === 'EPERM') {
+      return { success: false, error: '文件被占用，请关闭 Excel 后重试' };
+    }
     return { success: false, error: err.message };
   }
 });

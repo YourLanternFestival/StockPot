@@ -117,6 +117,9 @@ contextBridge.exposeInMainWorld('api', {
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
   getAllSettings: () => ipcRenderer.invoke('settings:getAll'),
 
+  // Diagnostic: verify deletion
+  recordExists: (table, id) => ipcRenderer.invoke('db:recordExists', table, id),
+
   // Remark Memory
   getRemarksByName: (productName) => ipcRenderer.invoke('remark:getByName', productName),
   addRemarkMemory: (productName, remark) => ipcRenderer.invoke('remark:add', { productName, remark }),
@@ -132,4 +135,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Export with images
   exportPurchaseOrder: (sheets, defaultName) => ipcRenderer.invoke('export:purchaseOrder', { sheets, defaultName }),
+
+  // Export xlsx binary (renderer prepares data, main process writes file)
+  exportXlsx: (data, defaultName) => ipcRenderer.invoke('export:xlsx', { data, defaultName }),
 });

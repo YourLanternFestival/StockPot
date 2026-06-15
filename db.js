@@ -21,8 +21,10 @@ async function init() {
   if (fs.existsSync(filePath)) {
     const buffer = fs.readFileSync(filePath);
     db = new SQL.Database(buffer);
+    console.log('[db] Loaded database:', filePath, `(${buffer.length} bytes)`);
   } else {
     db = new SQL.Database();
+    console.log('[db] Created new database:', filePath);
   }
 
   db.run(`
@@ -166,8 +168,17 @@ async function init() {
 function save() {
   if (!db) return;
   const data = db.export();
+  if (!data || data.length === 0) {
+    throw new Error('数据库导出异常：数据为空');
+  }
   const buffer = Buffer.from(data);
-  fs.writeFileSync(getDbPath(), buffer);
+  const path = getDbPath();
+  fs.writeFileSync(path, buffer);
+  // Verify the write actually persisted (catches silent 0-byte writes)
+  const stat = fs.statSync(path);
+  if (stat.size === 0) {
+    throw new Error('数据库写入异常：文件大小为0');
+  }
 }
 
 function queryAll(sql, params = []) {
@@ -606,6 +617,11 @@ function clearAllData() {
     run('DELETE FROM outbound_records');
     run('DELETE FROM inbound_records');
     run('DELETE FROM products');
+    run('DELETE FROM purchase_orders');
+    run('DELETE FROM inquiry_items');
+    run('DELETE FROM lianhua_orders');
+    run('DELETE FROM lianhua_items');
+    run('DELETE FROM remark_memory');
     // Also clear recipients to reset
     run('DELETE FROM recipients');
     // Re-seed default recipients
@@ -933,6 +949,12 @@ function deleteLianhuaOrder(id) {
   save();
 }
 
+// ===== Diagnostics: verify record deletion =====
+function recordExists(table, id) {
+  const row = queryOne(`SELECT id FROM ${table} WHERE id = ?`, [id]);
+  return !!row;
+}
+
 function clearLianhuaOrders(orderDate) {
   if (orderDate) {
     run('DELETE FROM lianhua_orders WHERE order_date = ?', [orderDate]);
@@ -964,4 +986,6 @@ module.exports = {
   // Lianhua
   getLianhuaItems, addLianhuaItem, updateLianhuaItem, deleteLianhuaItem, importLianhuaItems,
   getLianhuaOrders, addLianhuaOrder, updateLianhuaOrder, deleteLianhuaOrder, clearLianhuaOrders,
+  // Diagnostic
+  recordExists,
 };
