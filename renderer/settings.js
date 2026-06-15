@@ -50,7 +50,7 @@ const SETTING_DEFAULTS = {
   theme_font: 'Cheese',
   theme_nav_size: '21',
   theme_body_size: '20',
-  theme_color: '#3E4A32',
+  theme_color: '#4f6ef7',
   sidebar_collapsed: 'off',
 };
 
@@ -86,9 +86,9 @@ async function initSettingsPage() {
     if (bodySizeEl) bodySizeEl.value = settings.theme_body_size || SETTING_DEFAULTS.theme_body_size;
     const colorEl = document.getElementById('setting-theme-color');
     if (colorEl) {
-      const c = settings.theme_color || (currentTheme === 'default' ? '#4f6ef7' : SETTING_DEFAULTS.theme_color);
+      const c = settings.theme_color || SETTING_DEFAULTS.theme_color;
       colorEl.value = c;
-      if (currentTheme === 'biophilic') previewThemeColor(c);
+      previewThemeColor(c);
     }
     document.getElementById('setting-inv-inbound-limit').value = settings.inv_inbound_limit || SETTING_DEFAULTS.inv_inbound_limit;
     document.getElementById('setting-inv-outbound-limit').value = settings.inv_outbound_limit || SETTING_DEFAULTS.inv_outbound_limit;
@@ -201,14 +201,8 @@ async function loadAppSettings() {
 }
 
 function applyTheme(theme, font, navSize, bodySize, color) {
-  const css = document.getElementById('theme-biophilic-css');
-  if (!css) return;
-  if (theme === 'biophilic') {
-    css.disabled = false;
-    document.body.classList.add('theme-biophilic');
-  } else {
-    css.disabled = true;
-    document.body.classList.remove('theme-biophilic');
+  // 切换默认模式 / 自定义配色
+  if (theme === 'default') {
     // 默认模式：清除内联样式，恢复 :root 中的原始 CSS 变量
     document.documentElement.style.removeProperty('--primary');
     document.documentElement.style.removeProperty('--primary-hover');
@@ -222,13 +216,13 @@ function applyTheme(theme, font, navSize, bodySize, color) {
     document.documentElement.style.removeProperty('--card-bg');
     document.documentElement.style.removeProperty('--theme-font');
   }
-  // 应用字体（生物亲和主题）
+  // 应用字体
   if (font) document.documentElement.style.setProperty('--theme-font', font);
-  // 应用字号（两个主题共用）
+  // 应用字号
   if (navSize) document.documentElement.style.setProperty('--theme-nav-size', navSize + 'px');
   if (bodySize) document.documentElement.style.setProperty('--theme-body-size', bodySize + 'px');
-  // 应用主色调（仅生物亲和主题使用调色盘）
-  if (theme === 'biophilic' && color) applyThemeColor(color);
+  // 应用主色调
+  if (color) applyThemeColor(color);
 }
 
 // ===== 主色调配色生成 =====
@@ -300,32 +294,21 @@ function previewThemeColor(hex) {
 }
 
 function resetThemeColor() {
-  const theme = document.getElementById('setting-theme').value;
-  const defaultColor = theme === 'default' ? '#4f6ef7' : '#3E4A32';
+  const defaultColor = '#4f6ef7';
   document.getElementById('setting-theme-color').value = defaultColor;
-  if (theme === 'biophilic') {
-    applyThemeColor(defaultColor);
-  }
+  applyThemeColor(defaultColor);
 }
 
 function onThemeColorChange(hex) {
-  const theme = document.getElementById('setting-theme').value;
-  if (theme === 'biophilic') {
-    applyThemeColor(hex);
-  } else {
-    // 默认模式：应用自定义配色（用户可选择覆盖默认蓝色）
-    applyThemeColor(hex);
-  }
+  applyThemeColor(hex);
 }
 
 function restoreDefaultTheme() {
-  // 重置所有主题相关设置到出厂默认值
   document.getElementById('setting-theme').value = 'default';
   document.getElementById('setting-theme-font').value = 'Cheese';
   document.getElementById('setting-theme-nav-size').value = '14';
   document.getElementById('setting-theme-body-size').value = '14';
   document.getElementById('setting-theme-color').value = '#4f6ef7';
-  // 立即应用：切到默认模式，清除内联配色和自定义字体
   applyTheme('default', '', '14', '14', '#4f6ef7');
   showToast('已恢复默认主题，点击「保存设置」永久生效');
 }
