@@ -368,6 +368,7 @@ function deleteModalLianhuaRow(btn) {
   tbody.querySelectorAll('tr').forEach((row, idx) => {
     row.querySelector('td:first-child').textContent = idx + 1;
   });
+  markPurchaseDirty();
 }
 
 function modalLianhuaAddRows() {
@@ -376,6 +377,7 @@ function modalLianhuaAddRows() {
   for (let i = 0; i < 5; i++) {
     appendLianhuaRow(tbody, current + i);
   }
+  markPurchaseDirty();
 }
 
 function doSaveLianhuaFromModal(source) {
@@ -456,6 +458,7 @@ function doSaveLianhuaFromModal(source) {
   }
 
   closeModal();
+  markPurchaseDirty();
   if (addedCount > 0) {
     showToast(`已添加 ${addedCount} 条联华订单`);
   }
@@ -533,6 +536,7 @@ function appendLianhuaRow(tbody, idx) {
   tr.innerHTML = buildPurchaseRowHTML(idx, {}, '');
   tbody.appendChild(tr);
   attachLianhuaCellEvents(tr, tbody);
+  markPurchaseDirty();
 }
 
 function attachLianhuaCellEvents(tr, tbody) {

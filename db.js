@@ -725,11 +725,17 @@ function deletePurchaseOrder(id) {
 }
 
 function clearPurchaseOrders(source) {
-  if (source) {
+  if (source && typeof source === 'string' && source.trim()) {
     run('DELETE FROM purchase_orders WHERE source = ?', [source]);
   } else {
-    run('DELETE FROM purchase_orders');
+    // 拒绝 falsy/空字符串，防止全表误删
+    throw new Error('clearPurchaseOrders: source 不能为空');
   }
+  if (!inTransaction) save();
+}
+
+function deletePurchaseOrdersByDate(source, date) {
+  run('DELETE FROM purchase_orders WHERE source = ? AND receive_date = ?', [source, date]);
   if (!inTransaction) save();
 }
 
@@ -976,7 +982,7 @@ module.exports = {
   getDashboardStats,
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
-  getPurchaseOrdersByDate, getPurchaseHistoryDates, cleanOldPurchaseOrders,
+  deletePurchaseOrdersByDate, getPurchaseOrdersByDate, getPurchaseHistoryDates, cleanOldPurchaseOrders,
   // Inquiry Items
   getInquiryItems, searchInquiryItems, addInquiryItem, updateInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName, deleteInquiryItem,
   // Remark Memory

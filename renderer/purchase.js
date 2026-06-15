@@ -13,6 +13,21 @@ async function initPurchasePage() {
   window._purchaseShouldLoadData = shouldLoadData;
 
   applyCanteenMode();
+
+  // 重置 dirty flag（页面初始化 = 数据来自 DB 或空白新天）
+  resetPurchaseDirty();
+
+  // 事件委托：采购页内任何可编辑 input 变更 → 标记 dirty
+  const purchasePage = document.getElementById('page-purchase');
+  if (purchasePage && !purchasePage._dirtyListenerAttached) {
+    purchasePage.addEventListener('input', (e) => {
+      const el = e.target;
+      if (el.closest && (el.closest('.table-purchase') || el.closest('#matrix-tbody') || el.closest('#modal-lianhua-table'))) {
+        markPurchaseDirty();
+      }
+    });
+    purchasePage._dirtyListenerAttached = true;
+  }
 }
 
 // ===== Canteen Mode =====
@@ -580,6 +595,7 @@ function deleteMatrixRow(btn) {
   const tr = btn.closest('tr');
   tr.remove();
   renumberMatrixRows();
+  markPurchaseDirty();
 }
 
 function renumberMatrixRows() {
@@ -991,14 +1007,19 @@ async function deleteDateGroup(btn) {
 
   // 2. 移除 DOM
   dateGroup.remove();
+  markPurchaseDirty();
 
-  // 3. 若删除后该 source 不再有 date group，需显式清理 DB
-  //    否则 saveAllPurchaseOrders 会跳过该 source，旧数据残留
+  // 3. 若删除后该 source 不再有 date group，仅清理该日期的 DB 记录（不动历史数据）
   if (source && purchaseGroup && purchaseGroup.querySelectorAll('.date-group').length === 0) {
-    try {
-      await window.api.savePurchaseOrdersBatch([source], []);
-    } catch (err) {
-      console.error('清理采购记录失败:', err);
+    const dateLabel = dateGroup.querySelector('.date-label');
+    const dateText = dateLabel ? dateLabel.textContent : '';
+    const date = dateText.replace(' 收货', '').replace(' 发货', '').trim();
+    if (date) {
+      try {
+        await window.api.deletePurchaseOrdersByDate(source, date);
+      } catch (err) {
+        console.error('清理采购记录失败:', err);
+      }
     }
   }
 }
@@ -1018,6 +1039,7 @@ function addPurchaseRows(btn) {
       appendPurchaseRow(tbody, currentCount + i);
     }
   }
+  markPurchaseDirty();
 }
 
 /** 仅用于厨房/面点房。联华请使用 appendLianhuaRow */
@@ -1026,6 +1048,7 @@ function appendPurchaseRow(tbody, idx) {
   tr.innerHTML = buildPurchaseRowHTML(idx, {}, '');
   tbody.appendChild(tr);
   attachCellEvents(tr, tbody);
+  markPurchaseDirty();
 }
 
 function copyPurchaseRow(btn) {
@@ -1054,6 +1077,7 @@ function copyPurchaseRow(btn) {
     attachCellEvents(newTr, tbody);
   }
   reindexPurchaseRows(tbody);
+  markPurchaseDirty();
 }
 
 async function deletePurchaseRow(btn) {
@@ -1071,6 +1095,7 @@ async function deletePurchaseRow(btn) {
   }
   tr.remove();
   reindexPurchaseRows(tbody);
+  markPurchaseDirty();
 }
 
 function reindexPurchaseRows(tbody) {
@@ -1399,10 +1424,13 @@ async function saveAllPurchaseOrders(opts = {}) {
 
   dateGroups.forEach(dateGroup => {
     const purchaseGroup = dateGroup.closest('.purchase-group');
+    if (!purchaseGroup || !purchaseGroup.dataset.source) return;
     const source = purchaseGroup.dataset.source;
-    const dateLabel = dateGroup.querySelector('.date-label').textContent;
+    const dateLabel = dateGroup.querySelector('.date-label');
+    if (!dateLabel) return;
+    const dateLabelText = dateLabel.textContent;
     // Handle both "收货" and "发货" suffix
-    const receiveDate = dateLabel.replace(' 收货', '').replace(' 发货', '').trim();
+    const receiveDate = dateLabelText.replace(' 收货', '').replace(' 发货', '').trim();
     const rows = dateGroup.querySelectorAll('tbody tr');
 
     rows.forEach((tr, idx) => {
@@ -1452,6 +1480,7 @@ async function saveAllPurchaseOrders(opts = {}) {
     await window.api.setSetting('last_purchase_date', today);
     APP_SETTINGS.last_purchase_date = today;
 
+    resetPurchaseDirty();
     if (!silent) showToast(`已保存 ${allOrders.length} 条采购记录`);
   } catch (err) {
     if (!silent) showToast('保存失败: ' + err.message, 'error');
@@ -1750,12 +1779,180 @@ async function exportAllPurchaseOrders() {
     const result = await window.api.exportPurchaseOrder(sheets, `${month}${modeLabel}采购单.xlsx`);
     if (result.success) {
       showToast(result.retryPath ? `文件被占用，已另存为: ${result.retryPath.split(/[\\/]/).pop()}` : '导出成功！');
+      // 导出后清空页面 DOM（数据已在 DB + xlsx，采购页作为今日编辑区不应持久显示）
+      clearPurchasePageDOM();
+      resetPurchaseDirty();
     } else if (result.error !== '已取消') {
       showToast('导出失败: ' + result.error, 'error');
     }
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');
   }
+}
+
+// 导出后清空采购页所有 DOM 内容（DB 数据不动）
+function clearPurchasePageDOM() {
+  const container = document.getElementById('purchase-container');
+  if (container) {
+    container.querySelectorAll('.date-group tbody').forEach(tb => { tb.innerHTML = ''; });
+    container.querySelectorAll('.date-summary').forEach(s => { s.textContent = '0 项 | 合计 ¥0'; });
+  }
+  // 矩阵模式
+  const matrixTbody = document.getElementById('matrix-tbody');
+  if (matrixTbody) matrixTbody.innerHTML = '';
+}
+
+// 调取历史采购数据回页面
+function showRecallPurchaseModal() {
+  const today = todayStr();
+  openModal('调取采购历史', `
+    <div class="form-group">
+      <label>起始日期</label>
+      <input type="date" class="form-control" id="recall-date-from" value="${today}">
+    </div>
+    <div class="form-group">
+      <label>结束日期</label>
+      <input type="date" class="form-control" id="recall-date-to" value="${today}">
+    </div>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:8px;">
+      从数据库加载指定日期范围的采购数据，渲染到当前页面。加载后可编辑和再导出。
+    </p>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doRecallPurchases()">加载到页面</button>
+  `);
+}
+
+async function doRecallPurchases() {
+  const fromDate = document.getElementById('recall-date-from')?.value;
+  const toDate = document.getElementById('recall-date-to')?.value;
+  if (!fromDate || !toDate) { showToast('请选择日期范围', 'error'); return; }
+  if (fromDate > toDate) { showToast('起始日期不能晚于结束日期', 'error'); return; }
+
+  closeModal();
+  try {
+    const mode = APP_SETTINGS.xiaosuo_mode;
+    let sources = [];
+    if (mode === 'small') {
+      sources = getSmallCanteens().flatMap(c => [`${c}-厨房`, `${c}-联华`]);
+    } else if (mode === 'on') {
+      sources = MULTI_CANTEENS.flatMap(c => [`${c}-厨房`, `${c}-联华`]);
+    } else {
+      sources = [getKitchenSource(), '联华'];
+      if (APP_SETTINGS.show_pastry !== 'off') sources.push(getPastrySource());
+    }
+
+    let totalLoaded = 0;
+    for (const source of sources) {
+      // 查询该 source 在日期范围内的所有订单
+      const dateGroups = new Map();
+      const allOrders = await window.api.getPurchaseOrders(source);
+      const filtered = allOrders.filter(o => o.receive_date >= fromDate && o.receive_date <= toDate);
+
+      for (const o of filtered) {
+        const key = o.receive_date;
+        if (!dateGroups.has(key)) dateGroups.set(key, []);
+        dateGroups.get(key).push(o);
+      }
+
+      // 渲染到 DOM
+      for (const [date, orders] of dateGroups) {
+        await ensureDateGroup(source, date, orders);
+        totalLoaded += orders.length;
+      }
+    }
+    resetPurchaseDirty();
+    showToast(`已加载 ${totalLoaded} 条记录`);
+  } catch (err) {
+    showToast('调取失败: ' + err.message, 'error');
+  }
+}
+
+// 确保 date group 存在并填充数据
+async function ensureDateGroup(source, date, orders) {
+  const group = document.querySelector(`.purchase-group[data-source="${source}"]`);
+  if (!group) return;
+
+  const groupContent = group.querySelector('.group-content');
+  if (!groupContent) return;
+
+  // 展开分组
+  const groupHeader = groupContent.previousElementSibling;
+  if (groupHeader && !groupHeader.classList.contains('expanded')) {
+    toggleGroup(groupHeader);
+  }
+
+  const dateId = source.includes('联华')
+    ? `lianhua-date-${source}-${date}`.replace(/[\s-]/g, '_')
+    : `date-${source}-${date}`.replace(/[\s-]/g, '_');
+
+  let dateGroup = document.getElementById(dateId);
+  if (!dateGroup) {
+    // 添加新的 date group（联华用 addLianhuaDateGroup，其他手动创建）
+    if (source.includes('联华')) {
+      addLianhuaDateGroup(date, source);
+      dateGroup = document.getElementById(dateId);
+    } else {
+      dateGroup = document.createElement('div');
+      dateGroup.className = 'date-group';
+      dateGroup.id = dateId;
+      dateGroup.dataset.date = date;
+      dateGroup.dataset.source = source;
+      dateGroup.innerHTML = `
+        <div class="date-header expanded" onclick="toggleDateGroup(this)">
+          <span class="date-toggle">▶</span>
+          <span class="date-label">${date} 收货</span>
+          <span class="date-summary">${orders.length} 项</span>
+          <div class="date-actions">
+            <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加行</button>
+            <button class="btn-delete-date" onclick="event.stopPropagation(); deleteDateGroup(this)">🗑</button>
+          </div>
+        </div>
+        <div class="date-content expanded">
+          <div class="purchase-table-wrapper">
+            <table class="table table-purchase">
+              <thead>
+                <tr>
+                  <th style="width:40px;">序号</th>
+                  <th>品名</th><th>规格</th><th>单价</th><th>数量</th><th>单位</th><th>金额</th><th>备注</th>
+                  <th style="width:50px;">操作</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>`;
+      groupContent.appendChild(dateGroup);
+    }
+  }
+
+  if (!dateGroup) return;
+  const tbody = dateGroup.querySelector('tbody');
+  if (!tbody) return;
+
+  // 清空后填充数据
+  tbody.innerHTML = '';
+  orders.forEach((o, idx) => {
+    const tr = document.createElement('tr');
+    if (o.id) tr.dataset.id = o.id;
+    const amount = (parseFloat(o.unit_price) || 0) * (parseFloat(o.quantity) || 0);
+    const amountText = amount > 0 ? '¥' + amount.toFixed(2) : '';
+    tr.innerHTML = buildPurchaseRowHTML(idx, {
+      product_name: o.product_name || '',
+      spec: o.spec || '',
+      unit_price: o.unit_price || '',
+      quantity: o.quantity || '',
+      unit: o.unit || '',
+      remark: o.remark || '',
+    }, amountText);
+    tbody.appendChild(tr);
+    const src = source.includes('联华') ? attachLianhuaCellEvents : attachCellEvents;
+    src(tr, tbody);
+  });
+
+  // 更新 summary
+  const summary = dateGroup.querySelector('.date-summary');
+  if (summary) summary.textContent = `${orders.length} 项`;
 }
 
 // 小所食堂导出：厨房并列，联华按日期

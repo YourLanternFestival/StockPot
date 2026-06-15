@@ -83,6 +83,7 @@ contextBridge.exposeInMainWorld('api', {
   updatePurchaseOrder: (id, data) => ipcRenderer.invoke('purchaseOrders:update', id, data),
   deletePurchaseOrder: (id) => ipcRenderer.invoke('purchaseOrders:delete', id),
   clearPurchaseOrders: (source) => ipcRenderer.invoke('purchaseOrders:clear', source),
+  deletePurchaseOrdersByDate: (source, date) => ipcRenderer.invoke('purchaseOrders:deleteByDate', source, date),
   savePurchaseOrdersBatch: (sources, orders) => ipcRenderer.invoke('purchaseOrders:saveBatch', { sources, orders }),
   getPurchaseOrdersByDate: (date) => ipcRenderer.invoke('purchaseOrders:getByDate', date),
   getPurchaseHistoryDates: (days, sources, excludeSources) => ipcRenderer.invoke('purchaseOrders:historyDates', days, sources, excludeSources),
