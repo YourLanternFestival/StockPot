@@ -618,11 +618,8 @@ function selectLianhuaAutocompleteItem(input, item) {
   }
 }
 
-function deleteLianhuaDateGroup(btn) {
-  const dateGroup = btn.closest('.date-group');
-  if (confirm('确定删除此日期分组？')) {
-    dateGroup.remove();
-  }
+async function deleteLianhuaDateGroup(btn) {
+  await deleteDateGroup(btn);  // 统一函数，见 purchase.js
 }
 
 // Export lianhua order by date - sheet name is the date (kept for single date export)
