@@ -33,12 +33,12 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "portable",
           "arch": ["ia32"]
         }
       ],
       "icon": "assets/img/icon-256.png",
-      "artifactName": "${productName} Setup ${version}-${arch}.${ext}"
+      "artifactName": "${productName} ${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
