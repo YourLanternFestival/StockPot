@@ -2,6 +2,11 @@
 let PRODUCTS = [];
 let RECIPIENTS = [];
 let ENTER_MODE = 'next-row'; // 'next-row' | 'next-cell'
+let PURCHASE_DIRTY = false;  // 采购页面是否有未保存修改
+let NAV_PENDING_TARGET = null;  // 离开确认中的目标页面
+
+function markPurchaseDirty() { PURCHASE_DIRTY = true; }
+function resetPurchaseDirty() { PURCHASE_DIRTY = false; }
 
 // 侧边栏显示版本号
 window.api.getAppVersion().then(v => {
@@ -87,14 +92,49 @@ let APP_SETTINGS = {
 
 // ===== Navigation =====
 async function navigateTo(page) {
-  // 离开采购单页面时静默保存
   const currentPage = document.querySelector('.page.active');
-  if (currentPage && currentPage.id === 'page-purchase' && typeof saveAllPurchaseOrders === 'function') {
-    try {
-      await silentSavePurchaseOrders();
-    } catch (e) { /* 静默保存不打扰用户 */ }
+
+  // 离开采购页面时检查是否有未保存修改
+  if (currentPage && currentPage.id === 'page-purchase') {
+    if (PURCHASE_DIRTY && page !== 'purchase') {
+      NAV_PENDING_TARGET = page;
+      openModal('未保存的修改', `
+        <p>采购页面有未保存的数据，是否保存？</p>
+      `, `
+        <button class="btn" onclick="doLeaveWithoutSave()">不保存</button>
+        <button class="btn" onclick="closeModal(); NAV_PENDING_TARGET = null;">取消</button>
+        <button class="btn btn-primary" onclick="doLeaveWithSave()">保存</button>
+      `);
+      return;
+    }
+    // 无修改时直接离开（不再静默保存）
   }
 
+  switchToPage(page);
+}
+
+async function doLeaveWithSave() {
+  closeModal();
+  try {
+    await saveAllPurchaseOrders();
+    resetPurchaseDirty();
+    switchToPage(NAV_PENDING_TARGET);
+  } catch (err) {
+    showToast('保存失败: ' + err.message, 'error');
+    // 保存失败留在采购页
+  }
+  NAV_PENDING_TARGET = null;
+}
+
+function doLeaveWithoutSave() {
+  closeModal();
+  resetPurchaseDirty();
+  switchToPage(NAV_PENDING_TARGET);
+  NAV_PENDING_TARGET = null;
+}
+
+function switchToPage(page) {
+  if (!page) return;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
@@ -102,7 +142,6 @@ async function navigateTo(page) {
   if (navItem) navItem.classList.add('active');
   if (pageEl) pageEl.classList.add('active');
 
-  // Load data for the page
   switch (page) {
     case 'dashboard': loadDashboard(); break;
     case 'inventory': loadInventory(); break;
@@ -114,7 +153,7 @@ async function navigateTo(page) {
     case 'inbound': initInboundPage(); break;
     case 'outbound': initOutboundPage(); break;
     case 'settings': initSettingsPage(); break;
-    case 'help': break; // 帮助页面无需初始化
+    case 'help': break;
   }
 }
 

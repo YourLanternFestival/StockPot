@@ -192,6 +192,7 @@ ipcMain.handle('purchaseOrders:add', (e, data) => db.addPurchaseOrder(data));
 ipcMain.handle('purchaseOrders:update', (e, id, data) => db.updatePurchaseOrder(id, data));
 ipcMain.handle('purchaseOrders:delete', (e, id) => db.deletePurchaseOrder(id));
 ipcMain.handle('purchaseOrders:clear', (e, source) => db.clearPurchaseOrders(source));
+ipcMain.handle('purchaseOrders:deleteByDate', (e, source, date) => db.deletePurchaseOrdersByDate(source, date));
 ipcMain.handle('purchaseOrders:getByDate', (e, date) => {
   const result = db.getPurchaseOrdersByDate(date);
   console.log(`[main] getByDate: date=${date}, count=${result ? result.length : 0}`);
@@ -205,6 +206,7 @@ ipcMain.handle('purchaseOrders:saveBatch', (e, { sources, orders }) => {
   try {
     db.beginTransaction();
     for (const source of sources) {
+      if (!source || typeof source !== 'string' || !source.trim()) continue;
       db.clearPurchaseOrders(source);
     }
     for (const order of orders) {
