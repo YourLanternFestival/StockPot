@@ -395,8 +395,10 @@ function selectMatrixAutocompleteItem(input, item) {
   if (specInput) specInput.value = item.dataset.spec || '';
   if (unitInput) unitInput.value = item.dataset.unit || '';
   hideAutocomplete();
-  const firstQty = tr.querySelector('.matrix-cell-qty');
-  if (firstQty) { firstQty.focus(); firstQty.select(); }
+  if (APP_SETTINGS.auto_focus_qty !== 'off') {
+    const firstQty = tr.querySelector('.matrix-cell-qty');
+    if (firstQty) { firstQty.focus(); firstQty.select(); }
+  }
 }
 
 // 矩阵专用：失焦自动匹配（不设 price）
@@ -832,9 +834,13 @@ function appendPurchaseRowWithData(tbody, item, idx) {
   if (item.id) tr.dataset.id = item.id;
 
   const price = item.unit_price != null ? parseFloat(item.unit_price) || 0 : 0;
-  const qty = parseFloat(item.quantity) || 0;
-  const amount = price * qty;
-  const amountText = amount > 0 ? '¥' + amount.toFixed(1) : '';
+  const qtyStr = String(item.quantity ?? '').trim();
+  const qtyNum = parseFloat(qtyStr) || 0;
+  // 数量含非数字文本（如"11条"）时使用 DB 中已保存的金额，不重新计算
+  const isPureNumber = qtyStr !== '' && !isNaN(Number(qtyStr));
+  const amount = isPureNumber ? price * qtyNum : (parseFloat(item.amount) || 0);
+  const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
+  const amountText = amount > 0 ? '¥' + amount.toFixed(dec) : '';
 
   tr.innerHTML = buildPurchaseRowHTML(idx, {
     product_name: item.product_name || '',
@@ -1022,12 +1028,18 @@ function copyPurchaseRow(btn) {
   reindexPurchaseRows(tbody);
 }
 
-function deletePurchaseRow(btn) {
+async function deletePurchaseRow(btn) {
   const tr = btn.closest('tr');
   const tbody = tr.closest('tbody');
   const id = tr.dataset.id;
   if (id) {
-    window.api.deletePurchaseOrder(parseInt(id));
+    try {
+      await window.api.deletePurchaseOrder(parseInt(id));
+    } catch (err) {
+      console.error('删除采购记录失败:', err);
+      showToast('删除失败: ' + err.message, 'error');
+      return;
+    }
   }
   tr.remove();
   reindexPurchaseRows(tbody);
@@ -1119,8 +1131,8 @@ function recalcRowAmount(tr) {
 
   const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
 
-  if (qtyStr && !isNaN(qtyNum) && String(qtyNum) === qtyStr) {
-    // Pure number - calculate amount
+  if (qtyStr && !isNaN(qtyNum) && !isNaN(Number(qtyStr))) {
+    // Pure number (no trailing text) - calculate amount
     const factor = Math.pow(10, dec);
     const amount = Math.round(price * qtyNum * factor) / factor;
     amountCell.textContent = amount.toFixed(dec);
@@ -1169,6 +1181,8 @@ async function handleProductAutocomplete(input) {
       }
       results = await window.api.searchInquiryItems(keyword, currentMonth);
     }
+
+    results = sortAutocompleteResults(results, keyword);
 
     if (results.length === 0) {
       hideAutocomplete();
@@ -1229,9 +1243,11 @@ function selectAutocompleteItem(input, item) {
   tr.querySelector('[data-field="unit"]').value = unit;
   hideAutocomplete();
 
-  // Focus on quantity input
-  const qtyInput = tr.querySelector('[data-field="quantity"]');
-  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  // Focus on quantity input (configurable)
+  if (APP_SETTINGS.auto_focus_qty !== 'off') {
+    const qtyInput = tr.querySelector('[data-field="quantity"]');
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  }
 }
 
 // 保存小所食堂所有 groups 数据（厨房+联华，所有小所）
@@ -1607,6 +1623,31 @@ async function exportAllPurchaseOrders() {
 
     if (lianhuaItems.length === 0) {
       try { await loadLianhuaItems(); } catch (e) { /* ignore */ }
+    }
+
+    // 确保 DOM 中已加载 DB 数据（新天时 _purchaseShouldLoadData 为 false 会导致 DOM 为空）
+    const wasShouldLoad = window._purchaseShouldLoadData;
+    window._purchaseShouldLoadData = true;
+    try {
+      const mode = APP_SETTINGS.xiaosuo_mode;
+      if (mode === 'small') {
+        const canteens = getSmallCanteens();
+        for (const canteen of canteens) {
+          await loadPurchaseGroupData(`${canteen}-厨房`);
+          await loadPurchaseGroupData(`${canteen}-联华`);
+        }
+      } else if (mode === 'on') {
+        for (const canteen of MULTI_CANTEENS) {
+          await loadPurchaseGroupData(`${canteen}-厨房`);
+          await loadPurchaseGroupData(`${canteen}-联华`);
+        }
+      } else {
+        await loadPurchaseGroupData(getKitchenSource());
+        await loadPurchaseGroupData('联华');
+        if (APP_SETTINGS.show_pastry !== 'off') await loadPurchaseGroupData(getPastrySource());
+      }
+    } finally {
+      window._purchaseShouldLoadData = wasShouldLoad;
     }
 
     const sheets = [];

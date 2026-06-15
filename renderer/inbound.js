@@ -94,9 +94,11 @@ function handleInboundProductAutocomplete(input) {
   const dropdown = td.querySelector('.autocomplete-dropdown');
   if (!dropdown) return;
 
-  const results = PRODUCTS.filter(p =>
+  let results = PRODUCTS.filter(p =>
     p.name.toLowerCase().includes(keyword.toLowerCase())
   );
+
+  results = sortAutocompleteResults(results, keyword);
 
   if (results.length === 0) {
     hideAutocomplete();
@@ -132,9 +134,19 @@ function selectInboundProduct(input, item) {
   hideAutocomplete();
   calcRowExpiry(tr);
 
-  // Move focus to quantity
-  const qtyInput = tr.querySelector('[data-field="quantity"]');
-  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  // Move focus to quantity (configurable)
+  if (APP_SETTINGS.auto_focus_qty !== 'off') {
+    const qtyInput = tr.querySelector('[data-field="quantity"]');
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  }
+}
+
+// 安全解析 YYYY-MM-DD 为本地日期（避免 new Date(str) 按 UTC 解析的时区偏移问题）
+function parseLocalDate(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
 }
 
 function calcRowExpiry(tr) {
@@ -144,9 +156,11 @@ function calcRowExpiry(tr) {
   const totalDays = shelfMonths * 30 + shelfDays;
   const expiryInput = tr.querySelector('[data-field="expiry_date"]');
   if (prodDate && totalDays > 0) {
-    const d = new Date(prodDate);
-    d.setDate(d.getDate() + totalDays);
-    expiryInput.value = toLocalDateStr(d);
+    const d = parseLocalDate(prodDate);
+    if (d) {
+      d.setDate(d.getDate() + totalDays);
+      expiryInput.value = toLocalDateStr(d);
+    }
   } else {
     expiryInput.value = '';
   }
@@ -184,8 +198,13 @@ async function submitInboundBatch() {
     return;
   }
 
-  for (const r of records) {
-    await window.api.addInbound(r);
+  try {
+    for (const r of records) {
+      await window.api.addInbound(r);
+    }
+  } catch (err) {
+    showToast('入库保存失败: ' + err.message, 'error');
+    return;
   }
 
   showToast(`成功入库 ${records.length} 条记录`);
@@ -222,12 +241,17 @@ async function loadRecentInbound() {
 }
 
 function editInbound(r) {
+  // 查找产品的保质期数据，用于编辑时自动重算到期日
+  const product = PRODUCTS.find(p => p.name === r.product_name);
+  const shelfMonths = product ? (product.shelf_months || 0) : 0;
+  const shelfDays = product ? (product.shelf_days || 0) : 0;
+
   openModal('编辑入库记录', `
     <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="form-group"><label>材料</label><input type="text" class="form-control" value="${r.product_name}" readonly></div>
       <div class="form-group"><label>数量</label><input type="number" class="form-control" id="ei-qty" value="${r.quantity}"></div>
       <div class="form-group"><label>入库日期</label><input type="date" class="form-control" id="ei-date" value="${formatDate(r.date)}"></div>
-      <div class="form-group"><label>生产日期</label><input type="date" class="form-control" id="ei-prod" value="${formatDate(r.production_date)}"></div>
+      <div class="form-group"><label>生产日期</label><input type="date" class="form-control" id="ei-prod" value="${formatDate(r.production_date)}" onchange="recalcEditExpiry(${shelfMonths}, ${shelfDays})"></div>
       <div class="form-group"><label>到期日</label><input type="date" class="form-control" id="ei-expiry" value="${formatDate(r.expiry_date)}"></div>
       <div class="form-group"><label>备注</label><input type="text" class="form-control" id="ei-remark" value="${r.remark || ''}"></div>
     </div>
@@ -235,6 +259,21 @@ function editInbound(r) {
     <button class="btn" onclick="closeModal()">取消</button>
     <button class="btn btn-primary" onclick="doEditInbound(${r.id})">保存</button>
   `);
+}
+
+// 编辑入库弹窗中生产日期变更时重算到期日
+function recalcEditExpiry(shelfMonths, shelfDays) {
+  const prodDate = document.getElementById('ei-prod')?.value;
+  const expiryInput = document.getElementById('ei-expiry');
+  if (!prodDate || !expiryInput) return;
+  const totalDays = (shelfMonths || 0) * 30 + (shelfDays || 0);
+  if (totalDays > 0) {
+    const d = parseLocalDate(prodDate);
+    if (d) {
+      d.setDate(d.getDate() + totalDays);
+      expiryInput.value = toLocalDateStr(d);
+    }
+  }
 }
 
 async function doEditInbound(id) {
@@ -258,8 +297,20 @@ async function deleteInbound(id) {
 }
 
 async function doDeleteInbound(id) {
-  await window.api.deleteInbound(id);
-  closeModal();
-  showToast('已删除');
-  loadRecentInbound();
+  try {
+    await window.api.deleteInbound(id);
+    // Verify deletion actually persisted to disk
+    const stillExists = await window.api.recordExists('inbound_records', id);
+    if (stillExists) {
+      closeModal();
+      showToast('删除异常：记录仍然存在于数据库！', 'error');
+      return;
+    }
+    closeModal();
+    showToast('已删除');
+    loadRecentInbound();
+  } catch (err) {
+    closeModal();
+    showToast('删除失败: ' + err.message, 'error');
+  }
 }

@@ -125,9 +125,9 @@ async function enrichOrderPrices(orders) {
         const rawPrice = match.price;
         order.unit_price = Math.round(rawPrice * discountRate * factor) / factor;
         // 纯数字校验：与 recalcRowAmount 一致，"60片" 等非纯数字 quantity 的 amount 为 0
-        const qtyStr = String(order.quantity || '').trim();
+        const qtyStr = String(order.quantity ?? '').trim();
         const qtyNum = parseFloat(qtyStr);
-        if (qtyStr && !isNaN(qtyNum) && String(qtyNum) === qtyStr) {
+        if (qtyStr && !isNaN(qtyNum) && !isNaN(Number(qtyStr))) {
           order.amount = Math.round(order.unit_price * qtyNum * factor) / factor;
         } else {
           order.amount = 0;
@@ -545,8 +545,8 @@ function showHistoryExportDialog(dates) {
     panel.innerHTML = `
       <h3 style="margin:0 0 16px;">选择导出日期</h3>
       <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn btn-sm" onclick="this.closest('.export-dialog').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=true)">全选</button>
-        <button class="btn btn-sm" onclick="this.closest('.export-dialog').querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false)">全不选</button>
+        <button class="btn btn-sm" onclick="this.parentElement.nextElementSibling.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=true)">全选</button>
+        <button class="btn btn-sm" onclick="this.parentElement.nextElementSibling.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false)">全不选</button>
       </div>
       <div class="export-dialog" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
         ${dates.map((d, i) => `

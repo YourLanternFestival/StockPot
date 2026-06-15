@@ -131,9 +131,11 @@ async function handleOutboundProductAutocomplete(input) {
   if (!dropdown) return;
 
   const inventory = await window.api.getInventory();
-  const results = inventory.filter(p =>
+  let results = inventory.filter(p =>
     p.name.toLowerCase().includes(keyword.toLowerCase()) && p.stock > 0
   );
+
+  results = sortAutocompleteResults(results, keyword);
 
   if (results.length === 0) {
     hideAutocomplete();
@@ -167,8 +169,10 @@ function selectOutboundProduct(input, item) {
   tr.dataset.productId = item.dataset.id;
   hideAutocomplete();
 
-  const qtyInput = tr.querySelector('[data-field="quantity"]');
-  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  if (APP_SETTINGS.auto_focus_qty !== 'off') {
+    const qtyInput = tr.querySelector('[data-field="quantity"]');
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  }
 }
 
 async function submitOutboundBatch() {
@@ -209,8 +213,13 @@ async function submitOutboundBatch() {
     return;
   }
 
-  for (const r of records) {
-    await window.api.addOutbound(r);
+  try {
+    for (const r of records) {
+      await window.api.addOutbound(r);
+    }
+  } catch (err) {
+    showToast('出库保存失败: ' + err.message, 'error');
+    return;
   }
 
   showToast(`成功出库 ${records.length} 条记录`);
@@ -278,10 +287,22 @@ async function deleteOutbound(id) {
 }
 
 async function doDeleteOutbound(id) {
-  await window.api.deleteOutbound(id);
-  closeModal();
-  showToast('已删除');
-  loadRecentOutbound();
+  try {
+    await window.api.deleteOutbound(id);
+    // Verify deletion actually persisted to disk
+    const stillExists = await window.api.recordExists('outbound_records', id);
+    if (stillExists) {
+      closeModal();
+      showToast('删除异常：记录仍然存在于数据库！', 'error');
+      return;
+    }
+    closeModal();
+    showToast('已删除');
+    loadRecentOutbound();
+  } catch (err) {
+    closeModal();
+    showToast('删除失败: ' + err.message, 'error');
+  }
 }
 
 async function addRecipient() {

@@ -331,8 +331,10 @@ function loadLianhuaModalData(source, date) {
     existingRows.forEach((item, idx) => {
       const tr = document.createElement('tr');
       const price = item.unit_price || 0;
-      const qty = parseFloat(item.quantity) || 0;
-      const amount = price * qty;
+      const qtyStr = String(item.quantity ?? '').trim();
+      const qtyNum = parseFloat(qtyStr) || 0;
+      const isPureNumber = qtyStr !== '' && !isNaN(Number(qtyStr));
+      const amount = isPureNumber ? price * qtyNum : (parseFloat(item.amount) || 0);
       const dec = APP_SETTINGS.price_decimals || 2;
       const amtText = amount > 0 ? '¥' + amount.toFixed(dec) : '';
       tr.innerHTML = buildPurchaseRowHTML(idx, {
@@ -574,7 +576,8 @@ function handleLianhuaAutocomplete(input) {
   const td = input.closest('td');
   const dropdown = td.querySelector('.autocomplete-dropdown');
   if (!dropdown) return;
-  const results = lianhuaItems.filter(i => i.name.toLowerCase().includes(keyword.toLowerCase()));
+  let results = lianhuaItems.filter(i => i.name.toLowerCase().includes(keyword.toLowerCase()));
+  results = sortAutocompleteResults(results, keyword);
   if (results.length === 0) { hideAutocomplete(); return; }
   dropdown.innerHTML = results.map((item, idx) => `
     <div class="autocomplete-item" data-index="${idx}" data-name="${item.name}" data-spec="${item.spec || ''}" data-price="${item.price || 0}" data-unit="${item.unit || '件'}">
@@ -609,8 +612,10 @@ function selectLianhuaAutocompleteItem(input, item) {
   tr.querySelector('[data-field="unit"]').value = item.dataset.unit || '件';
   hideAutocomplete();
   recalcRowAmount(tr);
-  const qtyInput = tr.querySelector('[data-field="quantity"]');
-  if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  if (APP_SETTINGS.auto_focus_qty !== 'off') {
+    const qtyInput = tr.querySelector('[data-field="quantity"]');
+    if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+  }
 }
 
 function deleteLianhuaDateGroup(btn) {
