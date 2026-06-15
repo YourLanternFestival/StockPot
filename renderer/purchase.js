@@ -968,10 +968,38 @@ function addDateGroup(source, date) {
   }
 }
 
-function deleteDateGroup(btn) {
+// 统一删除 date group（默认模式 / 多食堂 / 小所并列 / 联华 共用）
+// 采购行有 dataset.id → 逐条 DELETE；联华行无 id → 仅 DOM 移除 + 空 source 兜底清理
+async function deleteDateGroup(btn) {
   const dateGroup = btn.closest('.date-group');
-  if (confirm('确定删除此日期分组？')) {
-    dateGroup.remove();
+  if (!confirm('确定删除此日期分组？')) return;
+
+  const purchaseGroup = dateGroup.closest('.purchase-group');
+  const source = purchaseGroup ? purchaseGroup.dataset.source : null;
+
+  // 1. 删除带有 DB id 的行（已持久化的采购记录）
+  const rows = dateGroup.querySelectorAll('tbody tr');
+  for (const tr of rows) {
+    if (tr.dataset.id) {
+      try {
+        await window.api.deletePurchaseOrder(parseInt(tr.dataset.id));
+      } catch (err) {
+        console.error('删除采购记录失败:', err);
+      }
+    }
+  }
+
+  // 2. 移除 DOM
+  dateGroup.remove();
+
+  // 3. 若删除后该 source 不再有 date group，需显式清理 DB
+  //    否则 saveAllPurchaseOrders 会跳过该 source，旧数据残留
+  if (source && purchaseGroup && purchaseGroup.querySelectorAll('.date-group').length === 0) {
+    try {
+      await window.api.savePurchaseOrdersBatch([source], []);
+    } catch (err) {
+      console.error('清理采购记录失败:', err);
+    }
   }
 }
 
