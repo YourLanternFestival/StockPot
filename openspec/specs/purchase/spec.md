@@ -247,3 +247,130 @@
 
 ### 需求：不缓存 DOM
 系统不应在 DOM 状态中缓存采购数据。数据库是唯一真相源。
+
+## 工具函数
+
+### 需求：sortAutocompleteResults — 自动补全排序
+`renderer/utils.js` 中的 `sortAutocompleteResults` 函数对自动补全结果进行排序：完全匹配排在最前，其次前缀匹配，最后包含匹配。该函数应用于 5 个页面：inbound.js、outbound.js、purchase.js、lianhua.js、inquiry.js。
+
+#### 场景：完全匹配项排在最前
+- 假设 用户输入 "白菜"
+- 当 自动补全搜索返回结果
+- 那么 品名完全等于 "白菜" 的项排在最前
+- 且 品名以 "白菜" 开头的项排在后面
+- 且 品名包含 "白菜" 但非前两者的项排在最后
+
+#### 场景：前缀匹配优先于包含匹配
+- 假设 用户输入 "白"
+- 当 自动补全搜索返回结果
+- 那么 "白萝卜" 排在 "大白兔" 之前（前缀优先于中间包含）
+
+#### 场景：同类匹配保持稳定顺序
+- 假设 有多个完全匹配项或多个相同匹配类型的项
+- 当 排序执行
+- 那么 同类匹配项保持原始顺序（稳定排序）
+
+### 需求：isPureNumber — 数量输入校验
+`renderer/purchase.js` 中的 `isPureNumber` 函数（也用于 lianhua.js、history.js）用于校验数量输入是否为纯数字。旧实现使用 `String(parseFloat(qtyStr)) === qtyStr`，对 "1.0"、"01"、".5" 等合法输入判定失败。新实现使用 `!isNaN(Number(qtyStr))` 并附带 `qtyStr !== ''` 空串守卫。
+
+#### 场景："1.0" 识别为纯数字
+- 假设 用户输入 "1.0"
+- 当 isPureNumber 执行
+- 那么 返回 true（识认为纯数字）
+
+#### 场景："01" 识别为纯数字
+- 假设 用户输入 "01"
+- 当 isPureNumber 执行
+- 那么 返回 true（识认为纯数字）
+
+#### 场景：".5" 识别为纯数字
+- 假设 用户输入 ".5"
+- 当 isPureNumber 执行
+- 那么 返回 true（识认为纯数字）
+
+#### 场景："11条" 识别为非纯数字
+- 假设 用户输入 "11条"
+- 当 isPureNumber 执行
+- 那么 返回 false（识别为非纯数字）
+
+#### 场景：空字符串识别为非纯数字
+- 假设 用户输入 ""
+- 当 isPureNumber 执行
+- 那么 返回 false（空字符串被守卫拦截）
+
+#### 场景：非纯数字时使用数据库已保存金额
+- 假设 某行数量为非纯数字（如 "11条"）
+- 当 系统计算该行金额
+- 那么 不重新计算金额，使用数据库已保存的 amount 值
+
+## 导出增强
+
+### 需求：导出采购单强制加载
+`renderer/purchase.js` 中的 `exportAllPurchaseOrders()` 在导出前临时设置 `_purchaseShouldLoadData = true`，强制从数据库加载全部数据。导出完成后在 finally 块中恢复原始标志。此逻辑覆盖全部 3 种模式（默认、多食堂、小所）。
+
+#### 场景：跨天导出仍包含完整数据
+- 假设 采购页面已加载过当天数据（`_purchaseShouldLoadData = false`）
+- 当 用户次日执行导出
+- 那么 导出的 Excel 包含所有数据库中的数据（不因标志为 false 而导出空表）
+
+#### 场景：导出后恢复原始 _purchaseShouldLoadData 标志
+- 假设 导出前 `_purchaseShouldLoadData` 为 false
+- 当 导出完成（无论成功或失败）
+- 那么 该标志恢复为 false（finally 块保证恢复）
+- 且 后续页面加载行为不受导出影响
+
+## 数据操作增强
+
+### 需求：deleteDateGroup 四种模式统一
+`renderer/purchase.js` 中的 `deleteDateGroup()` 是统一的日期组删除函数，覆盖默认模式、多食堂模式、小所分组模式、联华模式。步骤为：1) 逐行按 dataset.id 从 DB DELETE，2) 删除 DOM 元素并标记脏数据，3) 若该货源无更多日期组则按日期范围清理 DB。`renderer/lianhua.js` 中的 `deleteLianhuaDateGroup` 已简化为一行委托调用。
+
+#### 场景：删除某货源的最后一个日期组时清理该日期范围数据库
+- 假设 某货源（source="洋安-厨房"）在某个日期范围只有一个日期组
+- 当 用户删除该日期组
+- 那么 该日期组内每一行按 id 从 DB 逐行 DELETE
+- 且 DOM 元素被移除并标记为脏
+- 且 该货源的该日期范围从数据库中彻底清理（无残留数据）
+
+#### 场景：删除非最后一个日期组时仅移除该组数据
+- 假设 同一货源下有多个日期组（不同日期范围）
+- 当 用户删除其中一个
+- 那么 仅该日期组的行按 id 从 DB DELETE
+- 且 该 DOM 元素被移除
+- 且 同货源的其他日期组数据不受影响
+
+#### 场景：联华删除委托给统一函数
+- 假设 用户在联华面板触发删除日期组
+- 当 `deleteLianhuaDateGroup` 被调用
+- 那么 直接委托调用统一的 `deleteDateGroup()` 函数
+- 且 联华删除行为与厨房删除完全一致
+
+## 数据持久化增强
+
+### 需求：clearPurchaseOrders 安全加固
+三层防御防止意外全表 DELETE：1) `db.js` 的 `clearPurchaseOrders(source)` 对 falsy/空 source 抛出错误，2) `main.js` 的 `savePurchaseOrdersBatch` 遍历时跳过 falsy sources，3) `renderer/purchase.js` 的 `saveAllPurchaseOrders` 在两轮遍历中统一 null/truthy 检查。
+
+#### 场景：falsy source 抛出错误而非全表删除
+- 假设 调用 `clearPurchaseOrders("")` 或 `clearPurchaseOrders(null)`
+- 当 函数执行
+- 那么 立即抛出错误（不执行 DELETE 语句）
+- 且 数据库不受影响（不会删除任何数据）
+
+#### 场景：保存时跳过 falsy sources
+- 假设 批量保存时某个 source 为 null 或 undefined
+- 当 `savePurchaseOrdersBatch` 遍历 sources
+- 那么 跳过该 falsy source（不调用 clearPurchaseOrders 也不插入）
+
+### 需求：数据保存的事务保护
+`savePurchaseOrdersBatch` 使用数据库事务包装：BEGIN → clear + insert → COMMIT。失败时执行 ROLLBACK，确保原子性。
+
+#### 场景：保存期间崩溃不丢数据
+- 假设 批量保存正在执行中（已清空表但尚未插入完新数据）
+- 当 进程崩溃或断电
+- 那么 数据库回滚到保存前状态（原有数据完整保留）
+
+#### 场景：保存失败完全回滚
+- 假设 批量保存中插入阶段发生错误
+- 当 错误被捕获
+- 那么 执行 ROLLBACK
+- 且 清空操作被撤销，原有数据完整保留
+- 且 不会出现部分数据已清空、部分数据未插入的不一致状态

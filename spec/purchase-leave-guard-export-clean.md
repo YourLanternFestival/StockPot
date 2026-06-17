@@ -1,6 +1,6 @@
 # Spec: 采购页面离开确认 + 导出后清空
 
-状态: 待实现
+状态: 已实现
 分支: feat/win7-ia32-support
 日期: 2025-06-15
 
@@ -55,6 +55,16 @@
 - 保存失败时 → toast 报错，留在采购页（不丢数据）
 - 快速双击导航 → 防抖，弹窗期间忽略第二次点击
 - 矩阵模式 → 同样适用（矩阵的数据变更也需要追踪）
+
+#### 边界情况：空页面不触发离开确认
+
+- **场景**：导出后清空 DOM → 切页时不应弹窗。导出全部成功后会调用 `clearPurchasePageDOM()` 清空 DOM 并 `resetPurchaseDirty()`。但如果 dirty flag 因导出流程中间步骤残留为 true，而 DOM 已空，离开确认弹窗会让用户误点"保存"→ 空 DOM 保存 → DB 数据被清空。
+- **修复**：`navigateTo()` 增加 `hasPurchasePageData()` 检查。该函数遍历 `#purchase-container` 和 `#matrix-tbody` 中所有 `[data-field="product_name"]` input，任一非空即返回 true。
+- **守卫逻辑**：
+  - `PURCHASE_DIRTY && page !== 'purchase' && hasPurchasePageData()` → 弹窗确认
+  - `PURCHASE_DIRTY && !hasPurchasePageData()` → 不弹窗 + 自动 `resetPurchaseDirty()`
+  - 无 dirty → 直接离开
+- 涉及文件：`renderer/app.js`
 
 ---
 
@@ -135,7 +145,7 @@
 
 | 文件 | 修改内容 |
 |------|----------|
-| `renderer/app.js` | `navigateTo` 改为弹窗确认（dirty 检查），新增 dirty flag 管理 |
+| `renderer/app.js` | `navigateTo` 改为弹窗确认（dirty 检查），新增 dirty flag 管理 + `hasPurchasePageData()` 空页面守卫 |
 | `renderer/purchase.js` | dirty flag 埋点（所有修改操作）；导出后清空 DOM；新增调取按钮 + 弹窗逻辑 |
 | `renderer/lianhua.js` | dirty flag 埋点（联华相关操作） |
 | `renderer/index.html` | 调取按钮 UI |
