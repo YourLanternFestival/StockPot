@@ -111,3 +111,25 @@
 - 假设 用户输入保留天数
 - 当 输入值 < 1 或 > 365
 - 那么 输入框限制在 1-365 范围内
+
+### auto_focus_qty 设置项
+- `auto_focus_qty` — 自动聚焦数量输入框（默认：`"on"`，storage：settings 表）
+- 当值为 `"on"`：选择自动补全项后，焦点自动跳转到数量输入框
+- 当值为 `"off"`：选择后不自动跳转
+- 设置 UI 使用 id `setting-auto-focus-qty`，遵循 `setting-{key}` 命名约定
+- `saveSettings()` 循环自动检测该设置
+- 应用于 5 处：inbound.js、outbound.js、purchase.js、lianhua.js、inquiry.js
+
+#### 场景：auto_focus_qty 开启
+- 假设 auto_focus_qty 设置值为 "on"
+- 当 用户从自动补全列表中选择一个项目
+- 那么 焦点自动跳转到数量输入框
+
+#### 场景：auto_focus_qty 关闭
+- 假设 auto_focus_qty 设置值为 "off"
+- 当 用户从自动补全列表中选择一个项目
+- 那么 焦点保持不动（不跳转）
+
+#### 场景：默认值
+- 假设 用户从未修改过 auto_focus_qty 设置
+- 那么 默认值为 "on"
