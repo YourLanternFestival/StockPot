@@ -8,6 +8,25 @@ let NAV_PENDING_TARGET = null;  // 离开确认中的目标页面
 function markPurchaseDirty() { PURCHASE_DIRTY = true; }
 function resetPurchaseDirty() { PURCHASE_DIRTY = false; }
 
+// 采购页面是否有实际数据（DOM 中有品名的行）
+function hasPurchasePageData() {
+  const container = document.getElementById('purchase-container');
+  if (container) {
+    const inputs = container.querySelectorAll('[data-field="product_name"]');
+    for (const input of inputs) {
+      if (input.value && input.value.trim()) return true;
+    }
+  }
+  const matrixTbody = document.getElementById('matrix-tbody');
+  if (matrixTbody) {
+    const inputs = matrixTbody.querySelectorAll('[data-field="product_name"]');
+    for (const input of inputs) {
+      if (input.value && input.value.trim()) return true;
+    }
+  }
+  return false;
+}
+
 // 侧边栏显示版本号
 window.api.getAppVersion().then(v => {
   const el = document.getElementById('sidebar-version');
@@ -82,8 +101,8 @@ let APP_SETTINGS = {
   inbound_rows: 5, outbound_rows: 5, purchase_rows: 10,
   inbound_history: 'on', inbound_history_days: 20,
   outbound_history: 'on', outbound_history_days: 20,
-  discount1_name: '盛销', discount1_rate: '0.92',
-  discount2_name: '优宏', discount2_rate: '0.90',
+  discount1_name: '盛销', discount1_rate: '0.9008',
+  discount2_name: '优宏', discount2_rate: '0.9058',
   price_decimals: 2,
   inv_inbound_limit: 5, inv_outbound_limit: 10,
   purchase_retention_days: 31,
@@ -94,9 +113,9 @@ let APP_SETTINGS = {
 async function navigateTo(page) {
   const currentPage = document.querySelector('.page.active');
 
-  // 离开采购页面时检查是否有未保存修改
+  // 离开采购页面时检查是否有未保存修改（页面无数据时不触发）
   if (currentPage && currentPage.id === 'page-purchase') {
-    if (PURCHASE_DIRTY && page !== 'purchase') {
+    if (PURCHASE_DIRTY && page !== 'purchase' && hasPurchasePageData()) {
       NAV_PENDING_TARGET = page;
       openModal('未保存的修改', `
         <p>采购页面有未保存的数据，是否保存？</p>
@@ -106,6 +125,10 @@ async function navigateTo(page) {
         <button class="btn btn-primary" onclick="doLeaveWithSave()">保存</button>
       `);
       return;
+    }
+    // 页面无数据时清理残留 dirty 标记
+    if (PURCHASE_DIRTY && !hasPurchasePageData()) {
+      resetPurchaseDirty();
     }
     // 无修改时直接离开（不再静默保存）
   }
