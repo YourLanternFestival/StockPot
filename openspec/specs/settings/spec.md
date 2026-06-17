@@ -51,9 +51,9 @@
 
 ### 询价配置
 - `discount1_name` — 第一折扣名称（默认："盛销"）
-- `discount1_rate` — 第一折扣率（默认：0.92）
+- `discount1_rate` — 第一折扣率（默认：0.9008）
 - `discount2_name` — 第二折扣名称（默认："优宏"）
-- `discount2_rate` — 第二折扣率（默认：0.90）
+- `discount2_rate` — 第二折扣率（默认：0.9058）
 - `price_decimals` — 价格小数精度
 
 ### 食堂模式

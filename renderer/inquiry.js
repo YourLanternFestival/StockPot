@@ -311,16 +311,17 @@ async function searchInquiry() {
 
 // Show import inquiry dialog
 async function showImportInquiryDialog() {
-  // 动态生成可用月份：当前月 + 未来2个月 + 已有月份，去重排序
+  // 动态生成可用月份：前月 + 当月 + 下月 + 已有月份，去重排序
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;
   const candidateMonths = new Set();
-  // 最近3个月（当前月 + 未来2个月）
-  for (let offset = 0; offset < 3; offset++) {
+  // 前月、当月、下月
+  for (let offset = -1; offset <= 1; offset++) {
     let m = currentMonth + offset;
     let y = currentYear;
     if (m > 12) { m -= 12; y++; }
+    if (m < 1) { m += 12; y--; }
     candidateMonths.add(`${y}-${String(m).padStart(2, '0')}`);
   }
   // 已有月份
