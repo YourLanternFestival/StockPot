@@ -31,8 +31,14 @@
     "appId": "com.yang-an.inventory",
     "productName": "食堂物资管理",
     "win": {
-      "target": "nsis",
-      "icon": "assets/img/icon-256.png"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/img/icon-256.png",
+      "artifactName": "${productName} Setup ${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
