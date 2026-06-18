@@ -367,6 +367,11 @@ body {
   overflow: hidden;
 }
 
+/* 表格卡片解除裁剪，避免表头按钮的 tooltip 被截断 */
+.card:has(.table-purchase) {
+  overflow: visible;
+}
+
 .card-header {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
@@ -1616,10 +1621,8 @@ body {
   border-radius: 6px;
   font-size: 12px;
   line-height: 1.4;
-  white-space: nowrap;
-  max-width: 260px;
+  max-width: 320px;
   white-space: normal;
-  word-break: break-all;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s, visibility 0.15s;

@@ -1015,61 +1015,31 @@
  <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>功能目录</h3>
  </div>
  <div class="card-body">
- <p>欢迎使用<strong>食堂物资管理</strong>！本系统专为食堂仓储管理设计，帮助您轻松管理食材的入库、出库、采购和库存。</p>
+ <p>欢迎使用<strong>食堂物资管理</strong>！本系统帮助您管理食堂的<strong>仓库出入库</strong>和<strong>采购单</strong>两大核心业务。</p>
  <div class="help-tip">
- <strong> 新手建议：</strong>首次使用请点击上方的"启动新手教程"按钮，系统会一步步带您了解各功能。
+ <strong> 新手建议：</strong>首次使用请点击上方的"启动新手教程"按钮，系统会一步步带您了解核心功能。日常操作中，表格和按钮上的悬浮提示会帮助您快速上手。
  </div>
  <h4>点击跳转到对应章节</h4>
  <div class="help-toc-grid">
- <a href="#section-products" class="help-toc-item" onclick="scrollToHelpSection('section-products')">
+ <a href="#section-quickstart" class="help-toc-item" onclick="scrollToHelpSection('section-quickstart')">
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+ <span class="toc-text">新人上手指南</span>
+ <span class="toc-desc">5 步走完核心流程</span>
+ </a>
+ <a href="#section-warehouse" class="help-toc-item" onclick="scrollToHelpSection('section-warehouse')">
  <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
- <span class="toc-text">产品管理</span>
- <span class="toc-desc">添加、编辑、停用材料</span>
+ <span class="toc-text">仓库管理</span>
+ <span class="toc-desc">产品、入库、出库、库存、台账</span>
  </a>
- <a href="#section-inbound" class="help-toc-item" onclick="scrollToHelpSection('section-inbound')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
- <span class="toc-text">入库登记</span>
- <span class="toc-desc">批量录入入库记录</span>
- </a>
- <a href="#section-outbound" class="help-toc-item" onclick="scrollToHelpSection('section-outbound')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 8 12 13 17 8"/><line x1="12" y1="13" x2="12" y2="3"/></svg></span>
- <span class="toc-text">出库登记</span>
- <span class="toc-desc">批量登记出库记录</span>
- </a>
- <a href="#section-inventory" class="help-toc-item" onclick="scrollToHelpSection('section-inventory')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
- <span class="toc-text">库存查询</span>
- <span class="toc-desc">查看库存和过期预警</span>
- </a>
- <a href="#section-ledger" class="help-toc-item" onclick="scrollToHelpSection('section-ledger')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
- <span class="toc-text">月度台账</span>
- <span class="toc-desc">按日查看出入库汇总</span>
- </a>
- <a href="#section-purchase" class="help-toc-item" onclick="scrollToHelpSection('section-purchase')">
+ <a href="#section-purchase-order" class="help-toc-item" onclick="scrollToHelpSection('section-purchase-order')">
  <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
- <span class="toc-text">采购单</span>
- <span class="toc-desc">编制采购计划</span>
+ <span class="toc-text">申购单</span>
+ <span class="toc-desc">询价、编制采购单、历史记录</span>
  </a>
- <a href="#section-inquiry" class="help-toc-item" onclick="scrollToHelpSection('section-inquiry')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
- <span class="toc-text">询价管理</span>
- <span class="toc-desc">管理价格数据</span>
- </a>
- <a href="#section-data-io" class="help-toc-item" onclick="scrollToHelpSection('section-data-io')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
- <span class="toc-text">数据导入导出</span>
- <span class="toc-desc">批量数据操作</span>
- </a>
- <a href="#section-history" class="help-toc-item" onclick="scrollToHelpSection('section-history')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
- <span class="toc-text">历史采购</span>
- <span class="toc-desc">查看历史记录</span>
- </a>
- <a href="#section-settings" class="help-toc-item" onclick="scrollToHelpSection('section-settings')">
- <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
- <span class="toc-text">设置</span>
- <span class="toc-desc">配置系统参数</span>
+ <a href="#section-shortcuts" class="help-toc-item" onclick="scrollToHelpSection('section-shortcuts')">
+ <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="18" y2="10"/><line x1="14" y1="14" x2="18" y2="14"/></svg></span>
+ <span class="toc-text">常用操作</span>
+ <span class="toc-desc">快捷键、设置、数据导入导出</span>
  </a>
  <a href="#section-faq" class="help-toc-item" onclick="scrollToHelpSection('section-faq')">
  <span class="toc-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
@@ -1080,417 +1050,151 @@
  </div>
  </div>
 
- <!-- 产品管理 -->
- <div class="card help-section" id="section-products" data-keywords="产品 物料 添加 编辑 停用 恢复 保质期">
+ <!-- 新人上手指南 -->
+ <div class="card help-section" id="section-quickstart" data-keywords="快速 入门 新手 上手指南 流程 开始 第一次">
  <div class="card-header">
- <h3>产品管理</h3>
+ <h3>新人上手指南</h3>
  </div>
  <div class="card-body">
- <p>产品管理是整个系统的基础，所有入库、出库、库存查询都依赖于这里的产品数据。</p>
+ <p>第一次使用本系统？跟着下面 5 步走，15 分钟就能上手。</p>
 
- <h4>添加新产品</h4>
- <ol>
- <li>点击右上角的<strong>"+ 新增产品"</strong>按钮</li>
- <li>填写产品信息：
- <ul>
- <li><strong>材料名称</strong>（必填）：如"大米"、"面粉"、"猪肉"等</li>
- <li><strong>规格</strong>：如"50斤/袋"、"散装"等</li>
- <li><strong>单位</strong>：如"斤"、"袋"、"箱"等</li>
- <li><strong>保质期</strong>：填写月数和天数，系统会自动计算过期日期</li>
- </ul>
- </li>
- <li>点击保存完成添加</li>
- </ol>
+ <div class="help-tip" style="margin-bottom:16px;">
+ <strong> 提示：</strong>点击上方的"启动新手教程"按钮，系统会在真实界面上一步步引导您完成以下流程。
+ </div>
 
- <h4>搜索和筛选产品</h4>
- <ul>
- <li>在搜索框输入产品名称可快速查找</li>
- <li>使用筛选下拉框可查看：有效产品、已停用产品或全部产品</li>
- </ul>
+ <h4>第 1 步：录入产品</h4>
+ <p>在"产品管理"页面录入食堂使用的所有材料——米面粮油、肉禽蛋、蔬菜调料等。填好<strong>材料名称</strong>、<strong>规格</strong>、<strong>单位</strong>和<strong>保质期</strong>，后续入库出库才能选择这些产品。</p>
+ <p class="text-muted">可以一条条添加，也支持从 Excel 批量导入。</p>
 
- <h4>停用和恢复产品</h4>
- <ul>
- <li>点击产品右侧的<strong>"停用"</strong>按钮可停用产品（不会删除数据）</li>
- <li>切换到"已停用"筛选可查看被停用的产品</li>
- <li>点击<strong>"恢复"</strong>按钮可重新启用产品</li>
- </ul>
+ <h4>第 2 步：日常入库</h4>
+ <p>每天进货时，在"入库登记"页面录入。输入材料名称会自动弹出已录入的产品列表供选择，填好数量和日期后提交即可。</p>
+
+ <h4>第 3 步：日常出库</h4>
+ <p>厨房领料时，在"出库登记"页面录入。选择材料后系统会显示当前库存，出库数量不能超过库存。填好<strong>领取人</strong>（厨房、面点房等）后提交。</p>
+
+ <h4>第 4 步：查看库存</h4>
+ <p>在"库存查询"页面搜索任意产品，查看实时库存、本月出入库汇总。"过期预警"标签页会标出已过期和即将过期的食材，提醒及时处理。</p>
+
+ <h4>第 5 步：编制采购单</h4>
+ <p>在"采购单"页面编制每日采购计划。输入品名自动弹出询价数据，选好后填入数量即可。支持多种食堂模式（在设置中切换）。导出的采购单可直接发给供应商。</p>
 
  <div class="help-tip">
- <strong> 提示：</strong>产品被停用后，在入库、出库时将无法选择该产品，但历史记录会保留。
+ <strong> 日常使用顺序：</strong>每天入库 → 出库 → 做采购单，月底看台账核对。每周检查一次库存预警。
  </div>
  </div>
  </div>
 
- <!-- 入库登记 -->
- <div class="card help-section" id="section-inbound" data-keywords="入库 进货 录入 批量 生产日期 到期日 自动补全">
+ <!-- 仓库管理 -->
+ <div class="card help-section" id="section-warehouse" data-keywords="仓库 产品 入库 出库 库存 台账 材料 保质期 预警 领取人">
  <div class="card-header">
- <h3>入库登记</h3>
+ <h3>仓库管理</h3>
  </div>
  <div class="card-body">
- <p>入库登记用于记录食材的进货入库，支持批量录入，提高工作效率。</p>
+ <p>仓库管理覆盖了材料从<strong>录入 → 入库 → 出库 → 盘点</strong>的完整流程。</p>
 
- <h4>录入入库记录</h4>
- <ol>
- <li>在<strong>材料名称</strong>列输入产品名称（支持自动补全，输入1个字就会显示匹配的产品）</li>
- <li>从下拉列表中选择正确的产品，系统会自动填入规格和单位</li>
- <li>输入<strong>数量</strong>和<strong>入库日期</strong></li>
- <li>如果需要记录<strong>生产日期</strong>，系统会根据保质期自动计算<strong>到期日</strong></li>
- <li>填写<strong>备注</strong>（可选）</li>
- <li>继续填写下一行，或点击<strong>" 批量提交"</strong>按钮保存所有记录</li>
- </ol>
+ <h4>产品管理</h4>
+ <p>所有材料的基础信息库。入库、出库时能选到的产品都在这里维护。产品可以<strong>停用</strong>（不删除，历史记录保留），方便季节性或不再使用的材料管理。</p>
 
- <h4>快捷操作</h4>
- <ul>
- <li><strong>回车键</strong>：跳到下一行同列（可在设置中改为跳到下一行首格）</li>
- <li><strong>方向键</strong>：上下左右移动光标</li>
- <li><strong>粘贴功能</strong>：可以从Excel复制一列数据，粘贴到表格中自动向下填充</li>
- <li><strong>添加行</strong>：点击"+ 添加行"按钮可增加更多录入行</li>
- </ul>
+ <h4>入库登记</h4>
+ <p>记录每次进货。支持<strong>批量录入</strong>多行，品名输入自动补全。如果填了<strong>生产日期</strong>，系统根据保质期自动算出到期日。</p>
+
+ <h4>出库登记</h4>
+ <p>记录每次领料出库。提交时自动<strong>校验库存</strong>——出库数量不能超过当前库存。领取人列表（厨房、面点房等）可在页面右上角管理。</p>
+
+ <h4>库存查询与预警</h4>
+ <p>搜索材料名称查看详细库存和出入库流水。核心数据：<strong>上月结存</strong>、<strong>本月入库</strong>、<strong>本月出库</strong>、<strong>当前库存</strong>。"过期预警"用红/橙/黄三色标注过期和临期食材。</p>
+
+ <h4>月度台账</h4>
+ <p>按月份查看每个产品每天的出入库明细，一整张表格方便核对和存档。支持导出 Excel 打印。</p>
 
  <div class="help-warning">
- <strong> 注意：</strong>输入的产品名称必须在"产品管理"中已存在，否则系统会提示"该产品不存在"。如果是新产品，请先到产品管理中添加。
+ <strong> 注意：</strong>入库出库提交后没有单独的"撤销"按钮。如果填错了，需要到台账页面对应的日明细中删除记录后重新录入。
  </div>
  </div>
  </div>
 
- <!-- 出库登记 -->
- <div class="card help-section" id="section-outbound" data-keywords="出库 领用 领取人 库存校验 批量 填充 Ctrl+D">
+ <!-- 申购单 -->
+ <div class="card help-section" id="section-purchase-order" data-keywords="采购 申购 食堂模式 默认 多食堂 小所 联华 厨房 面点房 历史采购 询价">
  <div class="card-header">
- <h3>出库登记</h3>
+ <h3>申购单</h3>
  </div>
  <div class="card-body">
- <p>出库登记用于记录食材的领用出库，支持批量录入、库存校验和快速填充。</p>
+ <p>申购单覆盖了从<strong>价格数据 → 编制采购单 → 导出给供应商 → 历史回溯</strong>的完整流程。</p>
 
- <h4>录入出库记录</h4>
- <ol>
- <li>在<strong>材料名称</strong>列输入产品名称（支持自动补全）</li>
- <li>选择产品后，系统会自动填入规格、单位，并显示当前<strong>库存数量</strong></li>
- <li>输入<strong>数量</strong>和<strong>出库日期</strong></li>
- <li>选择<strong>领取人</strong>（默认有：厨房、小食堂、面点房、烧饭、明档）</li>
- <li>点击<strong>" 批量提交"</strong>按钮保存所有记录</li>
- </ol>
+ <h4>询价管理</h4>
+ <p>管理每月的价格数据，是采购单品名<strong>自动补全的数据来源</strong>。导入供应商提供的价格表后，编制采购单时选品名就会自动带出规格、单位和单价。系统会自动比较本月与上月价格涨跌。</p>
 
- <h4>Ctrl+D 向下填充</h4>
- <p>当多行需要填写相同的品名、日期或领取人时：</p>
- <ol>
- <li>在当前单元格填好值</li>
- <li>按 <strong>Ctrl+D</strong></li>
- <li>该值会自动填充到下方所有<strong>同列空行</strong></li>
- </ol>
- <p>此功能适用于所有可编辑列（品名、数量、日期、领取人），不会覆盖已有值的行。</p>
-
- <h4>快捷操作</h4>
+ <h4>编制采购单</h4>
+ <p>核心日常操作：输入品名 → 选自动补全结果（带出规格/单位/单价）→ 填数量 → 自动算金额。支持三种食堂模式：</p>
  <ul>
- <li><strong>回车键</strong>：跳到下一行同列（可在设置中改为跳到下一行首格）</li>
- <li><strong>方向键</strong>：上下左右移动光标</li>
- <li><strong>粘贴</strong>：从 Excel 复制一列或多列数据，粘贴到表格中自动向下填充</li>
- <li><strong>Ctrl+D</strong>：将当前值向下填充到所有空行</li>
+ <li><strong>默认模式</strong>：洋安、新安食堂——厨房 + 联华超市</li>
+ <li><strong>多食堂模式</strong>：下涯、制杆厂、白南山——独立标签页切换</li>
+ <li><strong>小所模式</strong>：寿昌、梅城等卫星食堂</li>
  </ul>
+ <p>导出 Excel 后可直接发给供应商。导出后采购单自动清空（数据已入库），方便第二天重新编制。</p>
+ <p>如果导出后需要修改，使用<strong>"调取"按钮</strong>可按日期范围从历史记录加载回来继续编辑。</p>
 
- <h4>库存校验</h4>
- <p>系统会在提交前检查库存是否充足。如果出库数量超过当前库存，系统会显示警告，防止超领。</p>
-
- <h4>管理领取人</h4>
- <p>点击页面右上角的<strong>" 管理领取人"</strong>按钮，可以新增、编辑、删除、排序领取人。</p>
- <p>默认领取人有：厨房、小食堂、面点房、烧饭、明档。可根据实际情况自由调整。</p>
- </div>
- </div>
-
- <!-- 库存查询 -->
- <div class="card help-section" id="section-inventory" data-keywords="库存 查询 搜索 过期 预警 临期 红色徽章">
- <div class="card-header">
- <h3>库存查询</h3>
- </div>
- <div class="card-body">
- <p>库存查询页面帮助您实时了解各种食材的库存情况，并提供过期预警功能。</p>
-
- <h4>查询库存</h4>
- <ol>
- <li>在搜索框输入产品名称</li>
- <li>从下拉列表中选择产品</li>
- <li>系统会显示该产品的详细库存信息：
- <ul>
- <li><strong>上月结存</strong>：上个月的库存数量</li>
- <li><strong>本月入库</strong>：本月累计入库数量</li>
- <li><strong>本月出库</strong>：本月累计出库数量</li>
- <li><strong>当前库存</strong>：实时库存数量</li>
- </ul>
- </li>
- <li>页面下方还会显示最近的入库和出库记录</li>
- </ol>
-
- <h4>过期预警</h4>
- <p>点击<strong>" 过期预警"</strong>标签页，可以查看所有临期和已过期的食材：</p>
- <ul>
- <li><strong>已过期</strong>（红色）：已经超过保质期的食材</li>
- <li><strong>即将到期</strong>（橙色）：短期内将要过期的食材（天数可在设置中配置）</li>
- <li><strong>长期预警</strong>（黄色）：较长期内将要过期的食材</li>
- </ul>
-
- <div class="help-warning">
- <strong> 重要：</strong>当有过期或临期食材时，总览页面和库存查询标签会显示<strong>红色徽章</strong>提醒，请及时处理！
- </div>
- </div>
- </div>
-
- <!-- 月度台账 -->
- <div class="card help-section" id="section-ledger" data-keywords="台账 月度 日明细 汇总 导出 按日">
- <div class="card-header">
- <h3>月度台账</h3>
- </div>
- <div class="card-body">
- <p>月度台账以表格形式展示每月的出入库明细，方便核对和存档。</p>
-
- <h4>查看台账</h4>
- <ol>
- <li>选择<strong>年份</strong>和<strong>月份</strong></li>
- <li>系统会显示该月所有产品的出入库记录：
- <ul>
- <li>每一列代表一天（1日-31日）</li>
- <li>显示每天的入库和出库数量</li>
- <li>汇总列显示：上月结存、本月入库、本月出库、当前库存</li>
- </ul>
- </li>
- <li>点击产品行可展开查看详细记录</li>
- </ol>
-
- <h4>导出台账</h4>
- <p>点击<strong>" 导出 xlsx"</strong>按钮，可将当前月份的台账导出为Excel文件，方便打印和存档。</p>
- </div>
- </div>
-
- <!-- 采购单 -->
- <div class="card help-section" id="section-purchase" data-keywords="采购 食堂模式 默认 多食堂 小所 联华 厨房 面点房 粘贴 序号">
- <div class="card-header">
- <h3>采购单</h3>
- </div>
- <div class="card-body">
- <p>采购单模块用于编制每日的采购计划，支持多种食堂模式和高效的数据录入。</p>
-
- <h4>食堂模式</h4>
- <p>系统支持三种食堂模式（在设置 → 业务 → 食堂模式中切换）：</p>
- <ul>
- <li><strong>默认模式</strong>：适用于洋安和新安食堂，每个食堂有厨房、面点房和联华超市区域</li>
- <li><strong>多食堂模式</strong>：适用于下涯、制杆厂、白南山食堂，通过标签页切换</li>
- <li><strong>小所模式</strong>：适用于寿昌、梅城等卫星食堂，支持<strong>逐所输入</strong>和<strong>矩阵输入</strong>两种样式</li>
- </ul>
-
- <h4>录入采购数据</h4>
- <ol>
- <li>选择对应的食堂标签页</li>
- <li>在<strong>厨房</strong>区域输入品名（自动从询价数据补全，选择后填入规格、单位、单价）</li>
- <li>输入数量，系统自动计算金额</li>
- <li>在<strong>联华超市</strong>区域录入联华商品（自动补全数据源为联华商品库）</li>
- <li>点击<strong>" 保存所有"</strong>按钮保存数据</li>
- </ol>
-
- <h4>粘贴功能</h4>
- <ul>
- <li><strong>单列粘贴</strong>：从 Excel 复制一列数据，在目标列粘贴，自动向下填充</li>
- <li><strong>多列粘贴</strong>：从 Excel 复制多列（TSV 格式），以当前单元格为起点向右下填充</li>
- <li><strong>自动追行</strong>：粘贴行数超出表格时，自动追加新行</li>
- <li><strong>序号重排</strong>：粘贴追加行后，序号列自动重新编号</li>
- </ul>
-
- <h4>快捷功能</h4>
- <ul>
- <li><strong>添加日期</strong>：为采购组添加新的送货日期</li>
- <li><strong>复制行</strong>：快速复制当前行数据</li>
- <li><strong>导出</strong>：将采购单导出为 Excel（含产品图片）。文件被占用时自动加后缀重试</li>
- <li><strong>回车导航</strong>：回车跳到下一行同列（可在设置中改为跳到首格），Ctrl+Enter 快速切换模式</li>
- </ul>
+ <h4>历史采购</h4>
+ <p>采购单每天导出后自动清空，但数据会保留在系统中（默认 31 天，可在设置调整）。在历史采购页面按日期查看过去的采购记录，支持<strong>批量导出</strong>多天为一个 Excel 文件。</p>
 
  <div class="help-tip">
- <strong> 提示：</strong>采购单每天会自动清空，但数据默认保留 31 天（可在"设置 → 数据 → 采购单数据"中调整），在"历史采购"中可查看。
+ <strong> 提示：</strong>表格操作细节（粘贴、填充、回车导航等），将鼠标悬停在表格标题栏的按钮上即可看到说明。
  </div>
  </div>
  </div>
 
- <!-- 询价管理 -->
- <div class="card help-section" id="section-inquiry" data-keywords="询价 价格 折扣 鉴证表 盛销 优宏 涨跌">
+ <!-- 常用操作 -->
+ <div class="card help-section" id="section-shortcuts" data-keywords="快捷键 设置 导入 导出 备份 粘贴 Ctrl+D Ctrl+Enter 配置 参数">
  <div class="card-header">
- <h3>询价管理</h3>
+ <h3>常用操作速查</h3>
  </div>
  <div class="card-body">
- <p>询价管理用于管理每月的价格验证数据，是采购单自动补全的数据源。</p>
 
- <h4>导入询价数据</h4>
- <ol>
- <li>点击<strong>" 导入鉴证表"</strong>按钮</li>
- <li>选择鉴证表xlsx文件</li>
- <li>系统会自动解析并导入询价数据</li>
- </ol>
+ <h4>快捷键</h4>
+ <table class="table" style="font-size:13px;max-width:480px;">
+ <tr><th>快捷键</th><th>功能</th><th style="width:120px;">适用页面</th></tr>
+ <tr><td><strong>回车</strong></td><td>跳到下一行</td><td>入库 / 出库 / 采购单</td></tr>
+ <tr><td><strong>Ctrl+Enter</strong></td><td>切换回车模式（同列 / 首格）</td><td>入库 / 出库 / 采购单</td></tr>
+ <tr><td><strong>Ctrl+D</strong></td><td>向下填充到同列所有行</td><td>入库 / 出库</td></tr>
+ <tr><td><strong>方向键</strong></td><td>在表格中移动光标</td><td>入库 / 出库 / 采购单</td></tr>
+ <tr><td><strong>Tab</strong></td><td>跳到右边一列</td><td>所有表格</td></tr>
+ <tr><td><strong>Escape</strong></td><td>关闭下拉菜单</td><td>所有页面</td></tr>
+ </table>
 
- <h4>查看询价数据</h4>
- <ul>
- <li>选择<strong>月份</strong>查看该月的询价数据</li>
- <li>按<strong>分类</strong>筛选：米面粮油类、肉禽蛋类、水果蔬菜及豆制品类等</li>
- <li>使用<strong>搜索</strong>功能按品名查找</li>
- </ul>
+ <h4>数据导入导出</h4>
+ <p>在"月度台账"页面的"导入数据"面板可批量导入 Excel（产品、入库、出库、期初库存）。当 Excel 列名与系统不同时，使用<strong>列映射导入</strong>手动对应。库存、台账、采购单均可导出为 Excel。</p>
 
- <h4>价格变动</h4>
- <p>系统会自动比较本月和上月的价格：</p>
- <ul>
- <li><strong>↑</strong>：价格上涨</li>
- <li><strong>↓</strong>：价格下降</li>
- </ul>
+ <h4>设置</h4>
+ <p>在"设置"页面可调整录入行数、键盘导航、采购单保留天数、过期预警天数、食堂模式、折扣率、主题外观等。修改后点击"保存设置"立即生效。</p>
 
- <h4>折扣计算</h4>
- <p>系统支持两个折扣率（在设置中配置）：</p>
- <ul>
- <li><strong>盛销价</strong>：原价 × 第一折扣率</li>
- <li><strong>优宏价</strong>：原价 × 第二折扣率</li>
- </ul>
-
- <div class="help-tip">
- <strong> 提示：</strong>询价数据会作为采购单的自动补全数据源，建议每月及时更新。
- </div>
- </div>
- </div>
-
- <!-- 数据导入导出 -->
- <div class="card help-section" id="section-data-io" data-keywords="导入 导出 xlsx excel 备份 拖拽 批量 文件占用 lock EBUSY">
- <div class="card-header">
- <h3>数据导入导出</h3>
- </div>
- <div class="card-body">
- <p>系统支持通过 Excel 文件进行批量数据导入和导出。</p>
-
- <h4>导入数据</h4>
- <p>在<strong>月度台账</strong>页面，点击<strong>" 导入数据"</strong>按钮，可导入：</p>
- <ul>
- <li><strong>产品数据</strong>：材料清单</li>
- <li><strong>入库流水账</strong>：入库记录</li>
- <li><strong>出库流水账</strong>：出库记录</li>
- <li><strong>期初库存</strong>：台账 sheet 中的期初数据</li>
- </ul>
- <p>支持<strong>拖拽上传</strong>或点击选择文件。</p>
-
- <h4>导出数据</h4>
- <ul>
- <li><strong> 导出库存</strong>：导出当前库存快照</li>
- <li><strong> 导出台账</strong>：导出月度台账（含日明细）</li>
- <li><strong> 导出全部</strong>：导出所有数据（产品+入库+出库）</li>
- <li><strong>采购单导出</strong>：导出采购单（含产品图片）</li>
- <li><strong> 批量导出历史</strong>：在历史采购页面，勾选日期批量导出</li>
- </ul>
-
- <h4>文件被占用时自动重试</h4>
- <p>如果导出目标文件已被 Excel 打开，系统会自动尝试以 (2)、(3) 等后缀保存到同目录，无需手动关闭 Excel 再重试。</p>
-
- <div class="help-warning">
- <strong> 注意：</strong>导入数据会<strong>覆盖</strong>已有数据，请谨慎操作。建议先导出备份，再进行导入。
- </div>
- </div>
- </div>
-
- <!-- 历史采购 -->
- <div class="card help-section" id="section-history" data-keywords="历史 采购 保留 查看 天数 批量导出">
- <div class="card-header">
- <h3>历史采购</h3>
- </div>
- <div class="card-body">
- <p>历史采购页面用于查看和导出历史采购单记录。</p>
-
- <h4>查看历史</h4>
- <ol>
- <li>点击日期标签选择要查看的日期（默认显示最近一天）</li>
- <li>系统会按食堂模式分组显示采购数据</li>
- <li>每个分组可展开/折叠查看详情</li>
- </ol>
-
- <h4>批量导出</h4>
- <p>点击页面右上角的<strong>" 批量导出"</strong>按钮：</p>
- <ol>
- <li>弹窗中勾选要导出的日期（支持全选/全不选）</li>
- <li>点击"导出"生成一个 Excel 文件</li>
- <li>每个日期的<strong>厨房</strong>和<strong>联华</strong>各占一张 sheet（如"6月7日-厨房"、"6月7日-联华"）</li>
- </ol>
- <p>导出模板与采购单页面的导出格式一致。文件被占用时自动加后缀重试。</p>
-
- <h4>数据保留规则</h4>
- <ul>
- <li>采购单每天会自动清空显示</li>
- <li>数据库中的记录默认保留 <strong>31 天</strong>（可在"设置 → 数据 → 采购单数据"中调整，范围 1-365 天）</li>
- <li>超过保留天数的记录在应用启动时自动清理</li>
- </ul>
-
- <div class="help-tip">
- <strong> 提示：</strong>历史记录为只读，不支持编辑。如需修改，请在采购单页面重新录入。
- </div>
- </div>
- </div>
-
- <!-- 设置 -->
- <div class="card help-section" id="section-settings" data-keywords="设置 配置 参数 食堂模式 键盘 图片 预警天数 保留 分页 标签">
- <div class="card-header">
- <h3>设置</h3>
- </div>
- <div class="card-body">
- <p>设置页面用于配置系统的各项参数，所有设置修改后会<strong>立即生效</strong>。设置页使用标签页分组，方便查找。</p>
-
- <h4>标签页分组</h4>
- <ul>
- <li><strong> 通用</strong>：录入表格行数、键盘导航模式</li>
- <li><strong> 数据</strong>：历史记录显示、采购单保留天数、过期预警、库存查询显示条数</li>
- <li><strong> 业务</strong>：询价管理（折扣率）、食堂模式、实物图片路径</li>
- <li><strong> 外观</strong>：主题风格、字体、字号、主色调</li>
- </ul>
-
- <h4>重要设置项说明</h4>
- <ul>
- <li><strong>采购单保留天数</strong>：控制历史采购数据保留多久（默认 31 天，范围 1-365）</li>
- <li><strong>食堂模式</strong>：切换默认/多食堂/小所模式（小所模式支持逐所输入和矩阵输入两种样式）</li>
- <li><strong>回车键导航</strong>：回车后跳到下一行同列或首格（Ctrl+Enter 可快速切换）</li>
- <li><strong>主题</strong>：支持默认风格和有机自然（Biophilic）两种主题，可自定义主色调</li>
- </ul>
-
- <h4>保存设置</h4>
- <p>修改设置后，点击页面底部的<strong>" 保存设置"</strong>按钮保存。</p>
-
- <div class="help-tip">
- <strong> 提示：</strong>切换食堂模式时，系统会提示可能的数据丢失，请谨慎操作。切换小所填写样式（逐所/矩阵）时也会提示确认。
- </div>
  </div>
  </div>
 
  <!-- 常见问题 -->
- <div class="card help-section" id="section-faq" data-keywords="问题 解答 FAQ 怎么办 如何 为什么 快捷键">
+ <div class="card help-section" id="section-faq" data-keywords="问题 解答 FAQ 怎么办 如何 为什么">
  <div class="card-header">
  <h3>常见问题</h3>
  </div>
  <div class="card-body">
- <h4>Q: 为什么入库时提示"该产品不存在"？</h4>
- <p>A: 输入的产品名称必须在"产品管理"中已存在。如果是新产品，请先到产品管理中添加。</p>
 
- <h4>Q: 采购单数据丢失了怎么办？</h4>
- <p>A: 采购单每天会自动清空，但数据默认保留 31 天。在"历史采购"中可查看。如需更长时间保留，可在"设置 → 数据 → 采购单数据"中调整保留天数（最大 365 天），或使用"批量导出"及时备份。</p>
+ <h4>Q: 入库时提示"该产品不存在"？</h4>
+ <p>A: 说明这个材料还没录入系统。请先到"产品管理"页面添加该产品，再回到入库登记。</p>
 
- <h4>Q: 导出 Excel 时提示"文件被占用"怎么办？</h4>
- <p>A: 系统会自动尝试以 (2)、(3) 等后缀另存。如果仍失败，请关闭正在打开该文件的 Excel 后重试。</p>
+ <h4>Q: 采购单数据找不到了？</h4>
+ <p>A: 采购单每天导出后自动清空，但数据还在系统中。到"历史采购"页面按日期查看。如需编辑，在采购单页面点"调取"加载回来。</p>
 
- <h4>Q: 如何批量导出多天的历史采购单？</h4>
- <p>A: 在"历史采购"页面，点击右上角的" 批量导出"按钮，勾选要导出的日期，点击"导出"即可生成一个包含多天数据的 Excel 文件。</p>
-
- <h4>Q: 出库时多行要填同一个品名，有快捷方式吗？</h4>
- <p>A: 填好第一行后，按 <strong>Ctrl+D</strong> 即可将该值向下填充到所有空行。品名、日期、领取人均支持此操作。</p>
+ <h4>Q: 出库数量超过库存怎么办？</h4>
+ <p>A: 系统会自动阻止超量出库。请去"库存查询"确认实际库存，或检查是否选错了产品。</p>
 
  <h4>Q: 如何备份数据？</h4>
- <p>A: 在"月度台账"页面，点击" 导入数据"展开面板，然后点击" 导出全部"可导出所有数据。建议定期备份。</p>
+ <p>A: 在"月度台账"→"导入数据"→"导出全部"可导出全部数据为 Excel。系统每天也会自动备份数据库到安装目录。</p>
 
  <h4>Q: 如何添加新的领取人？</h4>
- <p>A: 在出库页面右上角点击" 管理领取人"按钮，可新增、编辑、删除和排序领取人。</p>
+ <p>A: 在"出库登记"页面右上角，点击"管理领取人"按钮即可新增、编辑或删除领取人。</p>
 
- <h4>Q: 键盘快捷键有哪些？</h4>
- <table class="table" style="font-size:13px;">
- <tr><th>快捷键</th><th>功能</th></tr>
- <tr><td><strong>回车</strong></td><td>跳到下一行（可在设置中配置跳到同列或首格）</td></tr>
- <tr><td><strong>Ctrl+Enter</strong></td><td>快速切换回车导航模式</td></tr>
- <tr><td><strong>Ctrl+D</strong></td><td>向下填充当前值到所有空行（出库表）</td></tr>
- <tr><td><strong>方向键</strong></td><td>在表格中移动光标</td></tr>
- <tr><td><strong>Tab</strong></td><td>跳到下一列</td></tr>
- <tr><td><strong>Escape</strong></td><td>关闭下拉菜单或失焦当前输入</td></tr>
- </table>
+ <h4>Q: 停用产品后，历史记录还在吗？</h4>
+ <p>A: 在。停用只是让该产品在入库出库时不再出现，已有的出入库记录和库存数据都完整保留。随时可以恢复启用。</p>
+
  </div>
  </div>
 
@@ -1500,17 +1204,18 @@
  <h3>联系支持</h3>
  </div>
  <div class="card-body">
- <p>如果以上内容无法解决您的问题，请联系系统管理员获取帮助。</p>
+ <p>如果以上内容无法解决您的问题，请联系系统管理员。</p>
  <div class="help-tip">
- <strong> 建议：</strong>遇到问题时，请先尝试：
+ <strong> 临时处置：</strong>遇到界面卡顿或数据显示异常时，尝试：
  <ol>
- <li>刷新页面（按F5）</li>
- <li>重新启动应用</li>
- <li>查看是否有未保存的数据</li>
+ <li>按 F5 刷新页面</li>
+ <li>关闭应用重新打开</li>
+ <li>确认数据是否已保存</li>
  </ol>
  </div>
  </div>
  </div>
+
  </div>
  </div>
  </main>
