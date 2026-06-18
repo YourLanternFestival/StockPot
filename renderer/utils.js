@@ -435,3 +435,50 @@ function copyColumnToClipboard(btn) {
     setTimeout(() => { btn.textContent = '📋'; btn.title = '复制整列'; }, 1500);
   });
 }
+
+// 共享 Ctrl+D 向下填充：从当前行向下填充到末尾（覆盖已有值，行为对齐 Excel）
+function fillDownColumn(input, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  const currentTr = input.closest('tr');
+  if (!currentTr) return;
+  const startIdx = allRows.indexOf(currentTr);
+  if (startIdx < 0) return;
+  const field = input.dataset.field;
+  if (!field) return;
+  const value = input.value;
+  if (!value) return;  // 当前值为空时不填充
+  let filled = 0;
+
+  for (let i = startIdx + 1; i < allRows.length; i++) {
+    const targetInput = allRows[i].querySelector(`[data-field="${field}"]`);
+    if (targetInput) {
+      targetInput.value = value;
+      targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+      targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+      targetInput.dispatchEvent(new Event('blur', { bubbles: true }));
+      filled++;
+    }
+  }
+  if (filled > 0) {
+    showToast(`已向下填充 ${filled} 行`);
+  }
+}
+
+// 绑定 Ctrl+D 事件委托到 tbody（一次性绑定，自动覆盖动态新增的行）
+function bindCtrlDFill(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody || tbody._ctrlDBound) return;
+  tbody._ctrlDBound = true;
+
+  tbody.addEventListener('keydown', (e) => {
+    if (!e.ctrlKey || e.key.toLowerCase() !== 'd') return;
+    // 只在 .cell-editable 元素上触发
+    const input = e.target.closest('.cell-editable');
+    if (!input) return;
+    e.preventDefault();
+    e.stopPropagation();
+    fillDownColumn(input, tbodyId);
+  });
+}

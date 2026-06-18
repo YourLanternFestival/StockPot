@@ -302,14 +302,14 @@
  <thead>
  <tr>
  <th style="width:40px;">#</th>
- <th style="width:140px;">材料名称 <span class="required">*</span></th>
+ <th style="width:140px;">材料名称 <span class="required">*</span> <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
  <th style="width:80px;">规格</th>
- <th style="width:80px;">数量 <span class="required">*</span></th>
+ <th style="width:80px;">数量 <span class="required">*</span> <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
  <th style="width:60px;">单位</th>
  <th style="width:130px;">入库日期 <span class="required">*</span></th>
  <th style="width:130px;">生产日期</th>
  <th style="width:130px;">到期日</th>
- <th style="width:120px;">备注</th>
+ <th style="width:120px;">备注 <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
  <th style="width:60px;">操作</th>
  </tr>
  </thead>
@@ -351,13 +351,13 @@
  <thead>
  <tr>
  <th style="width:40px;">#</th>
- <th style="width:140px;">材料名称 <span class="required">*</span></th>
+ <th style="width:140px;">材料名称 <span class="required">*</span> <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
  <th style="width:80px;">规格</th>
- <th style="width:80px;">数量 <span class="required">*</span></th>
+ <th style="width:80px;">数量 <span class="required">*</span> <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
  <th style="width:60px;">单位</th>
  <th style="width:60px;">库存</th>
- <th style="width:130px;">出库日期 <span class="required">*</span></th>
- <th style="width:100px;">领取人 <span class="required">*</span></th>
+ <th style="width:130px;">出库日期 <span class="required">*</span> <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
+ <th style="width:100px;">领取人 <span class="required">*</span> <button class="btn-copy-col" onclick="copyColumnToClipboard(this)" title="复制整列">📋</button></th>
  <th style="width:60px;">操作</th>
  </tr>
  </thead>
@@ -583,6 +583,7 @@
  <h3 id="lianhua-title">联华超市</h3>
  <div class="group-actions">
  <button class="btn btn-sm" onclick="event.stopPropagation(); showAddDateDialog('联华')" data-tooltip="为联华采购组添加新的到货日期">+ 添加日期</button>
+ <button class="btn btn-sm" onclick="event.stopPropagation(); showManageLianhuaItems()" data-tooltip="新增、编辑、删除联华商品信息">管理商品</button>
  </div>
  </div>
  <div class="group-content" style="display:none;"></div>

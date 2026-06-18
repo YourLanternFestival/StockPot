@@ -5,6 +5,7 @@ function initInboundPage() {
   const tbody = document.getElementById('inbound-tbody');
   if (!inboundInitialized) {
     addInboundRows(APP_SETTINGS.inbound_rows);
+    bindCtrlDFill('inbound-tbody');
     inboundInitialized = true;
   }
   loadRecentInbound();
@@ -83,11 +84,16 @@ function bindInboundRowEvents(tr) {
   if (prodInput) prodInput.addEventListener('change', () => calcRowExpiry(tr));
 }
 
-function handleInboundProductAutocomplete(input) {
+async function handleInboundProductAutocomplete(input) {
   const keyword = input.value.trim();
   if (keyword.length < 1) {
     hideAutocomplete();
     return;
+  }
+
+  // 防御：若 PRODUCTS 为空，尝试重新加载
+  if (PRODUCTS.length === 0) {
+    try { PRODUCTS = await window.api.getProducts(); } catch (e) { /* ignore */ }
   }
 
   const td = input.closest('td');
