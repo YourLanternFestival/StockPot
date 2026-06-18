@@ -4,6 +4,11 @@ let pieChart = null;
 
 async function loadDashboard() {
   try {
+    // 动态更新日期显示（避免硬编码年份过期）
+    const now = new Date();
+    const dateEl = document.getElementById('dashboard-date');
+    if (dateEl) dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
     const stats = await window.api.getDashboardStats();
 
     // Update stat cards
