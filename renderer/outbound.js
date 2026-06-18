@@ -7,6 +7,15 @@ function initOutboundPage() {
     addOutboundRows(APP_SETTINGS.outbound_rows);
     bindCtrlDFill('outbound-tbody');
     outboundInitialized = true;
+  } else {
+    // 页面复用时：未手动修改的日期自动刷新为今天
+    const today = todayStr();
+    tbody.querySelectorAll('[data-field="date"]').forEach(input => {
+      if (input.value === input.dataset.dateDefault) {
+        input.value = today;
+        input.dataset.dateDefault = today;
+      }
+    });
   }
   loadRecentOutbound();
 }
@@ -29,7 +38,7 @@ function addOutboundRows(count = 5) {
       <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
       <td><input type="text" class="cell-input" value="" data-field="unit" readonly tabindex="-1"></td>
       <td><input type="text" class="cell-input" value="" data-field="stock" readonly tabindex="-1"></td>
-      <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
+      <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date" data-date-default="${today}"></td>
       <td>
         <select class="cell-input cell-editable" data-field="recipient">
           <option value="">选择...</option>
@@ -58,7 +67,7 @@ function appendOutboundRow(tbody) {
     <td><input type="number" class="cell-input cell-editable" value="" data-field="quantity" placeholder="0"></td>
     <td><input type="text" class="cell-input" value="" data-field="unit" readonly tabindex="-1"></td>
     <td><input type="text" class="cell-input" value="" data-field="stock" readonly tabindex="-1"></td>
-    <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date"></td>
+    <td><input type="date" class="cell-input cell-editable" value="${today}" data-field="date" data-date-default="${today}"></td>
     <td>
       <select class="cell-input cell-editable" data-field="recipient">
         <option value="">选择...</option>
