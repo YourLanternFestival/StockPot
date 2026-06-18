@@ -1,5 +1,11 @@
 // ===== State =====
 let PRODUCTS = [];
+async function ensureProducts() {
+  if (PRODUCTS.length === 0) {
+    try { PRODUCTS = await window.api.getProducts(); } catch (e) { console.error('ensureProducts failed:', e); }
+  }
+  return PRODUCTS;
+}
 let RECIPIENTS = [];
 let ENTER_MODE = 'next-row'; // 'next-row' | 'next-cell'
 let PURCHASE_DIRTY = false;  // 采购页面是否有未保存修改

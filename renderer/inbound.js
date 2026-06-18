@@ -91,10 +91,7 @@ async function handleInboundProductAutocomplete(input) {
     return;
   }
 
-  // 防御：若 PRODUCTS 为空，尝试重新加载
-  if (PRODUCTS.length === 0) {
-    try { PRODUCTS = await window.api.getProducts(); } catch (e) { /* ignore */ }
-  }
+  await ensureProducts();
 
   const td = input.closest('td');
   const dropdown = td.querySelector('.autocomplete-dropdown');

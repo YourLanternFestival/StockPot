@@ -511,10 +511,7 @@ async function showAddInquiryItem() {
     catSelect.addEventListener('change', () => { categoryManuallyChanged = true; });
   }
 
-  // 确保 PRODUCTS 已加载
-  if (PRODUCTS.length === 0) {
-    try { PRODUCTS = await window.api.getProducts(); } catch (e) { /* ignore */ }
-  }
+  await ensureProducts();
 
   if (nameInput && dropdown) {
     nameInput.addEventListener('input', () => {

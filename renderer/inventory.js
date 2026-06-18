@@ -1,9 +1,6 @@
 // ===== Inventory =====
 async function loadInventory() {
-  // Ensure PRODUCTS is loaded for autocomplete
-  if (PRODUCTS.length === 0) {
-    try { PRODUCTS = await window.api.getProducts(); } catch (e) { /* ignore */ }
-  }
+  await ensureProducts();
   // Update alert badge count
   try {
     const alerts = await window.api.getAlerts(30);
