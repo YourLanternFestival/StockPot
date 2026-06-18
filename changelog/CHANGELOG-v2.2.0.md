@@ -151,13 +151,20 @@
 
 **文件**：`renderer/utils.js`（新增 `fillDownColumn`）、`renderer/inbound.js`、`renderer/outbound.js`  
 - Ctrl+D 向下填充从出库页扩展到入库页
-- 统一为共享函数 `fillDownColumn(input, tbodyId)`，增加 `currentTr` 和 `startIdx` 有效性校验
+- 统一为共享函数 `fillDownColumn(input, tbodyId)`，增加 `field`/`value` 有效性校验
+- **行为对齐 Excel**：去掉 `!targetInput.value` 跳过逻辑，Ctrl+D 强制覆盖下方所有行（含已有值）
+- 从逐行绑定重构为 tbody 事件委托（`bindCtrlDFill`），一行代码覆盖动态新增行
 - `fillDownOutbound` 保留为向后兼容别名
 
 ### 联华商品管理入口
 
 **文件**：`renderer/index.html`  
 联华超市分组头部新增「管理商品」按钮，可直接新增/编辑/删除联华商品，无需通过导入弹窗。
+
+### PRODUCTS 数据源统一防御
+
+**文件**：`renderer/app.js`（新增 `ensureProducts`）、`renderer/inbound.js`、`renderer/inventory.js`、`renderer/inquiry.js`  
+三处分散的 `if (PRODUCTS.length === 0) reload` 收敛为 `app.js` 中单一 `ensureProducts()` 函数。所有 PRODUCTS 消费者只需 `await ensureProducts()` 即可保证数据可用。解决了启动时 `refreshProductSelects()` 静默失败导致自动补全无结果的偶发问题。
 
 ---
 
