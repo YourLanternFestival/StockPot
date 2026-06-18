@@ -15,6 +15,9 @@ function initLedgerYearSelector() {
 
 async function loadLedger() {
   try {
+    // 每次进入台账页时刷新选择器，防止跨月/跨年残留旧值
+    initLedgerYearSelector();
+    document.getElementById('ledger-month').value = new Date().getMonth() + 1;
     const year = parseInt(document.getElementById('ledger-year').value);
     const month = parseInt(document.getElementById('ledger-month').value);
     const data = await window.api.getInventoryByMonth(year, month);
