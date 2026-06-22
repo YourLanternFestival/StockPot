@@ -1685,6 +1685,9 @@ function getLianhuaDateGroups(source) {
 // Export all purchase orders (main entry)
 async function exportAllPurchaseOrders() {
   try {
+    // 记录导出前的 last_purchase_date，取消时恢复
+    const prevLastDate = APP_SETTINGS.last_purchase_date;
+
     // 导出前先静默保存，确保 DB 和 DOM 同步
     await silentSavePurchaseOrders();
 
@@ -1797,6 +1800,10 @@ async function exportAllPurchaseOrders() {
       APP_SETTINGS.last_purchase_date = '';
     } else if (result.error !== '已取消') {
       showToast('导出失败: ' + result.error, 'error');
+    } else {
+      // 用户取消导出：恢复导出前的 last_purchase_date，避免 silentSave 的副作用
+      await window.api.setSetting('last_purchase_date', prevLastDate);
+      APP_SETTINGS.last_purchase_date = prevLastDate;
     }
   } catch (err) {
     showToast('导出失败: ' + err.message, 'error');
