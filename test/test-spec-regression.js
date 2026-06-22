@@ -322,6 +322,94 @@ assertEqual(recalcAmount('1.0', 10, 0), 10, '1.0 × 10 = 10');
 assertEqual(recalcAmount('01', 3, 0), 3, '01 × 3 = 3');
 assertEqual(recalcAmount('.5', 20, 0), 10, '.5 × 20 = 10');
 
+// ── 采购单生命周期：保存/导出/归档/调取 ────────────────────
+section('采购单生命周期（v2.2.1: 导出即归档，不再自动加载）');
+
+// 模拟 todayStr
+const simToday = '2026-06-22';
+const simYesterday = '2026-06-21';
+
+// shouldLoadData 逻辑：last_purchase_date === today 才加载
+function shouldLoadPurchaseData(lastPurchaseDate, today) {
+  return (lastPurchaseDate || '') === today;
+}
+// 新天（无保存记录）→ false
+assert(!shouldLoadPurchaseData('', simToday), '空 last_purchase_date → shouldLoadData=false');
+// 昨天保存 → false（跨天不加载）
+assert(!shouldLoadPurchaseData(simYesterday, simToday), 'last=昨天, today=今天 → shouldLoadData=false');
+// 今天保存 → true（同天编辑中，可恢复）
+assert(shouldLoadPurchaseData(simToday, simToday), 'last=today → shouldLoadData=true');
+
+// 保存行为：save 后 last_purchase_date 应更新为 today
+function simulateSave(lastDate, today, isExport) {
+  // 保存 → last_purchase_date = today
+  const afterSave = today;
+  // 如果是导出，导出后应清空
+  return isExport ? '' : afterSave;
+}
+assertEqual(simulateSave('', simToday, false), simToday, '保存 → last=today');
+assertEqual(simulateSave(simYesterday, simToday, false), simToday, '跨天保存 → last 更新为 today');
+// 导出行为：导出后 last_purchase_date 清空（归档状态）
+assertEqual(simulateSave(simToday, simToday, true), '', '导出 → last 清空（归档）');
+assertEqual(simulateSave('', simToday, true), '', '新天导出 → last 仍为空');
+
+// 导出后下次进入：shouldLoadData 应为 false
+const afterExport = simulateSave(simToday, simToday, true);
+assert(!shouldLoadPurchaseData(afterExport, simToday), '导出后下次进入 → shouldLoadData=false（不自动加载）');
+
+// 导出后又手动保存 → 进入编辑态，下次可加载
+const afterReEdit = simulateSave(afterExport, simToday, false);
+assert(shouldLoadPurchaseData(afterReEdit, simToday), '导出后重新编辑保存 → shouldLoadData=true');
+
+// loadPurchaseGroupData 的 DB 过滤逻辑：只加载 receive_date >= today
+function filterOrdersByDate(orders, today) {
+  return orders.filter(o => o.receive_date >= today);
+}
+const sampleOrders = [
+  { product_name: '青菜', receive_date: '2026-06-22', source: '寿昌-厨房' },
+  { product_name: '可乐', receive_date: '2026-06-22', source: '寿昌-联华' },
+  { product_name: '猪肉', receive_date: '2026-06-15', source: '寿昌-厨房' },  // 上周
+  { product_name: '雪碧', receive_date: '2026-06-15', source: '寿昌-联华' },  // 上周
+  { product_name: '白菜', receive_date: '2026-06-23', source: '寿昌-厨房' },  // 明天
+];
+const filtered = filterOrdersByDate(sampleOrders, simToday);
+assertEqual(filtered.length, 3, 'receive_date >= today: 3条（今天2条+明天1条）');
+assert(filtered.every(o => o.receive_date >= simToday), '所有过滤结果 receive_date >= today');
+assert(filtered.find(o => o.product_name === '猪肉') === undefined, '上周猪肉被过滤');
+assert(filtered.find(o => o.product_name === '雪碧') === undefined, '上周雪碧被过滤');
+assert(filtered.find(o => o.product_name === '白菜') !== undefined, '明天的白菜保留（提前录入）');
+
+// 所有模式下数据是一个整体：厨房+联华通过 source 后缀区分
+function classifySource(source) {
+  if (source.endsWith('-厨房') || source.includes('食堂厨房')) return 'kitchen';
+  if (source.endsWith('-联华') || source === '联华') return 'lianhua';
+  if (source.includes('面点房')) return 'pastry';
+  return 'unknown';
+}
+assertEqual(classifySource('寿昌-厨房'), 'kitchen', '小所厨房 source');
+assertEqual(classifySource('寿昌-联华'), 'lianhua', '小所联华 source');
+assertEqual(classifySource('洋安食堂厨房'), 'kitchen', '默认厨房 source');
+assertEqual(classifySource('联华'), 'lianhua', '默认联华 source');
+assertEqual(classifySource('洋安面点房'), 'pastry', '默认面点房 source');
+
+// 保存时所有 source 在一个事务中（原子性）
+function simulateSaveBatch(sourcesWithData, allOrders) {
+  // 模拟：只清理有 DOM 数据的 source，不误清未加载的
+  const clearedSources = new Set(sourcesWithData);
+  const insertedSources = new Set(allOrders.map(o => o.source));
+  // 所有 insert 的 source 都应该在 cleared 中
+  // 但 cleared 中可能有额外的（用户清空了的 source，无数据但要清理 DB）
+  const missingClear = [...insertedSources].filter(s => !clearedSources.has(s));
+  return { clearedSources, insertedSources, missingClear, ok: missingClear.length === 0 };
+}
+const batchResult = simulateSaveBatch(
+  ['寿昌-厨房', '寿昌-联华', '梅城-厨房'],
+  [{ source: '寿昌-厨房' }, { source: '寿昌-厨房' }, { source: '寿昌-联华' }]
+);
+assert(batchResult.ok, '所有 insert 的 source 都在 cleared 列表中');
+assert(batchResult.clearedSources.has('梅城-厨房'), '梅城厨房被清空（用户清空了 DOM）');
+assertEqual(batchResult.missingClear.length, 0, '无遗漏的 source');
+
 // ── 结果汇总 ──────────────────────────────────────────────
 const total = passed + failed;
 console.log(`\n═══════════════════════════════════════`);

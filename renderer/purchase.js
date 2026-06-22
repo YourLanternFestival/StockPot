@@ -195,7 +195,6 @@ function initMultiCanteenMode() {
         <div class="group-content" style="display:none;"></div>
       `;
       area.appendChild(lianhuaGroup);
-      loadPurchaseGroupData(lianhuaSrc);
 
       // 厨房分组 (per canteen)
       const kitchenSrc = `${canteen}-厨房`;
@@ -215,9 +214,14 @@ function initMultiCanteenMode() {
         <div class="group-content" style="display:none;"></div>
       `;
       area.appendChild(kitchenGroup);
-      loadPurchaseGroupData(kitchenSrc);
     }
     multiModeInitialized = true;
+  }
+
+  // 每次进入采购页都刷新数据（DB → DOM），不依赖首次创建时的单次加载
+  for (const canteen of MULTI_CANTEENS) {
+    loadPurchaseGroupData(`${canteen}-联华`);
+    loadPurchaseGroupData(`${canteen}-厨房`);
   }
 
   switchMultiCanteenTab(currentMultiCanteen);
@@ -291,7 +295,6 @@ function initSmallCanteenMode() {
         <div class="group-content" style="display:none;"></div>
       `;
       areaEl.appendChild(kitchenGroup);
-      loadPurchaseGroupData(kitchenSrc);
     }
     for (const canteen of canteens) {
       const lianhuaSrc = `${canteen}-联华`;
@@ -312,9 +315,16 @@ function initSmallCanteenMode() {
         <div class="group-content" style="display:none;"></div>
       `;
       areaEl.appendChild(lianhuaGroup);
-      loadPurchaseGroupData(lianhuaSrc);
     }
     smallModeInitialized = true;
+  }
+
+  // 每次进入采购页都刷新数据（DB → DOM），不依赖首次创建时的单次加载
+  for (const canteen of canteens) {
+    loadPurchaseGroupData(`${canteen}-厨房`);
+  }
+  for (const canteen of canteens) {
+    loadPurchaseGroupData(`${canteen}-联华`);
   }
 
   // 样式1（逐所输入）时默认显示第一组
@@ -1782,6 +1792,9 @@ async function exportAllPurchaseOrders() {
       // 导出后清空页面 DOM（数据已在 DB + xlsx，采购页作为今日编辑区不应持久显示）
       clearPurchasePageDOM();
       resetPurchaseDirty();
+      // 重置 last_purchase_date，下次进入采购页不再自动加载（导出即归档，需调取才可见）
+      await window.api.setSetting('last_purchase_date', '');
+      APP_SETTINGS.last_purchase_date = '';
     } else if (result.error !== '已取消') {
       showToast('导出失败: ' + result.error, 'error');
     }
