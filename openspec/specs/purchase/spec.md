@@ -317,7 +317,15 @@
 - 假设 导出前 `_purchaseShouldLoadData` 为 false
 - 当 导出完成（无论成功或失败）
 - 那么 该标志恢复为 false（finally 块保证恢复）
-- 且 后续页面加载行为不受导出影响
+
+#### 场景：导出即归档，下次进入采购页不自动加载
+- 假设 用户导出采购单成功
+- 当 导出完成
+- 那么 `last_purchase_date` 被重置为空字符串
+- 且 下次进入采购页时 `_purchaseShouldLoadData` = false（不自动加载数据）
+- 且 采购页显示为空白编辑区
+- 且 已导出的数据可通过"调取"按钮或历史页面查看
+- **设计决策**：导出 = 归档。`last_purchase_date` 不仅记录最后保存日期，同时作为"是否处于编辑中"的标志——空值表示已归档，等于 today 表示编辑中。这与 `spec/purchase-leave-guard-export-clean.md` B3（"默认不加载任何历史采购数据"）保持一致。
 
 ## 数据操作增强
 
