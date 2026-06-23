@@ -489,7 +489,7 @@ function addLianhuaDateGroup(date, source) {
       <span class="date-summary">0 项 | 合计 ¥0</span>
       <div class="date-actions">
         <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加行</button>
-        <button class="btn btn-sm" onclick="event.stopPropagation(); exportLianhuaOrderByDate('${date}')">📤 导出</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation(); exportLianhuaOrderByDate(this)">📤 导出</button>
         <button class="btn-delete-date" onclick="event.stopPropagation(); deleteLianhuaDateGroup(this)">🗑</button>
       </div>
     </div>
@@ -627,9 +627,9 @@ async function deleteLianhuaDateGroup(btn) {
 }
 
 // Export lianhua order by date - sheet name is the date (kept for single date export)
-async function exportLianhuaOrderByDate(date) {
+async function exportLianhuaOrderByDate(el) {
   try {
-    const dateGroup = document.getElementById(`lianhua-date-${date}`);
+    const dateGroup = el.closest('.date-group');
     if (!dateGroup) {
       showToast('未找到日期分组', 'error');
       return;

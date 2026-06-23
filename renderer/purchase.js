@@ -631,7 +631,7 @@ async function saveMatrixData(silent) {
   const dateInput = document.getElementById('matrix-date');
   const date = dateInput ? dateInput.value : getTomorrowStr();
 
-  const sources = canteens.map(c => `${c}-厨房`);
+  const sourceDates = canteens.map(c => ({ source: `${c}-厨房`, date }));
   const orders = [];
   const rows = tbody.querySelectorAll('tr');
   let savedCount = 0;
@@ -669,7 +669,7 @@ async function saveMatrixData(silent) {
   if (silent && orders.length === 0) return;
 
   // 事务保护
-  const result = await window.api.savePurchaseOrdersBatch(sources, orders);
+  const result = await window.api.savePurchaseOrdersBatch(sourceDates, orders);
   if (!result.success) {
     if (!silent) showToast('保存失败: ' + result.error, 'error');
     return;
@@ -775,7 +775,7 @@ function copyKitchenData(fromCanteen, toCanteen) {
   const fromDateGroups = fromGroup.querySelectorAll('.date-group');
   for (const fromDateGroup of fromDateGroups) {
     const date = getDateFromGroup(fromDateGroup);
-    const dateId = `date-${toSource}-${date}`.replace(/[\s:]/g, '-');
+    const dateId = `date-${toSource}-${date}`.replace(/[\s-]/g, '_');
 
     const newDateGroup = document.createElement('div');
     newDateGroup.className = 'date-group';
@@ -837,7 +837,9 @@ function addDateGroupToPage(source, date, items) {
   const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
   if (!groupContent) return;
 
-  const dateId = `date-${source}-${date}`.replace(/[\s:]/g, '-');
+  const dateId = source.includes('联华')
+    ? `lianhua-date-${source}-${date}`.replace(/[\s-]/g, '_')
+    : `date-${source}-${date}`.replace(/[\s-]/g, '_');
   if (document.getElementById(dateId)) return;
 
   const dateGroup = document.createElement('div');
@@ -960,7 +962,9 @@ function addDateGroup(source, date) {
   const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
   if (!groupContent) return;
 
-  const dateId = `date-${source}-${date}`.replace(/[\s:]/g, '-');
+  const dateId = source.includes('联华')
+    ? `lianhua-date-${source}-${date}`.replace(/[\s-]/g, '_')
+    : `date-${source}-${date}`.replace(/[\s-]/g, '_');
 
   // Check if date already exists
   if (document.getElementById(dateId)) {
@@ -1369,7 +1373,8 @@ async function saveAllSmallGroupsData(opts = {}) {
 async function saveLianhuaDomData(silent) {
   const canteens = getSmallCanteens();
   const allOrders = [];
-  const sourcesToProcess = [];
+  const sourceDates = [];
+  const seenDates = new Set();
 
   for (const canteen of canteens) {
     const source = `${canteen}-联华`;
@@ -1378,18 +1383,18 @@ async function saveLianhuaDomData(silent) {
 
     const dateGroupEls = group.querySelectorAll('.date-group');
     // 静默保存时无 dateGroup = 数据未加载，跳过防止误清历史
-    // 显式保存时无 dateGroup = 用户清空了数据，仍需清理 DB
-    if (dateGroupEls.length === 0) {
-      if (!silent) sourcesToProcess.push(source);
-      continue;
-    }
+    // 显式保存时无 dateGroup 也跳过（按日期清除，无日期则无需操作）
+    if (dateGroupEls.length === 0) continue;
 
-    sourcesToProcess.push(source);
     dateGroupEls.forEach(dateGroup => {
       const date = getDateFromGroup(dateGroup);
-      dateGroup.querySelectorAll('tbody tr').forEach((tr, idx) => {
+      const trs = [...dateGroup.querySelectorAll('tbody tr')];
+      // 只有该 date-group 确实有有效数据行时才收集 sourceDate，防止空 date-group 误触发 DELETE
+      let hasValidRow = false;
+      trs.forEach((tr, idx) => {
         const data = getRowData(tr);
         if (!data) return;
+        hasValidRow = true;
         allOrders.push({
           source,
           receive_date: date,
@@ -1403,12 +1408,19 @@ async function saveLianhuaDomData(silent) {
           sort_order: idx,
         });
       });
+      if (hasValidRow) {
+        const key = `${source}|||${date}`;
+        if (!seenDates.has(key)) {
+          seenDates.add(key);
+          sourceDates.push({ source, date });
+        }
+      }
     });
   }
 
-  if (sourcesToProcess.length === 0) return;
+  if (sourceDates.length === 0) return;
 
-  const result = await window.api.savePurchaseOrdersBatch(sourcesToProcess, allOrders);
+  const result = await window.api.savePurchaseOrdersBatch(sourceDates, allOrders);
   if (!result.success && !silent) {
     showToast('联华保存失败: ' + result.error, 'error');
   }
@@ -1428,6 +1440,8 @@ async function saveAllPurchaseOrders(opts = {}) {
   }
 
   const allOrders = [];
+  const sourceDates = [];
+  const seenDates = new Set();
   const container = document.getElementById('purchase-container');
   // 收集所有 dateGroup（包括隐藏的面点房），避免隐藏时数据丢失
   const dateGroups = [...container.querySelectorAll('.date-group')];
@@ -1443,6 +1457,7 @@ async function saveAllPurchaseOrders(opts = {}) {
     const receiveDate = dateLabelText.replace(' 收货', '').replace(' 发货', '').trim();
     const rows = dateGroup.querySelectorAll('tbody tr');
 
+    let hasValidRow = false;
     rows.forEach((tr, idx) => {
       const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
       const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
@@ -1451,6 +1466,7 @@ async function saveAllPurchaseOrders(opts = {}) {
       const productName = getData('product_name').trim();
       if (!productName) return; // Skip empty rows
 
+      hasValidRow = true;
       allOrders.push({
         source: source,
         receive_date: receiveDate,
@@ -1464,22 +1480,23 @@ async function saveAllPurchaseOrders(opts = {}) {
         sort_order: idx
       });
     });
+
+    // 只有该 date-group 确实有有效数据行时才收集 sourceDate，防止空 date-group 误触发 DELETE
+    if (hasValidRow) {
+      const key = `${source}|||${receiveDate}`;
+      if (!seenDates.has(key)) {
+        seenDates.add(key);
+        sourceDates.push({ source: source, date: receiveDate });
+      }
+    }
   });
 
   try {
-    // 仅清理有 dateGroup 的 source，防止新天未加载数据时误清历史记录
-    const sourcesWithDates = new Set();
-    dateGroups.forEach(dg => {
-      const pg = dg.closest('.purchase-group');
-      if (pg && pg.dataset.source) sourcesWithDates.add(pg.dataset.source);
-    });
-    const currentSources = [...sourcesWithDates];
+    // 如果 DOM 中没有任何有效数据，说明数据未加载（新天 shouldLoadData=false），跳过保存
+    if (sourceDates.length === 0) return;
 
-    // 如果 DOM 中没有任何 dateGroup，说明数据未加载（新天 shouldLoadData=false），跳过保存
-    if (currentSources.length === 0) return;
-
-    // 事务保护：clear + insert 在同一个事务中，崩溃不丢数据
-    const result = await window.api.savePurchaseOrdersBatch(currentSources, allOrders);
+    // 事务保护：按 (source, date) 清除 + insert，不误伤同 source 其他日期
+    const result = await window.api.savePurchaseOrdersBatch(sourceDates, allOrders);
     if (!result.success) {
       if (!silent) showToast('保存失败: ' + result.error, 'error');
       return;
@@ -1696,28 +1713,31 @@ async function exportAllPurchaseOrders() {
     }
 
     // 确保 DOM 中已加载 DB 数据（新天时 _purchaseShouldLoadData 为 false 会导致 DOM 为空）
-    const wasShouldLoad = window._purchaseShouldLoadData;
-    window._purchaseShouldLoadData = true;
-    try {
-      const mode = APP_SETTINGS.xiaosuo_mode;
-      if (mode === 'small') {
-        const canteens = getSmallCanteens();
-        for (const canteen of canteens) {
-          await loadPurchaseGroupData(`${canteen}-厨房`);
-          await loadPurchaseGroupData(`${canteen}-联华`);
+    // 但如果 DOM 已有数据（用户输入或调取加载），跳过清空重载，避免 >= today 过滤丢弃过去日期数据
+    if (!hasPurchasePageData()) {
+      const wasShouldLoad = window._purchaseShouldLoadData;
+      window._purchaseShouldLoadData = true;
+      try {
+        const mode = APP_SETTINGS.xiaosuo_mode;
+        if (mode === 'small') {
+          const canteens = getSmallCanteens();
+          for (const canteen of canteens) {
+            await loadPurchaseGroupData(`${canteen}-厨房`);
+            await loadPurchaseGroupData(`${canteen}-联华`);
+          }
+        } else if (mode === 'on') {
+          for (const canteen of MULTI_CANTEENS) {
+            await loadPurchaseGroupData(`${canteen}-厨房`);
+            await loadPurchaseGroupData(`${canteen}-联华`);
+          }
+        } else {
+          await loadPurchaseGroupData(getKitchenSource());
+          await loadPurchaseGroupData('联华');
+          if (APP_SETTINGS.show_pastry !== 'off') await loadPurchaseGroupData(getPastrySource());
         }
-      } else if (mode === 'on') {
-        for (const canteen of MULTI_CANTEENS) {
-          await loadPurchaseGroupData(`${canteen}-厨房`);
-          await loadPurchaseGroupData(`${canteen}-联华`);
-        }
-      } else {
-        await loadPurchaseGroupData(getKitchenSource());
-        await loadPurchaseGroupData('联华');
-        if (APP_SETTINGS.show_pastry !== 'off') await loadPurchaseGroupData(getPastrySource());
+      } finally {
+        window._purchaseShouldLoadData = wasShouldLoad;
       }
-    } finally {
-      window._purchaseShouldLoadData = wasShouldLoad;
     }
 
     const sheets = [];
@@ -1811,11 +1831,11 @@ async function exportAllPurchaseOrders() {
 }
 
 // 导出后清空采购页所有 DOM 内容（DB 数据不动）
+// 彻底删除 date-group div，防止空壳残留污染后续保存（stale group 导致 saveBatch 整源清除时误删其他日期数据）
 function clearPurchasePageDOM() {
   const container = document.getElementById('purchase-container');
   if (container) {
-    container.querySelectorAll('.date-group tbody').forEach(tb => { tb.innerHTML = ''; });
-    container.querySelectorAll('.date-summary').forEach(s => { s.textContent = '0 项 | 合计 ¥0'; });
+    container.querySelectorAll('.date-group').forEach(dg => dg.remove());
   }
   // 矩阵模式
   const matrixTbody = document.getElementById('matrix-tbody');

@@ -201,13 +201,16 @@ ipcMain.handle('purchaseOrders:getByDate', (e, date) => {
 ipcMain.handle('purchaseOrders:historyDates', (_, days, sources, excludeSources) => db.getPurchaseHistoryDates(days, sources, excludeSources));
 ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
 
-// 批量保存采购单（事务保护：先清空再写入，中间崩溃不丢数据）
-ipcMain.handle('purchaseOrders:saveBatch', (e, { sources, orders }) => {
+// 批量保存采购单（事务保护：按 source+date 清除，不误伤同 source 其他日期数据）
+ipcMain.handle('purchaseOrders:saveBatch', (e, { sourceDates, orders }) => {
   try {
     db.beginTransaction();
-    for (const source of sources) {
-      if (!source || typeof source !== 'string' || !source.trim()) continue;
-      db.clearPurchaseOrders(source);
+    // 按 (source, date) 精确清除，保护同 source 其他日期的已归档数据
+    if (sourceDates && sourceDates.length > 0) {
+      for (const { source, date } of sourceDates) {
+        if (!source || !date) continue;
+        db.deletePurchaseOrdersByDate(source, date);
+      }
     }
     for (const order of orders) {
       db.addPurchaseOrder(order);
