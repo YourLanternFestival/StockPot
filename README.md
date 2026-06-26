@@ -1,5 +1,9 @@
 # 食堂出入库管理系统
 
+> Desktop inventory management for cafeterias. Built with Electron + WASM SQLite. Three operation modes, Excel-compatible UX, batch export.
+
+**一句话**：用桌面应用替代多份 Excel，品名自动补全 + Excel 粘贴兼容 + Ctrl+D，效率提升约 3 倍。
+
 <p align="center">
   <img src="assets/img/icon-128.png" alt="icon" width="96">
 </p>
@@ -11,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/平台-Windows-blue" alt="platform">
   <img src="https://img.shields.io/badge/Electron-42-blue" alt="electron">
-  <img src="https://img.shields.io/badge/版本-1.1.2-green" alt="version">
+  <img src="https://img.shields.io/badge/版本-2.2.2-green" alt="version">
   <img src="https://img.shields.io/badge/许可证-ISC-blue" alt="license">
 </p>
 
@@ -56,9 +60,9 @@
 ### 三种食堂模式
 
 ```
-默认模式 ─── 洋安/新安，厨房 + 面点房 + 联华超市
-多食堂模式 ── 下涯/制杆厂/白南山，每个食堂独立的厨房和联华
-小所模式 ─── 寿昌/梅城等 7 个卫星食堂
+默认模式 ─── 食堂A/食堂B，厨房 + 面点房 + 联华超市
+多食堂模式 ── 食堂C/食堂D/食堂E，每个食堂独立的厨房和联华
+小所模式 ─── 食堂F/食堂G等 7 个卫星食堂
               ├── 逐所输入（分页切换）
               └── 矩阵输入（品名 × 所名 网格）
 ```

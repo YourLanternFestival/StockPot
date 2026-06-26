@@ -35,9 +35,9 @@ const SETTING_DEFAULTS = {
   enter_mode: 'next-row',
   photo_folder: '',
   inv_inbound_limit: '5', inv_outbound_limit: '10',
-  canteen_mode: '洋安', show_pastry: 'on', xiaosuo_mode: 'off',
-  current_canteen: '洋安',
-  small_canteens: '["寿昌","梅城","大同","大洋","洋溪","三都","乾潭"]',
+  canteen_mode: '食堂A', show_pastry: 'on', xiaosuo_mode: 'off',
+  current_canteen: '食堂A',
+  small_canteens: '["食堂F","食堂G","食堂H","食堂I","食堂J","食堂K","食堂L"]',
   small_export_style: 'matrix',
   small_display_style: 'groups',
   show_matrix_remarks: 'on',
@@ -94,7 +94,7 @@ async function initSettingsPage() {
     const rawMode = settings.canteen_mode || SETTING_DEFAULTS.canteen_mode;
     const xiaosuoMode = settings.xiaosuo_mode || SETTING_DEFAULTS.xiaosuo_mode;
     let modeValue = 'default';
-    if (xiaosuoMode === 'on' || ['下涯','制杆厂','白南山'].includes(rawMode)) {
+    if (xiaosuoMode === 'on' || ['食堂C','食堂D','食堂E'].includes(rawMode)) {
       modeValue = 'multi';
     }
     document.getElementById('setting-canteen-mode').value = modeValue;
@@ -127,7 +127,7 @@ async function saveSettings() {
     // 食堂模式：将新模式映射到旧的 canteen_mode / xiaosuo_mode / show_pastry
     const mode = document.getElementById('setting-canteen-mode').value;
     if (mode === 'multi') {
-      await window.api.setSetting('canteen_mode', '下涯');
+      await window.api.setSetting('canteen_mode', '食堂C');
       await window.api.setSetting('xiaosuo_mode', 'on');
       await window.api.setSetting('show_pastry', 'off');
     } else if (mode === 'small') {
@@ -173,7 +173,7 @@ async function loadAppSettings() {
       canteen_mode: g('canteen_mode'),
       show_pastry: g('show_pastry'),
       xiaosuo_mode: g('xiaosuo_mode'),
-      current_canteen: g('current_canteen') || g('canteen_mode') || '洋安',
+      current_canteen: g('current_canteen') || g('canteen_mode') || '食堂A',
       small_canteens: JSON.parse(g('small_canteens')),
       small_export_style: g('small_export_style'),
       small_display_style: g('small_display_style'),
@@ -342,7 +342,7 @@ function syncDiscountToInquiry() {
 // ===== 小所配置 =====
 function renderSmallCanteenList(jsonStr) {
   let canteens;
-  try { canteens = JSON.parse(jsonStr); } catch { canteens = ['寿昌','梅城','大同','大洋','洋溪','三都','乾潭']; }
+  try { canteens = JSON.parse(jsonStr); } catch { canteens = ['食堂F','食堂G','食堂H','食堂I','食堂J','食堂K','食堂L']; }
   const container = document.getElementById('small-canteen-list');
   if (!container) return;
   container.innerHTML = canteens.map((name, idx) => `

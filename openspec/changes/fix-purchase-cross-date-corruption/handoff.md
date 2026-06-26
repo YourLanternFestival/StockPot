@@ -14,7 +14,7 @@
 - **Task 14** `test_emptyDateGroup_notCollected`：空 date-group → sourceDates 为空 → 不触发 DELETE → 所有数据保留
 - **Task 15** `test_saveLianhuaDomData_noDateGroup`：无 date-group → 提前返回 → 跨食堂联华数据全部保留
 - **Task 16** `test_saveMatrixData_crossDate`：矩阵保存 06-01 → 再保存 06-02 → 06-01 数据保留
-- **Task 17** `test_recall_deleteSingle_export`：端到端场景 — 8条种子数据，删1条后导出 → 同 source 其他日期保留 + 其他 source（白南山）完全不受影响
+- **Task 17** `test_recall_deleteSingle_export`：端到端场景 — 8条种子数据，删1条后导出 → 同 source 其他日期保留 + 其他 source（食堂E）完全不受影响
 - **Task 18** `test_clearDOM_hasPurchasePageData_false`：DOM 清空 → sourceDates=[] → 提前返回 → DB 不变
 
 ### 测试结果
@@ -39,7 +39,7 @@ Total:                  138/138 PASS ✓
 ### Q1: 调取后删除单条→导出，是否造成别处食堂数据丢失？
 **答：不会。** 三层保护：
 1. saveBatch 按 (source, date) 清除，只管 DOM 中出现的 source+date
-2. 未在 DOM 中的 source（如白南山-厨房）不会被 sourceDates 收集 → 完全不碰
+2. 未在 DOM 中的 source（如食堂E-厨房）不会被 sourceDates 收集 → 完全不碰
 3. 空 date-group（删光所有行后）不会被收集到 sourceDates → 不触发 DELETE
 
 由 test_recall_deleteSingle_export（测试 17）覆盖验证。

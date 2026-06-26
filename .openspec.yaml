@@ -10,6 +10,6 @@ paths:
   archive: openspec/changes/archive
 
 context: |
-  洋安出入库管理系统 — Electron + sql.js 桌面应用，管理食堂物资的入库/出库、采购单、询价和台账。
+  食堂出入库管理系统 — Electron + sql.js 桌面应用，管理食堂物资的入库/出库、采购单、询价和台账。
   技术栈: Electron v42, sql.js (SQLite WASM), 原生 JS (无框架), Chart.js, ExcelJS, xlsx。
   详细架构见 openspec/specs/core/spec.md。

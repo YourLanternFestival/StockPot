@@ -28,7 +28,7 @@
     "jszip": "^3.10.1"
   },
   "build": {
-    "appId": "com.yang-an.inventory",
+    "appId": "com.canteen.inventory",
     "productName": "食堂物资管理",
     "win": {
       "target": [
