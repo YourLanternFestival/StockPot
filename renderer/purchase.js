@@ -419,6 +419,8 @@ function selectMatrixAutocompleteItem(input, item) {
   const unitInput = tr.querySelector('[data-field="unit"]');
   if (specInput) specInput.value = item.dataset.spec || '';
   if (unitInput) unitInput.value = item.dataset.unit || '';
+  // 标记已通过下拉选中，防止 blur handler 用库里的第一条覆盖（spec 为空时尤其重要）
+  tr.dataset.matrixSelected = '1';
   hideAutocomplete();
   if (APP_SETTINGS.auto_focus_qty !== 'off') {
     const firstQty = tr.querySelector('.matrix-cell-qty');
@@ -432,8 +434,8 @@ async function handleMatrixProductBlur(input) {
   const tr = input.closest('tr');
   const keyword = input.value.trim();
   if (!keyword) return;
-  const existingSpec = tr.querySelector('[data-field="spec"]')?.value;
-  if (existingSpec) return;
+  // 已通过下拉选中过 → 不覆盖，即使 spec 为空也是用户主动选的
+  if (tr.dataset.matrixSelected === '1') return;
   try {
     let currentMonth = document.getElementById('inquiry-month')?.value;
     if (!currentMonth) {
@@ -520,30 +522,32 @@ async function loadAllSmallMatrixData(canteens, area) {
         if (order.receive_date < today) continue;
         const name = order.product_name;
         if (!name) continue;
-        if (!allData[name]) {
-          allData[name] = { spec: order.spec || '', unit: order.unit || '', remark: order.remark || '', quantities: {} };
+        // 使用 name + spec 作为复合键，避免同名不同规格的产品合并到一行
+        const key = name + (order.spec ? '|||' + order.spec : '');
+        if (!allData[key]) {
+          allData[key] = { name, spec: order.spec || '', unit: order.unit || '', remark: order.remark || '', quantities: {} };
         }
-        allData[name].quantities[canteen] = order.quantity || '';
+        allData[key].quantities[canteen] = order.quantity || '';
       }
     }
   }
 
-  const productNames = Object.keys(allData);
-  renderSmallMatrix(area, canteens, productNames, allData);
+  const keys = Object.keys(allData);
+  renderSmallMatrix(area, canteens, keys, allData);
 }
 
-function renderSmallMatrix(area, canteens, productNames, allData) {
+function renderSmallMatrix(area, canteens, keys, allData) {
   const hasRemarks = APP_SETTINGS.show_matrix_remarks !== 'off';
   const tbody = document.createElement('tbody');
   tbody.id = 'matrix-tbody';
 
-  productNames.forEach((name, idx) => {
-    const d = allData[name];
+  keys.forEach((key, idx) => {
+    const d = allData[key];
     const tr = document.createElement('tr');
     let html = `
       <td>${idx + 1}</td>
       <td style="position:relative;">
-        <input type="text" class="cell-input cell-editable" value="${escHtml(name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
+        <input type="text" class="cell-input cell-editable" value="${escHtml(d.name)}" data-field="product_name" autocomplete="off" placeholder="输入品名...">
         <div class="autocomplete-dropdown" style="display:none;"></div>
       </td>
       <td><input type="text" class="cell-input cell-readonly" value="${escHtml(d.spec)}" data-field="spec" readonly tabindex="-1"></td>
@@ -562,7 +566,7 @@ function renderSmallMatrix(area, canteens, productNames, allData) {
     bindMatrixRowEvents(tr, tbody);
   });
 
-  if (productNames.length === 0) {
+  if (keys.length === 0) {
     appendMatrixRow(tbody, 0);
   }
 

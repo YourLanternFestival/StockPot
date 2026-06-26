@@ -86,6 +86,7 @@ function bindInboundRowEvents(tr) {
     onSelect: selectInboundProduct,
     onAutocomplete: handleInboundProductAutocomplete,
     onProductSelect: selectInboundProduct,
+    onProductBlur: handleStockProductBlur,
     onAppendRow: appendInboundRow,
   });
   // production_date change 触发到期日计算
@@ -183,6 +184,8 @@ async function submitInboundBatch() {
   const rows = tbody.querySelectorAll('tr');
   const records = [];
 
+  await ensureProducts();
+
   for (const tr of rows) {
     const name = tr.querySelector('[data-field="product_name"]').value.trim();
     const qty = parseFloat(tr.querySelector('[data-field="quantity"]').value);
@@ -254,7 +257,7 @@ async function loadRecentInbound() {
 
 function editInbound(r) {
   // 查找产品的保质期数据，用于编辑时自动重算到期日
-  const product = PRODUCTS.find(p => p.name === r.product_name);
+  const product = PRODUCTS.find(p => p.id === r.product_id);
   const shelfMonths = product ? (product.shelf_months || 0) : 0;
   const shelfDays = product ? (product.shelf_days || 0) : 0;
 

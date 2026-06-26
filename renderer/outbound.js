@@ -93,6 +93,7 @@ function bindOutboundRowEvents(tr) {
     onSelect: selectOutboundProduct,
     onAutocomplete: handleOutboundProductAutocomplete,
     onProductSelect: selectOutboundProduct,
+    onProductBlur: handleStockProductBlur,
     onAppendRow: appendOutboundRow,
   });
 }
@@ -158,6 +159,8 @@ async function submitOutboundBatch() {
   const rows = tbody.querySelectorAll('tr');
   const records = [];
   const inventory = await window.api.getInventory();
+
+  await ensureProducts();
 
   for (const tr of rows) {
     const name = tr.querySelector('[data-field="product_name"]').value.trim();

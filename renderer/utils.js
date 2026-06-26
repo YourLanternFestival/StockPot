@@ -127,11 +127,41 @@ function handleAutocompleteKeydown(e, input, selectFn) {
   return false;
 }
 
+// 入出库共用：品名失焦时自动匹配 PRODUCTS 填充规格/单位/库存
+async function handleStockProductBlur(input) {
+  if (!input.isConnected) return;
+  const tr = input.closest('tr');
+  const keyword = input.value.trim();
+  if (!keyword) return;
+  const existingSpec = tr && tr.querySelector('[data-field="spec"]')?.value;
+  if (existingSpec) return;
+
+  await ensureProducts();
+  const product = PRODUCTS.find(p => p.name === keyword);
+  if (product) {
+    if (tr.querySelector('[data-field="spec"]')) tr.querySelector('[data-field="spec"]').value = product.spec || '';
+    if (tr.querySelector('[data-field="unit"]')) tr.querySelector('[data-field="unit"]').value = product.unit || '';
+    tr.dataset.productId = product.id;
+    // 出库特有：回填当前库存，让用户一眼看到是否够出
+    const stockInput = tr.querySelector('[data-field="stock"]');
+    if (stockInput) {
+      try {
+        const inventory = await window.api.getInventory();
+        const inv = inventory.find(x => x.id === product.id);
+        stockInput.value = inv ? inv.stock : 0;
+      } catch (e) { /* ignore */ }
+    }
+  }
+}
+
 // 绑定自动补全的 input/focus/blur 事件
-function bindAutocompleteEvents(input, searchFn, selectFn, onBlur) {
+function bindAutocompleteEvents(input, searchFn, selectFn, onBlur, shouldShowOnFocus) {
   input._autocompleteSelectFn = selectFn;
   input.addEventListener('input', () => searchFn(input));
-  input.addEventListener('focus', () => searchFn(input));
+  input.addEventListener('focus', () => {
+    if (shouldShowOnFocus && !shouldShowOnFocus(input)) return;
+    searchFn(input);
+  });
   input.addEventListener('blur', () => setTimeout(() => {
     hideAutocomplete();
     if (onBlur) onBlur(input);
@@ -263,10 +293,21 @@ function handleCellKeydown(e, input, tbody, onAppendRow) {
 }
 
 function bindTableRowEvents(tr, tbody, options = {}) {
-  const { onSelect, onAutocomplete, onProductSelect, onProductBlur, onQtyChange, onFieldChange, onAppendRow } = options;
+  const { onSelect, onAutocomplete, onProductSelect, onProductBlur, onQtyChange, onFieldChange, onAppendRow, shouldShowAutocompleteOnFocus } = options;
   tr.querySelectorAll('.cell-editable').forEach(input => {
     input.addEventListener('keydown', (e) => {
-      if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, onSelect)) return;
+      if (input.dataset.field === 'product_name' && handleAutocompleteKeydown(e, input, onSelect)) {
+        // Enter 键在下拉选中时被消费，不会触发 handleCellKeydown 增行。
+        // 若当前是最后一行，自动追加新行，避免用户误以为已在下一行而漏填数据。
+        if (e.key === 'Enter' && onAppendRow) {
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          const rowIdx = rows.indexOf(input.closest('tr'));
+          if (rowIdx === rows.length - 1) {
+            onAppendRow(tbody, rows.length);
+          }
+        }
+        return;
+      }
       handleCellKeydown(e, input, tbody, onAppendRow);
     });
 
@@ -329,7 +370,7 @@ function bindTableRowEvents(tr, tbody, options = {}) {
     });
 
     if (input.dataset.field === 'product_name' && onAutocomplete && onProductSelect) {
-      bindAutocompleteEvents(input, onAutocomplete, onProductSelect, onProductBlur);
+      bindAutocompleteEvents(input, onAutocomplete, onProductSelect, onProductBlur, shouldShowAutocompleteOnFocus);
     }
 
     if (onFieldChange) input.addEventListener('change', () => onFieldChange(tr));
