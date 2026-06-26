@@ -56,7 +56,7 @@ function seedAllTables(db) {
   db.run(`INSERT OR IGNORE INTO recipients (name) VALUES ('厨房')`);
   // purchase_orders
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount, remark, sort_order, created_at)
-    VALUES ('洋安食堂', '2025-06-01', '测试商品', '大', 3.5, '5', '斤', 17.5, '', 0, '2025-06-01')`);
+    VALUES ('食堂A食堂', '2025-06-01', '测试商品', '大', 3.5, '5', '斤', 17.5, '', 0, '2025-06-01')`);
   // inquiry_items
   db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec, remark)
     VALUES ('2025-06', '蔬菜', '测试商品', 3.5, '斤', '大', '')`);
@@ -189,8 +189,8 @@ async function test_clearPurchaseOrders_guard(SQL) {
     createTables(db);
     seedAllTables(db);
 
-    // Clear purchase orders for 洋安食堂
-    db.run('DELETE FROM purchase_orders WHERE source = ?', ['洋安食堂']);
+    // Clear purchase orders for 食堂A食堂
+    db.run('DELETE FROM purchase_orders WHERE source = ?', ['食堂A食堂']);
 
     assert.strictEqual(countTable(db, 'purchase_orders'), 0, 'purchase_orders cleared');
     // Other tables still have their data
@@ -361,11 +361,11 @@ async function test_savePurchaseOrdersBatch(SQL) {
     const db = new SQL.Database();
     createTables(db);
 
-    // Pre-seed with old data for source 洋安食堂
+    // Pre-seed with old data for source 食堂A食堂
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('洋安食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
+      VALUES ('食堂A食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('洋安食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
+      VALUES ('食堂A食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
     // Also insert data for another source that should survive
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
       VALUES ('供应商B', '2025-06-01', '独立数据', '', 1.0, '1', '斤', 1.0)`);
@@ -374,13 +374,13 @@ async function test_savePurchaseOrdersBatch(SQL) {
 
     // Simulate savePurchaseOrdersBatch: clear source + insert new in one transaction
     const newOrders = [
-      ['洋安食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0],
-      ['洋安食堂', '2025-06-01', '新萝卜', '', 3.5, '5', '斤', 17.5],
-      ['洋安食堂', '2025-06-01', '新土豆', '', 1.8, '20', '斤', 36.0],
+      ['食堂A食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0],
+      ['食堂A食堂', '2025-06-01', '新萝卜', '', 3.5, '5', '斤', 17.5],
+      ['食堂A食堂', '2025-06-01', '新土豆', '', 1.8, '20', '斤', 36.0],
     ];
 
     db.run('BEGIN TRANSACTION');
-    db.run('DELETE FROM purchase_orders WHERE source = ?', ['洋安食堂']);
+    db.run('DELETE FROM purchase_orders WHERE source = ?', ['食堂A食堂']);
 
     const insertStmt = db.prepare(
       `INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
@@ -396,7 +396,7 @@ async function test_savePurchaseOrdersBatch(SQL) {
     assert.strictEqual(countTable(db, 'purchase_orders'), 4, 'batch: 3 new + 1 other source');
 
     const yangAn = db.exec(
-      "SELECT product_name FROM purchase_orders WHERE source = '洋安食堂' ORDER BY id"
+      "SELECT product_name FROM purchase_orders WHERE source = '食堂A食堂' ORDER BY id"
     );
     const names = yangAn[0].values.map(r => r[0]);
     assert.deepStrictEqual(names, ['新白菜', '新萝卜', '新土豆'], 'old replaced with new');
@@ -418,25 +418,25 @@ async function test_savePurchaseOrdersBatch(SQL) {
 
     // Pre-seed with old data
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('洋安食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
+      VALUES ('食堂A食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('洋安食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
+      VALUES ('食堂A食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
 
     assert.strictEqual(countTable(db, 'purchase_orders'), 2, 'seed: 2 old orders');
 
     const originalRows = db.exec(
-      "SELECT product_name FROM purchase_orders WHERE source = '洋安食堂' ORDER BY id"
+      "SELECT product_name FROM purchase_orders WHERE source = '食堂A食堂' ORDER BY id"
     );
 
     // Simulate a batch save that fails mid-way
     let failureCaught = false;
     try {
       db.run('BEGIN TRANSACTION');
-      db.run('DELETE FROM purchase_orders WHERE source = ?', ['洋安食堂']);
+      db.run('DELETE FROM purchase_orders WHERE source = ?', ['食堂A食堂']);
 
       // Insert first new order successfully
       db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-        VALUES ('洋安食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0)`);
+        VALUES ('食堂A食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0)`);
 
       // Simulate a failure on the second insert (e.g., constraint violation or app error)
       throw new Error('模拟批量插入中途失败');
@@ -454,7 +454,7 @@ async function test_savePurchaseOrdersBatch(SQL) {
     );
 
     const preservedRows = db.exec(
-      "SELECT product_name FROM purchase_orders WHERE source = '洋安食堂' ORDER BY id"
+      "SELECT product_name FROM purchase_orders WHERE source = '食堂A食堂' ORDER BY id"
     );
     assert.deepStrictEqual(
       preservedRows[0].values.map(r => r[0]),

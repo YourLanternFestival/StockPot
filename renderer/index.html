@@ -545,14 +545,14 @@
  <div class="purchase-container" id="purchase-container">
  <!-- 默认模式：食堂切换 -->
  <div id="canteen-switch" class="tab-bar" style="display:none;">
- <button class="tab-btn canteen-tab active" data-canteen="洋安" onclick="switchCanteen('洋安')">洋安</button>
- <button class="tab-btn canteen-tab" data-canteen="新安" onclick="switchCanteen('新安')">新安</button>
+ <button class="tab-btn canteen-tab active" data-canteen="食堂A" onclick="switchCanteen('食堂A')">食堂A</button>
+ <button class="tab-btn canteen-tab" data-canteen="食堂B" onclick="switchCanteen('食堂B')">食堂B</button>
  </div>
  <!-- 多食堂模式 Tab (hidden by default) -->
  <div id="multi-canteen-tabs" class="tab-bar" style="display:none;">
- <button class="tab-btn active" data-canteen="下涯" onclick="switchMultiCanteenTab('下涯')">下涯</button>
- <button class="tab-btn" data-canteen="制杆厂" onclick="switchMultiCanteenTab('制杆厂')">制杆厂</button>
- <button class="tab-btn" data-canteen="白南山" onclick="switchMultiCanteenTab('白南山')">白南山</button>
+ <button class="tab-btn active" data-canteen="食堂C" onclick="switchMultiCanteenTab('食堂C')">食堂C</button>
+ <button class="tab-btn" data-canteen="食堂D" onclick="switchMultiCanteenTab('食堂D')">食堂D</button>
+ <button class="tab-btn" data-canteen="食堂E" onclick="switchMultiCanteenTab('食堂E')">食堂E</button>
  </div>
 
  <!-- 多食堂模式: 联华+厨房 (JS动态创建，按Tab显隐) -->
@@ -576,7 +576,7 @@
  <!-- 小所食堂模式: 矩阵区域 (样式2) -->
  <div id="small-matrix-area" style="display:none;"></div>
 
- <!-- 洋安/新安模式: 联华（基础输入模板，数据源为 lianhua_items） -->
+ <!-- 食堂A/食堂B模式: 联华（基础输入模板，数据源为 lianhua_items） -->
  <div class="purchase-group" id="purchase-lianhua" data-source="联华">
  <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠联华超市采购组">
  <span class="group-toggle">▶</span>
@@ -588,7 +588,7 @@
  <div class="group-content" style="display:none;"></div>
  </div>
 
- <!-- 洋安/新安模式: 厨房 -->
+ <!-- 食堂A/食堂B模式: 厨房 -->
  <div class="purchase-group" id="purchase-kitchen" data-source="">
  <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠厨房采购组">
  <span class="group-toggle">▶</span>
@@ -600,7 +600,7 @@
  <div class="group-content" style="display:none;"></div>
  </div>
 
- <!-- 洋安/新安模式: 面点房 -->
+ <!-- 食堂A/食堂B模式: 面点房 -->
  <div class="purchase-group" id="purchase-pastry" data-source="">
  <div class="group-header" onclick="toggleGroup(this)" data-tooltip="点击展开/折叠面点房采购组">
  <span class="group-toggle">▶</span>
@@ -882,8 +882,8 @@
  <div class="form-group">
  <label>运行模式</label>
  <select class="form-control" id="setting-canteen-mode" onchange="toggleSmallCanteenConfig()" data-tooltip="切换采购单的食堂模式，影响采购单页的布局和功能">
- <option value="default">默认模式（洋安/新安，采购单页可切换）</option>
- <option value="multi">多食堂分页（下涯/制杆厂/白南山）</option>
+ <option value="default">默认模式（食堂A/食堂B，采购单页可切换）</option>
+ <option value="multi">多食堂分页（食堂C/食堂D/食堂E）</option>
  <option value="small">小所食堂</option>
  </select>
  </div>
@@ -1268,9 +1268,9 @@
  <h4>食堂模式</h4>
  <p>系统支持三种食堂模式（在设置 → 业务 → 食堂模式中切换）：</p>
  <ul>
- <li><strong>默认模式</strong>：适用于洋安和新安食堂，每个食堂有厨房、面点房和联华超市区域</li>
- <li><strong>多食堂模式</strong>：适用于下涯、制杆厂、白南山食堂，通过标签页切换</li>
- <li><strong>小所模式</strong>：适用于寿昌、梅城等卫星食堂，支持<strong>逐所输入</strong>和<strong>矩阵输入</strong>两种样式</li>
+<li><strong>默认模式</strong>：适用于两个主食堂（食堂A/食堂B），每个食堂有厨房、面点房和联华超市区域</li>
+<li><strong>多食堂模式</strong>：三个独立标签页（食堂C/食堂D/食堂E）</li>
+<li><strong>小所模式</strong>：多个卫星食堂（食堂F1~F7），支持<strong>逐所输入</strong>和<strong>矩阵输入</strong>两种样式</li>
  </ul>
 
  <h4>录入采购数据</h4>

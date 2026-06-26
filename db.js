@@ -69,7 +69,7 @@ async function init() {
 
     CREATE TABLE IF NOT EXISTS purchase_orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      source TEXT DEFAULT '洋安食堂',
+      source TEXT DEFAULT '食堂A食堂',
       receive_date TEXT,
       product_name TEXT NOT NULL,
       spec TEXT DEFAULT '',
@@ -707,7 +707,7 @@ function getPurchaseOrders(source) {
 function addPurchaseOrder(data) {
   run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount, remark, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [data.source || '洋安食堂', data.receive_date || '', data.product_name, data.spec || '',
+    [data.source || '食堂A食堂', data.receive_date || '', data.product_name, data.spec || '',
      data.unit_price || 0, data.quantity || '', data.unit || '', data.amount || 0, data.remark || '', data.sort_order || 0]);
   if (!inTransaction) save();
 }

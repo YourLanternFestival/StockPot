@@ -60,7 +60,7 @@
 
 ## 10. 联华客户名动态化
 
-**方案**: 从 `APP_SETTINGS.current_canteen` 获取当前食堂名，替换硬编码的 `'洋安'`。
+**方案**: 从 `APP_SETTINGS.current_canteen` 获取当前食堂名，替换硬编码的 `'食堂A'`。
 
 **文件**: `renderer/lianhua.js:713`
 

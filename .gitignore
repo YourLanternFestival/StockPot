@@ -7,3 +7,9 @@ package-lock.json
 Thumbs.db
 *.xlsx
 *.xls
+.claude/
+.workbuddy/
+__pycache__/
+.env
+logs/
+.codebuddy/

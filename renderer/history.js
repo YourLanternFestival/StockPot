@@ -3,7 +3,7 @@ let historySelectedDate = '';
 let historyData = [];
 
 // 多食堂模式 canteen 列表（与 purchase.js 保持一致）
-const MULTI_CANTEEN_NAMES = ['下涯', '制杆厂', '白南山'];
+const MULTI_CANTEEN_NAMES = ['食堂C', '食堂D', '食堂E'];
 
 // 获取当前模式下应显示/排除的 source 列表
 function getModeSourceFilter() {
@@ -267,7 +267,7 @@ function renderHistoryTable(title, items, subtotal, dec) {
 // 多食堂模式历史：按所分割（复用小所模式的分割线布局）
 function renderMultiCanteenHistory(orders, date) {
   const dec = APP_SETTINGS.price_decimals || 2;
-  const canteenNames = ['下涯', '制杆厂', '白南山'];
+  const canteenNames = ['食堂C', '食堂D', '食堂E'];
 
   const groups = {};
   orders.forEach(order => {
@@ -335,7 +335,7 @@ function renderDefaultHistory(orders) {
     groups[source].push(order);
   });
 
-  const orderedSources = ['联华', '洋安食堂厨房', '洋安面点房', '新安食堂厨房', '新安面点房', '洋安厨房', '新安厨房'];
+  const orderedSources = ['联华', '食堂A食堂厨房', '食堂A面点房', '食堂B食堂厨房', '食堂B面点房', '食堂A厨房', '食堂B厨房'];
   Object.keys(groups).forEach(source => {
     if (!orderedSources.includes(source)) orderedSources.push(source);
   });

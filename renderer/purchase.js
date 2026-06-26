@@ -32,12 +32,12 @@ async function initPurchasePage() {
 
 // ===== Canteen Mode =====
 function getKitchenSource() {
-  const canteen = APP_SETTINGS.current_canteen || '洋安';
+  const canteen = APP_SETTINGS.current_canteen || '食堂A';
   return `${canteen}食堂厨房`;
 }
 
 function getPastrySource() {
-  const canteen = APP_SETTINGS.current_canteen || '洋安';
+  const canteen = APP_SETTINGS.current_canteen || '食堂A';
   return `${canteen}面点房`;
 }
 
@@ -143,7 +143,7 @@ async function switchCanteen(canteen) {
 }
 
 function initNormalCanteenMode() {
-  const canteen = APP_SETTINGS.current_canteen || '洋安';
+  const canteen = APP_SETTINGS.current_canteen || '食堂A';
   const kitchenGroup = document.getElementById('purchase-kitchen');
   const kitchenTitle = document.getElementById('kitchen-title');
   const kitchenSource = getKitchenSource();
@@ -167,9 +167,9 @@ function initNormalCanteenMode() {
   );
 }
 
-// ===== 下涯/制杆厂/白南山 模式 =====
-const MULTI_CANTEENS = ['下涯', '制杆厂', '白南山'];
-let currentMultiCanteen = '下涯';
+// ===== 食堂C/食堂D/食堂E 模式 =====
+const MULTI_CANTEENS = ['食堂C', '食堂D', '食堂E'];
+let currentMultiCanteen = '食堂C';
 let multiModeInitialized = false;
 
 function initMultiCanteenMode() {
@@ -237,7 +237,7 @@ function switchMultiCanteenTab(canteen) {
 let smallModeInitialized = false;
 
 function getSmallCanteens() {
-  return APP_SETTINGS.small_canteens || ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'];
+  return APP_SETTINGS.small_canteens || ['食堂F1', '食堂F2', '食堂F3', '食堂F4', '食堂F5', '食堂F6', '食堂F7'];
 }
 
 // 将小所按两个一组分页：12, 34, 56, 7
@@ -1767,7 +1767,7 @@ async function exportAllPurchaseOrders() {
 
     const now = new Date();
     const month = `${now.getMonth() + 1}月`;
-    const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.current_canteen || '洋安'));
+    const modeLabel = mode === 'small' ? '卫星食堂' : (mode === 'on' ? '食堂C、食堂D、食堂E' : (APP_SETTINGS.current_canteen || '食堂A'));
     // DEBUG: 导出数据概览
     console.log('[EXPORT] sheets:', sheets.length, 'mode:', mode);
     sheets.forEach(s => {
