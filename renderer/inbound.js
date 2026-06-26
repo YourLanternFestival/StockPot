@@ -1,3 +1,20 @@
+// ===== Export Inbound =====
+async function exportInbound() {
+  try {
+    const records = await window.api.getInbound({});
+    if (records.length === 0) { showToast('无入库数据可导出', 'error'); return; }
+    const header = ['日期', '材料', '数量', '单位', '生产日期', '到期日', '备注'];
+    const wsData = [header];
+    records.forEach(r => wsData.push([formatDate(r.date), r.product_name, r.quantity, r.unit, formatDate(r.production_date), formatDate(r.expiry_date), r.remark || '']));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), '入库记录');
+    const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+    const result = await window.api.exportXlsx(Array.from(new Uint8Array(wbout)), '入库记录.xlsx');
+    if (!result.success) { if (result.error === '已取消') return; throw new Error(result.error); }
+    showToast('导出成功！');
+  } catch (err) { showToast('导出失败: ' + err.message, 'error'); }
+}
+
 // ===== Inbound Table =====
 let inboundInitialized = false;
 
@@ -229,27 +246,18 @@ async function submitInboundBatch() {
 }
 
 async function loadRecentInbound() {
-  const card = document.getElementById('recent-inbound')?.closest('.card');
+  const container = document.getElementById('inbound-history-tree');
+  const card = container?.closest('.card');
   if (APP_SETTINGS.inbound_history === 'off') {
     if (card) card.style.display = 'none';
     return;
   }
   if (card) card.style.display = '';
+  if (!container) return;
   try {
     const records = await window.api.getInbound({});
-    const tbody = document.getElementById('recent-inbound');
-    const days = APP_SETTINGS.inbound_history_days;
-    tbody.innerHTML = records.slice(0, days).map(r => `
-      <tr>
-        <td>${formatDate(r.date)}</td><td>${r.product_name}</td>
-        <td>${r.quantity}</td><td>${r.unit}</td>
-        <td>${formatDate(r.production_date)}</td><td>${formatDate(r.expiry_date)}</td>
-        <td>
-          <button class="btn btn-sm" onclick='editInbound(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
-          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInbound(${r.id})">删除</button>
-        </td>
-      </tr>
-    `).join('');
+    const tree = groupRecordsByDate(records);
+    container.innerHTML = renderHistoryTree(tree, 'inbound');
   } catch (err) {
     console.error('Load recent inbound error:', err);
   }

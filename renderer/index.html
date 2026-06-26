@@ -289,6 +289,7 @@
  <div class="page-header">
  <h2>入库登记</h2>
  <div class="header-actions">
+ <button class="btn" onclick="exportInbound()" data-tooltip="将全部入库记录导出为 Excel 文件">导出 xlsx</button>
  <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录">批量提交</button>
  </div>
  </div>
@@ -320,15 +321,19 @@
  </div>
  <div class="card" style="margin-top: 20px;">
  <div class="card-header">
- <h3>最近入库记录</h3>
+ <h3>入库历史</h3>
+ <div class="tree-toolbar">
+ <button class="btn btn-sm" onclick="toggleSelectionMode(this)">选择</button>
+ <span class="batch-actions">
+ <button class="btn btn-sm" onclick="editCheckedHistory(document.getElementById('inbound-history-tree'))">批量修改</button>
+ <button class="btn btn-sm" onclick="deleteCheckedHistory(document.getElementById('inbound-history-tree'))">删除选中</button>
+ <button class="btn btn-sm" onclick="moveCheckedHistoryDate(document.getElementById('inbound-history-tree'))">移至日期</button>
+ </span>
+ <button class="btn btn-sm" onclick="expandAllTree(this)">全部展开</button>
+ <button class="btn btn-sm" onclick="collapseAllTree(this)">全部折叠</button>
  </div>
- <table class="table">
- <thead>
- <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>生产日期</th><th>到期日</th><th>操作</th></tr>
- </thead>
- <tbody id="recent-inbound">
- </tbody>
- </table>
+ </div>
+ <div class="history-tree" id="inbound-history-tree"></div>
  </div>
  </div>
 
@@ -338,6 +343,7 @@
  <h2>出库登记</h2>
  <div class="header-actions">
  <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>管理领取人</button>
+ <button class="btn" onclick="exportOutbound()" data-tooltip="将全部出库记录导出为 Excel 文件">导出 xlsx</button>
  <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录">批量提交</button>
  </div>
  </div>
@@ -368,15 +374,19 @@
  </div>
  <div class="card" style="margin-top: 20px;">
  <div class="card-header">
- <h3>最近出库记录</h3>
+ <h3>出库历史</h3>
+ <div class="tree-toolbar">
+ <button class="btn btn-sm" onclick="toggleSelectionMode(this)">选择</button>
+ <span class="batch-actions">
+ <button class="btn btn-sm" onclick="editCheckedHistory(document.getElementById('outbound-history-tree'))">批量修改</button>
+ <button class="btn btn-sm" onclick="deleteCheckedHistory(document.getElementById('outbound-history-tree'))">删除选中</button>
+ <button class="btn btn-sm" onclick="moveCheckedHistoryDate(document.getElementById('outbound-history-tree'))">移至日期</button>
+ </span>
+ <button class="btn btn-sm" onclick="expandAllTree(this)">全部展开</button>
+ <button class="btn btn-sm" onclick="collapseAllTree(this)">全部折叠</button>
  </div>
- <table class="table">
- <thead>
- <tr><th>时间</th><th>材料</th><th>数量</th><th>单位</th><th>领取人</th><th>操作</th></tr>
- </thead>
- <tbody id="recent-outbound">
- </tbody>
- </table>
+ </div>
+ <div class="history-tree" id="outbound-history-tree"></div>
  </div>
  </div>
 
@@ -789,9 +799,6 @@
  <option value="off">关闭</option>
  </select>
  </div>
- <div class="form-group">
- <label>入库历史展示天数</label>
- <input type="number" class="form-control" id="setting-inbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
  </div>
  <div class="form-group">
  <label>出库页面展示历史</label>
@@ -800,9 +807,6 @@
  <option value="off">关闭</option>
  </select>
  </div>
- <div class="form-group">
- <label>出库历史展示天数</label>
- <input type="number" class="form-control" id="setting-outbound-history-days" min="1" max="365" value="20" data-tooltip="底部历史记录显示最近多少天的数据">
  </div>
  </div>
  </div>

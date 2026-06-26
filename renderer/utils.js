@@ -507,6 +507,306 @@ function fillDownColumn(input, tbodyId) {
   }
 }
 
+// ===== History Tree =====
+// 将记录按日期分组为 年→月→日 三级嵌套 Map
+function groupRecordsByDate(records) {
+  const tree = new Map(); // year -> Map(month -> Map(day -> records[]))
+  for (const r of records) {
+    const d = parseLocalDate(r.date);
+    if (!d) continue;
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    if (!tree.has(year)) tree.set(year, new Map());
+    const yearMap = tree.get(year);
+    if (!yearMap.has(month)) yearMap.set(month, new Map());
+    const monthMap = yearMap.get(month);
+    if (!monthMap.has(day)) monthMap.set(day, []);
+    monthMap.get(day).push(r);
+  }
+  return tree;
+}
+
+// 统计树节点内记录总数
+function countTreeRecords(node) {
+  let count = 0;
+  for (const val of node.values()) {
+    if (Array.isArray(val)) { count += val.length; }
+    else { count += countTreeRecords(val); }
+  }
+  return count;
+}
+
+// 渲染单条记录行（inbound 列）
+function renderInboundRecordRow(r) {
+  return `<tr>
+    <td class="tree-cb-cell"><input type="checkbox" class="tree-row-cb" data-id="${r.id}" data-type="inbound" data-date="${formatDate(r.date)}" data-qty="${r.quantity}" data-remark="${(r.remark || '').replace(/"/g, '&quot;')}" data-prod="${formatDate(r.production_date)}" data-expiry="${formatDate(r.expiry_date)}"></td>
+    <td>${r.product_name}</td>
+    <td>${r.quantity}</td><td>${r.unit}</td>
+    <td>${formatDate(r.production_date)}</td><td>${formatDate(r.expiry_date)}</td>
+    <td>${r.remark || ''}</td>
+    <td>
+      <button class="btn btn-sm" onclick='editInbound(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
+      <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteInbound(${r.id})">删除</button>
+    </td>
+  </tr>`;
+}
+
+// 渲染单条记录行（outbound 列）
+function renderOutboundRecordRow(r) {
+  return `<tr>
+    <td class="tree-cb-cell"><input type="checkbox" class="tree-row-cb" data-id="${r.id}" data-type="outbound" data-date="${formatDate(r.date)}" data-qty="${r.quantity}" data-recipient="${(r.recipient || '').replace(/"/g, '&quot;')}"></td>
+    <td>${r.product_name}</td>
+    <td>${r.quantity}</td><td>${r.unit}</td>
+    <td>${r.recipient}</td>
+    <td>
+      <button class="btn btn-sm" onclick='editOutbound(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
+      <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteOutbound(${r.id})">删除</button>
+    </td>
+  </tr>`;
+}
+
+// 渲染折叠历史树 HTML（type: 'inbound' | 'outbound'）
+function renderHistoryTree(tree, type) {
+  if (tree.size === 0) return '<div class="tree-empty">暂无历史记录</div>';
+
+  const years = [...tree.keys()].sort((a, b) => b - a);
+  const rowFn = type === 'inbound' ? renderInboundRecordRow : renderOutboundRecordRow;
+  const tableHeaders = type === 'inbound'
+    ? '<tr><th class="tree-cb-cell"><input type="checkbox" class="tree-day-cb" onclick="toggleDayCheckboxes(this)" title="全选当日"></th><th>材料</th><th>数量</th><th>单位</th><th>生产日期</th><th>到期日</th><th>备注</th><th>操作</th></tr>'
+    : '<tr><th class="tree-cb-cell"><input type="checkbox" class="tree-day-cb" onclick="toggleDayCheckboxes(this)" title="全选当日"></th><th>材料</th><th>数量</th><th>单位</th><th>领取人</th><th>操作</th></tr>';
+
+  return years.map(year => {
+    const yearMap = tree.get(year);
+    const months = [...yearMap.keys()].sort((a, b) => b - a);
+    const yearCount = countTreeRecords(yearMap);
+    return `<div class="tree-year">
+      <div class="tree-year-header" onclick="toggleTreeNode(this)">
+        <span class="tree-caret">▼</span><span class="tree-label">${year}年</span><span class="tree-count">${yearCount}条</span>
+      </div>
+      <div class="tree-year-body">${months.map(month => {
+        const dayMap = yearMap.get(month);
+        const days = [...dayMap.keys()].sort((a, b) => b - a);
+        const monthCount = countTreeRecords(dayMap);
+        return `<div class="tree-month">
+          <div class="tree-month-header" onclick="toggleTreeNode(this)">
+            <span class="tree-caret">▼</span><span class="tree-label">${String(month).padStart(2, '0')}月</span><span class="tree-count">${monthCount}条</span>
+          </div>
+          <div class="tree-month-body">${days.map(day => {
+            const records = dayMap.get(day);
+            return `<div class="tree-day">
+              <div class="tree-day-header" onclick="toggleTreeNode(this)">
+                <span class="tree-caret">▶</span><span class="tree-label">${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}</span><span class="tree-count">${records.length}条</span>
+              </div>
+              <div class="tree-day-body" style="display:none;">
+                <table class="table tree-table"><thead>${tableHeaders}</thead><tbody>${records.map(rowFn).join('')}</tbody></table>
+              </div>
+            </div>`;
+          }).join('')}</div>
+        </div>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// 切换单个树节点折叠/展开
+function toggleTreeNode(header) {
+  const body = header.nextElementSibling;
+  const caret = header.querySelector('.tree-caret');
+  if (!body || !caret) return;
+  const isOpen = body.style.display !== 'none';
+  if (isOpen) {
+    body.style.display = 'none';
+    caret.textContent = '▶';
+  } else {
+    body.style.display = '';
+    caret.textContent = '▼';
+  }
+}
+
+// 全部展开/折叠树节点
+// @param {HTMLElement} btn - 触发按钮，向上找到 .card 或 .tree-container 作为作用域
+// @param {boolean} expand - true 展开，false 折叠
+function setAllTreeNodes(btn, expand) {
+  const container = btn.closest('.card') || btn.closest('.history-tree')?.parentElement;
+  if (!container) return;
+  const bodies = container.querySelectorAll('.tree-year-body, .tree-month-body, .tree-day-body');
+  const carets = container.querySelectorAll('.tree-year-header .tree-caret, .tree-month-header .tree-caret, .tree-day-header .tree-caret');
+  bodies.forEach(b => { b.style.display = expand ? '' : 'none'; });
+  carets.forEach(c => { c.textContent = expand ? '▼' : '▶'; });
+}
+
+function expandAllTree(btn) { setAllTreeNodes(btn, true); }
+function collapseAllTree(btn) { setAllTreeNodes(btn, false); }
+
+// 切换选择模式：显示/隐藏复选框和批量操作按钮
+function toggleSelectionMode(btn) {
+  const card = btn.closest('.card');
+  if (!card) return;
+  const active = card.classList.toggle('selection-mode');
+  btn.textContent = active ? '取消' : '选择';
+  if (!active) {
+    // 退出选择模式时清空所有勾选
+    card.querySelectorAll('.tree-row-cb').forEach(cb => { cb.checked = false; });
+    card.querySelectorAll('.tree-day-cb').forEach(cb => { cb.checked = false; });
+  }
+}
+
+// 日级全选：点击表头复选框切换当日所有行
+function toggleDayCheckboxes(cb) {
+  const table = cb.closest('table');
+  if (!table) return;
+  const checked = cb.checked;
+  table.querySelectorAll('tbody .tree-row-cb').forEach(rowCb => { rowCb.checked = checked; });
+}
+
+// 收集容器内所有勾选的记录 {ids, type}
+function getCheckedHistoryIds(container) {
+  const cbs = container.querySelectorAll('.tree-row-cb:checked');
+  const ids = [];
+  let type = null;
+  cbs.forEach(cb => {
+    ids.push(parseInt(cb.dataset.id));
+    if (!type) type = cb.dataset.type;
+  });
+  return { ids, type };
+}
+
+// 批量删除勾选记录
+async function deleteCheckedHistory(container) {
+  const { ids, type } = getCheckedHistoryIds(container);
+  if (ids.length === 0) { showToast('请先勾选要删除的记录', 'error'); return; }
+  if (!confirm(`确定删除选中的 ${ids.length} 条记录？此操作不可撤销。`)) return;
+  try {
+    for (const id of ids) {
+      if (type === 'inbound') await window.api.deleteInbound(id);
+      else await window.api.deleteOutbound(id);
+    }
+    showToast(`已删除 ${ids.length} 条`);
+    // 刷新对应历史
+    if (type === 'inbound') loadRecentInbound();
+    else loadRecentOutbound();
+  } catch (err) {
+    showToast('批量删除失败: ' + err.message, 'error');
+  }
+}
+
+// 批量移动勾选记录到指定日期
+async function moveCheckedHistoryDate(container) {
+  const { ids, type } = getCheckedHistoryIds(container);
+  if (ids.length === 0) { showToast('请先勾选要移动的记录', 'error'); return; }
+
+  openModal('移至日期', `
+    <div class="form-group">
+      <label>将 ${ids.length} 条记录移至</label>
+      <input type="date" class="form-control" id="move-target-date" value="${todayStr()}">
+    </div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doMoveCheckedHistoryDate()">确认移动</button>
+  `);
+
+  // 暂存到 window 供弹窗回调使用
+  window._moveCheckedData = { ids, type };
+}
+
+async function doMoveCheckedHistoryDate() {
+  const { ids, type } = window._moveCheckedData || {};
+  const newDate = document.getElementById('move-target-date')?.value;
+  if (!ids || !newDate) { closeModal(); return; }
+  try {
+    // 从勾选的复选框读取原字段，移动时保留
+    const container = document.querySelector('.selection-mode .history-tree');
+    for (const id of ids) {
+      const cb = container?.querySelector(`.tree-row-cb[data-id="${id}"]`);
+      if (type === 'inbound') {
+        await window.api.updateInbound(id, {
+          date: newDate,
+          quantity: parseFloat(cb?.dataset.qty) || 0,
+          remark: cb?.dataset.remark || '',
+          production_date: cb?.dataset.prod || null,
+          expiry_date: cb?.dataset.expiry || null,
+        });
+      } else {
+        await window.api.updateOutbound(id, {
+          date: newDate,
+          quantity: parseFloat(cb?.dataset.qty) || 0,
+          recipient: cb?.dataset.recipient || '',
+        });
+      }
+    }
+    closeModal();
+    showToast(`已移动 ${ids.length} 条`);
+    if (type === 'inbound') loadRecentInbound();
+    else loadRecentOutbound();
+  } catch (err) {
+    closeModal();
+    showToast('移动失败: ' + err.message, 'error');
+  } finally {
+    delete window._moveCheckedData;
+  }
+}
+
+// 批量修改勾选记录
+async function editCheckedHistory(container) {
+  const { ids, type } = getCheckedHistoryIds(container);
+  if (ids.length === 0) { showToast('请先勾选要修改的记录', 'error'); return; }
+
+  const fieldsHtml = type === 'inbound'
+    ? `<div class="form-group"><label>日期（留空不修改）</label><input type="date" class="form-control" id="be-date"></div>
+       <div class="form-group"><label>备注（留空不修改）</label><input type="text" class="form-control" id="be-remark" placeholder="留空则保持原值"></div>`
+    : `<div class="form-group"><label>日期（留空不修改）</label><input type="date" class="form-control" id="be-date"></div>
+       <div class="form-group"><label>领取人（留空不修改）</label><select class="form-control" id="be-recipient"><option value="">-- 不修改 --</option>${RECIPIENTS.map(r => `<option value="${r.name}">${r.name}</option>`).join('')}</select></div>`;
+
+  openModal(`批量修改 ${ids.length} 条记录`, `
+    <p style="color:var(--text-muted);margin-bottom:12px;">只更新已填写的字段，留空的字段保持原值不变。</p>
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">${fieldsHtml}</div>
+  `, `
+    <button class="btn" onclick="closeModal()">取消</button>
+    <button class="btn btn-primary" onclick="doEditCheckedHistory()">确认修改</button>
+  `);
+
+  window._editCheckedData = { ids, type };
+}
+
+async function doEditCheckedHistory() {
+  const { ids, type } = window._editCheckedData || {};
+  if (!ids) { closeModal(); return; }
+  const newDate = document.getElementById('be-date')?.value;
+  const container = document.querySelector('.selection-mode .history-tree');
+  try {
+    for (const id of ids) {
+      const cb = container?.querySelector(`.tree-row-cb[data-id="${id}"]`);
+      if (type === 'inbound') {
+        const remark = document.getElementById('be-remark')?.value;
+        await window.api.updateInbound(id, {
+          date: newDate || (cb?.dataset.date || ''),
+          quantity: parseFloat(cb?.dataset.qty) || 0,
+          remark: remark !== undefined && remark !== '' ? remark : (cb?.dataset.remark || ''),
+          production_date: cb?.dataset.prod || null,
+          expiry_date: cb?.dataset.expiry || null,
+        });
+      } else {
+        const recipient = document.getElementById('be-recipient')?.value;
+        await window.api.updateOutbound(id, {
+          date: newDate || (cb?.dataset.date || ''),
+          quantity: parseFloat(cb?.dataset.qty) || 0,
+          recipient: recipient || cb?.dataset.recipient || '',
+        });
+      }
+    }
+    closeModal();
+    showToast(`已修改 ${ids.length} 条`);
+    if (type === 'inbound') loadRecentInbound();
+    else loadRecentOutbound();
+  } catch (err) {
+    closeModal();
+    showToast('修改失败: ' + err.message, 'error');
+  } finally {
+    delete window._editCheckedData;
+  }
+}
+
 // 绑定 Ctrl+D 事件委托到 tbody（一次性绑定，自动覆盖动态新增的行）
 function bindCtrlDFill(tbodyId) {
   const tbody = document.getElementById(tbodyId);

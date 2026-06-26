@@ -1,8 +1,7 @@
 // ===== Settings Page =====
 const SETTING_KEYS = [
   'inbound_rows', 'outbound_rows', 'purchase_rows',
-  'inbound_history', 'inbound_history_days',
-  'outbound_history', 'outbound_history_days',
+  'inbound_history', 'outbound_history',
   'discount1_name', 'discount1_rate',
   'discount2_name', 'discount2_rate',
   'price_decimals',
@@ -29,8 +28,7 @@ const SETTING_KEYS = [
 
 const SETTING_DEFAULTS = {
   inbound_rows: '5', outbound_rows: '5', purchase_rows: '10',
-  inbound_history: 'on', inbound_history_days: '20',
-  outbound_history: 'on', outbound_history_days: '20',
+  inbound_history: 'on', outbound_history: 'on',
   discount1_name: '盛销', discount1_rate: '0.9008',
   discount2_name: '优宏', discount2_rate: '0.9058',
   price_decimals: '2',
@@ -63,9 +61,7 @@ async function initSettingsPage() {
     document.getElementById('setting-outbound-rows').value = settings.outbound_rows || SETTING_DEFAULTS.outbound_rows;
     document.getElementById('setting-purchase-rows').value = settings.purchase_rows || SETTING_DEFAULTS.purchase_rows;
     document.getElementById('setting-inbound-history').value = settings.inbound_history || SETTING_DEFAULTS.inbound_history;
-    document.getElementById('setting-inbound-history-days').value = settings.inbound_history_days || SETTING_DEFAULTS.inbound_history_days;
     document.getElementById('setting-outbound-history').value = settings.outbound_history || SETTING_DEFAULTS.outbound_history;
-    document.getElementById('setting-outbound-history-days').value = settings.outbound_history_days || SETTING_DEFAULTS.outbound_history_days;
     document.getElementById('setting-discount1-name').value = settings.discount1_name || SETTING_DEFAULTS.discount1_name;
     document.getElementById('setting-discount1-rate').value = settings.discount1_rate || SETTING_DEFAULTS.discount1_rate;
     document.getElementById('setting-discount2-name').value = settings.discount2_name || SETTING_DEFAULTS.discount2_name;
@@ -165,9 +161,7 @@ async function loadAppSettings() {
       outbound_rows: parseInt(g('outbound_rows')) || 5,
       purchase_rows: parseInt(g('purchase_rows')) || 10,
       inbound_history: g('inbound_history'),
-      inbound_history_days: parseInt(g('inbound_history_days')) || 20,
       outbound_history: g('outbound_history'),
-      outbound_history_days: parseInt(g('outbound_history_days')) || 20,
       discount1_name: g('discount1_name'),
       discount1_rate: g('discount1_rate'),
       discount2_name: g('discount2_name'),

@@ -1,3 +1,20 @@
+// ===== Export Outbound =====
+async function exportOutbound() {
+  try {
+    const records = await window.api.getOutbound({});
+    if (records.length === 0) { showToast('无出库数据可导出', 'error'); return; }
+    const header = ['日期', '材料', '数量', '单位', '领取人'];
+    const wsData = [header];
+    records.forEach(r => wsData.push([formatDate(r.date), r.product_name, r.quantity, r.unit, r.recipient]));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), '出库记录');
+    const wbout = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+    const result = await window.api.exportXlsx(Array.from(new Uint8Array(wbout)), '出库记录.xlsx');
+    if (!result.success) { if (result.error === '已取消') return; throw new Error(result.error); }
+    showToast('导出成功！');
+  } catch (err) { showToast('导出失败: ' + err.message, 'error'); }
+}
+
 // ===== Outbound Table =====
 let outboundInitialized = false;
 
@@ -210,38 +227,31 @@ async function submitOutboundBatch() {
 }
 
 async function loadRecentOutbound() {
-  const card = document.getElementById('recent-outbound')?.closest('.card');
+  const container = document.getElementById('outbound-history-tree');
+  const card = container?.closest('.card');
   if (APP_SETTINGS.outbound_history === 'off') {
     if (card) card.style.display = 'none';
     return;
   }
   if (card) card.style.display = '';
+  if (!container) return;
   try {
     const records = await window.api.getOutbound({});
-    const tbody = document.getElementById('recent-outbound');
-    const days = APP_SETTINGS.outbound_history_days;
-    tbody.innerHTML = records.slice(0, days).map(r => `
-      <tr>
-        <td>${formatDate(r.date)}</td><td>${r.product_name}</td>
-        <td>${r.quantity}</td><td>${r.unit}</td><td>${r.recipient}</td>
-        <td>
-          <button class="btn btn-sm" onclick='editOutbound(${JSON.stringify(r).replace(/'/g, "&#39;")})'>编辑</button>
-          <button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="deleteOutbound(${r.id})">删除</button>
-        </td>
-      </tr>
-    `).join('');
+    const tree = groupRecordsByDate(records);
+    container.innerHTML = renderHistoryTree(tree, 'outbound');
   } catch (err) {
     console.error('Load recent outbound error:', err);
   }
 }
 
 function editOutbound(r) {
+  const recipientOptions = RECIPIENTS.map(rc => `<option value="${rc.name}" ${rc.name === r.recipient ? 'selected' : ''}>${rc.name}</option>`).join('');
   openModal('编辑出库记录', `
     <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
       <div class="form-group"><label>材料</label><input type="text" class="form-control" value="${r.product_name}" readonly></div>
       <div class="form-group"><label>数量</label><input type="number" class="form-control" id="eo-qty" value="${r.quantity}"></div>
       <div class="form-group"><label>出库日期</label><input type="date" class="form-control" id="eo-date" value="${formatDate(r.date)}"></div>
-      <div class="form-group"><label>领取人</label><input type="text" class="form-control" id="eo-recipient" value="${r.recipient}"></div>
+      <div class="form-group"><label>领取人</label><select class="form-control" id="eo-recipient">${recipientOptions}</select></div>
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>

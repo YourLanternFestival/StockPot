@@ -43,8 +43,8 @@
 ### 历史记录显示
 - `inbound_history` — 是否显示入库历史
 - `outbound_history` — 是否显示出库历史
-- `inbound_history_days` — 入库历史显示天数
-- `outbound_history_days` — 出库历史显示天数
+
+历史数据以年→月→日三级折叠树展示，显示全部历史记录（不再通过天数截断）。
 
 ### 采购单数据
 - `purchase_retention_days` — 采购单历史数据保留天数（默认：31，范围：1-365）
