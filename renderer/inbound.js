@@ -142,6 +142,7 @@ async function handleInboundProductAutocomplete(input) {
     </div>
   `).join('');
 
+  positionAutocompleteDropdown(input, dropdown);
   dropdown.style.display = 'block';
   autocompleteIndex = -1;
 

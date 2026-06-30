@@ -84,6 +84,21 @@ function hideAutocomplete() {
   autocompleteIndex = -1;
 }
 
+// 共享：定位自动补全下拉框（fixed 定位 + getBoundingClientRect）
+function positionAutocompleteDropdown(input, dropdown) {
+  const rect = input.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  dropdown.style.minWidth = rect.width + 'px';
+  if (spaceBelow < 220) {
+    dropdown.style.bottom = (window.innerHeight - rect.top) + 'px';
+    dropdown.style.top = 'auto';
+  } else {
+    dropdown.style.top = rect.bottom + 'px';
+    dropdown.style.bottom = 'auto';
+  }
+  dropdown.style.left = rect.left + 'px';
+}
+
 // 检查当前 input 附近的自动补全下拉是否打开
 function isAutocompleteOpen(input) {
   const td = input.closest('td');
