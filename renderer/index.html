@@ -289,6 +289,7 @@
  <div class="page-header">
  <h2>入库登记</h2>
  <div class="header-actions">
+ <button class="btn" onclick="importInboundRecords()" data-tooltip="从 xlsx 文件批量导入入库流水">导入入库</button>
  <button class="btn" onclick="exportInbound()" data-tooltip="将全部入库记录导出为 Excel 文件">导出 xlsx</button>
  <button class="btn btn-primary" onclick="submitInboundBatch()" data-tooltip="一次性提交所有已填写的入库记录">批量提交</button>
  </div>
@@ -343,6 +344,7 @@
  <h2>出库登记</h2>
  <div class="header-actions">
  <button class="btn" onclick="showManageRecipients()" data-tooltip="管理领取人列表：新增、编辑、删除、排序"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>管理领取人</button>
+ <button class="btn" onclick="importOutboundRecords()" data-tooltip="从 xlsx 文件批量导入出库流水">导入出库</button>
  <button class="btn" onclick="exportOutbound()" data-tooltip="将全部出库记录导出为 Excel 文件">导出 xlsx</button>
  <button class="btn btn-primary" onclick="submitOutboundBatch()" data-tooltip="一次性提交所有已填写的出库记录">批量提交</button>
  </div>
@@ -403,65 +405,13 @@
  <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
  <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
  </select>
- <button class="btn" onclick="toggleImportPanel()" data-tooltip="展开导入面板，从 xlsx 文件批量导入产品和出入库数据"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>导入数据</button>
- <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件">导出 xlsx</button>
+ <button class="btn" onclick="exportInventory()" data-tooltip="将当前库存数据导出为 Excel 文件">导出库存</button>
+ <button class="btn btn-primary" onclick="exportLedger()" data-tooltip="将当前月份台账导出为 Excel 文件">导出台账</button>
+ <button class="btn" onclick="showExportDialog()" data-tooltip="勾选要导出的数据类别，同一工作簿分 sheet 导出">导出数据...</button>
+ <button class="btn" style="color:var(--danger);border-color:var(--danger);margin-left:auto;" onclick="clearAllDataPrompt()" data-tooltip="⚠️ 清空所有产品、入库、出库数据，不可撤销">清空所有数据</button>
  </div>
  </div>
 
- <!-- Import Panel (collapsible) -->
- <div class="import-panel" id="import-panel" style="display:none;">
- <div class="card" style="margin-bottom: 16px;">
- <div class="card-header">
- <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>从 xlsx 文件导入数据</h3>
- <button class="btn btn-sm" onclick="toggleImportPanel()">关闭</button>
- </div>
- <div class="card-body">
- <div class="import-dropzone" id="dropzone">
- <div class="dropzone-content">
- <div class="dropzone-icon"></div>
- <p>将 xlsx 文件拖拽到此处</p>
- <p class="text-muted">或点击选择文件</p>
- <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;">
- <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">选择文件</button>
- </div>
- </div>
- <div class="import-options" style="margin-top: 16px;">
- <label class="checkbox-label">
- <input type="checkbox" checked disabled> 产品数据（材料清单）
- </label>
- <label class="checkbox-label">
- <input type="checkbox" checked id="import-inbound">入库流水账
- </label>
- <label class="checkbox-label">
- <input type="checkbox" checked id="import-outbound">出库流水账
- </label>
- </div>
- <div class="import-preview" id="import-preview" style="display:none;">
- <h4>预览导入数据</h4>
- <div class="import-stats" id="import-preview-stats"></div>
- <div style="margin-top:15px;display:flex;gap:10px;">
- <button class="btn btn-primary btn-lg" onclick="startImport()" data-tooltip="覆盖已有数据并导入新数据，请先备份">开始导入（覆盖已有数据）</button>
- <button class="btn btn-lg" style="color:var(--danger);border-color:var(--danger);" onclick="clearAndReimport()" data-tooltip="清除所有现有数据后导入，请谨慎操作">清空后重新导入</button>
- </div>
- </div>
-	 <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-	 <h4 style="margin-bottom:10px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>列映射导入（自定义 Excel 列对应关系）</h4>
-	 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-	 <input type="file" id="map-file-input" accept=".xlsx,.xls" style="display:none;" onchange="handleMapFileSelected(this)">
-	 <button class="btn btn-primary" onclick="document.getElementById('map-file-input').click()" data-tooltip="选择一个 Excel 文件，然后指定各列对应的字段">选择文件并配置映射</button>
-	 <span id="map-file-name" class="text-muted" style="font-size:13px;"></span>
-	 </div>
-	 <div id="map-config-area" style="display:none;margin-top:12px;"></div>
-	 </div>
- <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
- <button class="btn" onclick="exportInventory()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出库存</button>
- <button class="btn" onclick="exportLedger()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出台账</button>
- <button class="btn" onclick="exportAll()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>导出全部</button>
- <button class="btn" style="color:var(--danger);border-color:var(--danger);margin-left:auto;" onclick="clearAndReimport()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>清空所有数据</button>
- </div>
- </div>
- </div>
- </div>
  <div class="card">
  <div class="table-wrapper">
  <table class="table table-ledger" id="ledger-table">
@@ -526,6 +476,7 @@
  <button class="btn" id="btn-batch-delete" style="display:none;color:var(--danger);border-color:var(--danger);" onclick="batchDeleteProducts()" data-tooltip="批量停用勾选的产品"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>停用选中</button>
  <input type="text" class="search-input" placeholder="搜索产品..." id="prod-search" data-tooltip="按材料名称搜索产品">
  <button class="btn btn-primary" onclick="showAddProduct()" data-tooltip="添加新产品到材料清单">+ 新增产品</button>
+ <button class="btn" onclick="importProducts()" data-tooltip="从 xlsx 文件批量导入产品列表">导入产品</button>
  </div>
  </div>
  <div class="card">
@@ -1164,7 +1115,7 @@
  </table>
 
  <h4>数据导入导出</h4>
- <p>在"月度台账"页面的"导入数据"面板可批量导入 Excel（产品、入库、出库、期初库存）。当 Excel 列名与系统不同时，使用<strong>列映射导入</strong>手动对应。库存、台账、采购单均可导出为 Excel。</p>
+ <p>各页面（产品管理、入库登记、出库登记）均有<strong>导入</strong>按钮。选 Excel 后系统自动匹配列名，支持追加或覆盖模式。台账页<strong>勾选式导出</strong>可一次导出多类数据。</p>
 
  <h4>设置</h4>
  <p>在"设置"页面可调整录入行数、键盘导航、采购单保留天数、过期预警天数、食堂模式、折扣率、主题外观等。修改后点击"保存设置"立即生效。</p>
@@ -1189,7 +1140,7 @@
  <p>A: 系统会自动阻止超量出库。请去"库存查询"确认实际库存，或检查是否选错了产品。</p>
 
  <h4>Q: 如何备份数据？</h4>
- <p>A: 在"月度台账"→"导入数据"→"导出全部"可导出全部数据为 Excel。系统每天也会自动备份数据库到安装目录。</p>
+ <p>A: 在"月度台账"→"导出数据..."可勾选导出产品/入库/出库/台账为 Excel。系统每天也会自动备份数据库到安装目录。</p>
 
  <h4>Q: 如何添加新的领取人？</h4>
  <p>A: 在"出库登记"页面右上角，点击"管理领取人"按钮即可新增、编辑或删除领取人。</p>

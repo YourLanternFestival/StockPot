@@ -612,29 +612,7 @@ body {
 .alert-label { color: var(--text-secondary); margin-top: 4px; }
 
 /* ===== Import ===== */
-.import-dropzone {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 40px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.import-dropzone:hover, .import-dropzone.dragover {
-  border-color: var(--primary);
-  background: var(--primary-light);
-}
-
-.dropzone-icon { font-size: 48px; margin-bottom: 12px; }
-.dropzone-content p { margin-bottom: 8px; }
 .text-muted { color: var(--text-muted); font-size: 13px; }
-
-.import-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
 .checkbox-label {
   display: flex;
@@ -642,12 +620,6 @@ body {
   gap: 8px;
   font-size: 14px;
   cursor: pointer;
-}
-
-.import-stats {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
 }
 
 .export-grid {
@@ -1332,16 +1304,6 @@ body {
   .inv-records-grid {
     grid-template-columns: 1fr;
   }
-}
-
-/* ===== Import Panel ===== */
-.import-panel {
-  animation: slideDown 0.2s ease;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ===== 小所食堂并排模式 ===== */
