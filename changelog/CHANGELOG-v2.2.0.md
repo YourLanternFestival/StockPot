@@ -116,7 +116,7 @@
 ### 2. 导出联华客户名动态化
 
 **文件**：`renderer/lianhua.js`  
-导出联华订单时客户名称从 `APP_SETTINGS.current_canteen` 动态获取，不再硬编码为固定值。
+导出联华订单时客户名称从 `APP_SETTINGS.current_canteen` 动态获取，不再硬编码为"洋安"。
 
 ### 3. 采购行 HTML 模板统一
 

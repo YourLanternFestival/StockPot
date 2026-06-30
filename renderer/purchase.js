@@ -4,6 +4,9 @@
 async function initPurchasePage() {
   await loadLianhuaItems();
 
+  // 重置询价月份缓存，确保新导入的询价月能被识别
+  window._availableInquiryMonths = null;
+
   // Check if we should load data or start fresh
   const today = todayStr();
   const lastDate = APP_SETTINGS.last_purchase_date || '';
@@ -32,12 +35,12 @@ async function initPurchasePage() {
 
 // ===== Canteen Mode =====
 function getKitchenSource() {
-  const canteen = APP_SETTINGS.current_canteen || '食堂A';
+  const canteen = APP_SETTINGS.current_canteen || '洋安';
   return `${canteen}食堂厨房`;
 }
 
 function getPastrySource() {
-  const canteen = APP_SETTINGS.current_canteen || '食堂A';
+  const canteen = APP_SETTINGS.current_canteen || '洋安';
   return `${canteen}面点房`;
 }
 
@@ -143,7 +146,7 @@ async function switchCanteen(canteen) {
 }
 
 function initNormalCanteenMode() {
-  const canteen = APP_SETTINGS.current_canteen || '食堂A';
+  const canteen = APP_SETTINGS.current_canteen || '洋安';
   const kitchenGroup = document.getElementById('purchase-kitchen');
   const kitchenTitle = document.getElementById('kitchen-title');
   const kitchenSource = getKitchenSource();
@@ -167,9 +170,9 @@ function initNormalCanteenMode() {
   );
 }
 
-// ===== 食堂C/食堂D/食堂E 模式 =====
-const MULTI_CANTEENS = ['食堂C', '食堂D', '食堂E'];
-let currentMultiCanteen = '食堂C';
+// ===== 下涯/制杆厂/白南山 模式 =====
+const MULTI_CANTEENS = ['下涯', '制杆厂', '白南山'];
+let currentMultiCanteen = '下涯';
 let multiModeInitialized = false;
 
 function initMultiCanteenMode() {
@@ -241,7 +244,7 @@ function switchMultiCanteenTab(canteen) {
 let smallModeInitialized = false;
 
 function getSmallCanteens() {
-  return APP_SETTINGS.small_canteens || ['食堂F', '食堂G', '食堂H', '食堂I', '食堂J', '食堂K', '食堂L'];
+  return APP_SETTINGS.small_canteens || ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'];
 }
 
 // 将小所按两个一组分页：12, 34, 56, 7
@@ -437,12 +440,9 @@ async function handleMatrixProductBlur(input) {
   // 已通过下拉选中过 → 不覆盖，即使 spec 为空也是用户主动选的
   if (tr.dataset.matrixSelected === '1') return;
   try {
-    let currentMonth = document.getElementById('inquiry-month')?.value;
-    if (!currentMonth) {
-      const months = await window.api.getInquiryMonths();
-      currentMonth = months.length > 0 ? months[0].month : null;
-    }
-    const results = await window.api.searchInquiryItems(keyword, currentMonth);
+    // 按 date-group 的 receive_date 月份查询询价
+    const targetMonth = getInquiryMonthForInput(input);
+    const results = await resolveInquirySearch(keyword, targetMonth);
     const match = results.find(r => r.name.toLowerCase() === keyword.toLowerCase()) || results[0];
     if (match) {
       const specInput = tr.querySelector('[data-field="spec"]');
@@ -1162,12 +1162,9 @@ async function handleProductBlur(input) {
     if (isLianhua) {
       match = lianhuaItems.find(i => i.name.toLowerCase() === keyword.toLowerCase());
     } else {
-      let currentMonth = document.getElementById('inquiry-month')?.value;
-      if (!currentMonth) {
-        const months = await window.api.getInquiryMonths();
-        currentMonth = months.length > 0 ? months[0].month : null;
-      }
-      const results = await window.api.searchInquiryItems(keyword, currentMonth);
+      // 按 date-group 的 receive_date 月份查询询价
+      const targetMonth = getInquiryMonthForInput(input);
+      const results = await resolveInquirySearch(keyword, targetMonth);
       // 优先精确匹配，否则取第一个结果
       match = results.find(r => r.name.toLowerCase() === keyword.toLowerCase()) || results[0];
     }
@@ -1244,13 +1241,9 @@ async function handleProductAutocomplete(input) {
         unit: item.unit
       }));
     } else {
-      // Search from inquiry items
-      let currentMonth = document.getElementById('inquiry-month')?.value;
-      if (!currentMonth) {
-        const months = await window.api.getInquiryMonths();
-        currentMonth = months.length > 0 ? months[0].month : null;
-      }
-      results = await window.api.searchInquiryItems(keyword, currentMonth);
+      // Search from inquiry items: 按 date-group 的 receive_date 月份查询
+      const targetMonth = getInquiryMonthForInput(input);
+      results = await resolveInquirySearch(keyword, targetMonth);
     }
 
     results = sortAutocompleteResults(results, keyword);
@@ -1529,6 +1522,110 @@ function getDateFromGroup(dateGroup) {
   return label.replace(' 收货', '').replace(' 发货', '').trim();
 }
 
+// 从 input 所在 date-group 提取 receive_date → 转为 "YYYY-MM" 询价月份
+function getInquiryMonthForInput(input) {
+  const dateGroup = input.closest('.date-group');
+  if (!dateGroup) return null;
+  // 优先使用 dataset.date（addLianhuaDateGroup 设置）
+  if (dateGroup.dataset.date) return dateToMonthStr(dateGroup.dataset.date);
+  return dateToMonthStr(getDateFromGroup(dateGroup));
+}
+
+// 当日持久化缓存：已确认的月份 fallback 选择，同日不重复弹窗
+// 格式：{ _date: '2026-06-30', '2026-07': '2026-06' } → 7月沿用6月；null → 用户拒绝
+function getFallbackCache() {
+  const today = todayStr();
+  try {
+    const raw = localStorage.getItem('inquiryFallbackCache');
+    if (raw) {
+      const cache = JSON.parse(raw);
+      if (cache._date === today) return cache;
+    }
+  } catch (e) { /* corrupt data, reset */ }
+  return { _date: today };
+}
+function saveFallbackCache(cache) {
+  try { localStorage.setItem('inquiryFallbackCache', JSON.stringify(cache)); } catch (e) {}
+}
+
+// 弹窗询问：目标月份无询价时是否沿用上月
+// 返回 true（沿用上月）或 false（手动输入）
+function showInquiryFallbackDialog(targetMonth, fallbackMonth) {
+  const targetLabel = targetMonth.replace('-', '年') + '月';
+  const fallbackLabel = fallbackMonth ? fallbackMonth.replace('-', '年') + '月' : '上月';
+  return confirm(
+    `${targetLabel}询价尚未导入，是否沿用${fallbackLabel}询价？\n\n请尽快导入${targetLabel}询价。`
+  );
+}
+
+// 核心查询函数：按目标月份搜索询价，缺失时降级处理
+// opts.silent: true → 不弹窗，静默 fallback 到最新月份（用于 history 价格反查）
+// 性能优化：缓存可用月份列表，避免每次按键多次 IPC 调用
+async function resolveInquirySearch(keyword, targetMonth, opts = {}) {
+  const { silent = false } = opts;
+
+  // 懒初始化：缓存所有可用询价月份（首次调用时拉取一次）
+  if (!window._availableInquiryMonths) {
+    try {
+      const months = await window.api.getInquiryMonths();
+      window._availableInquiryMonths = months.map(m => m.month);
+    } catch (e) {
+      window._availableInquiryMonths = [];
+    }
+  }
+  const avail = window._availableInquiryMonths;
+
+  // 决定实际搜索的月份
+  let searchMonth = targetMonth;
+
+  if (targetMonth && !avail.includes(targetMonth)) {
+    // 快速重检：用户可能刚在本 session 导入了该月询价（缓存过期）
+    try {
+      const fresh = await window.api.getInquiryMonths();
+      const freshMonths = fresh.map(m => m.month);
+      if (freshMonths.includes(targetMonth)) {
+        window._availableInquiryMonths = freshMonths;
+        return await window.api.searchInquiryItems(keyword, targetMonth);
+      }
+      // 同步更新缓存（可能其他月份也变了）
+      window._availableInquiryMonths = freshMonths;
+    } catch (e) {}
+
+    // 目标月份无询价 → 查当日持久化缓存或弹窗
+    const fallbackCache = getFallbackCache();
+    const cached = fallbackCache[targetMonth];
+    if (cached !== undefined) {
+      searchMonth = cached; // null = 用户拒绝，沿用某月 = 直接用
+    } else if (!silent) {
+      const fallbackMonth = getPreviousMonthStr(targetMonth);
+      const fbAvail = window._availableInquiryMonths;
+      if (fallbackMonth && fbAvail.includes(fallbackMonth)) {
+        const useFallback = showInquiryFallbackDialog(targetMonth, fallbackMonth);
+        fallbackCache[targetMonth] = useFallback ? fallbackMonth : null;
+        saveFallbackCache(fallbackCache);
+        searchMonth = useFallback ? fallbackMonth : null;
+      } else {
+        fallbackCache[targetMonth] = null;
+        saveFallbackCache(fallbackCache);
+        searchMonth = null;
+      }
+    } else {
+      // silent: 优先上月，否则最新
+      const fallbackMonth = getPreviousMonthStr(targetMonth);
+      searchMonth = (fallbackMonth && window._availableInquiryMonths.includes(fallbackMonth)) ? fallbackMonth
+        : (window._availableInquiryMonths.length > 0 ? window._availableInquiryMonths[0] : null);
+    }
+  }
+
+  // 兜底：无有效 searchMonth 时用最新可用月份
+  if (!searchMonth && window._availableInquiryMonths.length > 0) {
+    searchMonth = window._availableInquiryMonths[0];
+  }
+
+  if (!searchMonth) return [];
+  return await window.api.searchInquiryItems(keyword, searchMonth);
+}
+
 function getRowData(tr) {
   const getData = (field) => tr.querySelector(`[data-field="${field}"]`)?.value || '';
   const amountText = tr.querySelector('.amount-cell')?.textContent || '0';
@@ -1802,9 +1899,17 @@ async function exportAllPurchaseOrders() {
       return;
     }
 
+    // 从采购数据中提取月份（而非用今天日期），确保跨月采购单文件名正确
     const now = new Date();
-    const month = `${now.getMonth() + 1}月`;
-    const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '食堂C、食堂D、食堂E' : (APP_SETTINGS.current_canteen || '食堂A'));
+    let maxMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    document.querySelectorAll('.date-group .date-label').forEach(label => {
+      const dateText = label.textContent.replace(' 收货', '').replace(' 发货', '').trim();
+      const monthStr = dateToMonthStr(dateText);
+      if (monthStr && monthStr > maxMonthStr) maxMonthStr = monthStr;
+    });
+    const exportMonth = parseInt(maxMonthStr.split('-')[1]);
+    const month = `${exportMonth}月`;
+    const modeLabel = mode === 'small' ? '小所食堂' : (mode === 'on' ? '下涯、制杆厂、白南山' : (APP_SETTINGS.current_canteen || '洋安'));
     // DEBUG: 导出数据概览
     console.log('[EXPORT] sheets:', sheets.length, 'mode:', mode);
     sheets.forEach(s => {
@@ -1847,8 +1952,15 @@ function clearPurchasePageDOM() {
 }
 
 // 调取历史采购数据回页面
-function showRecallPurchaseModal() {
+async function showRecallPurchaseModal() {
   const today = todayStr();
+  // 从 DB 获取最大的 receive_date 作为默认结束日期，确保跨月采购单（如月末录入的下月单）可被调取
+  let toDate = today;
+  try {
+    const maxDate = await window.api.getLatestReceiveDate();
+    if (maxDate && maxDate > today) toDate = maxDate;
+  } catch (e) { /* fallback to today */ }
+
   openModal('调取采购历史', `
     <div class="form-group">
       <label>起始日期</label>
@@ -1856,7 +1968,7 @@ function showRecallPurchaseModal() {
     </div>
     <div class="form-group">
       <label>结束日期</label>
-      <input type="date" class="form-control" id="recall-date-to" value="${today}">
+      <input type="date" class="form-control" id="recall-date-to" value="${toDate}">
     </div>
     <p style="color:var(--text-muted);font-size:13px;margin-top:8px;">
       从数据库加载指定日期范围的采购数据，渲染到当前页面。加载后可编辑和再导出。

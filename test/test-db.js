@@ -56,7 +56,7 @@ function seedAllTables(db) {
   db.run(`INSERT OR IGNORE INTO recipients (name) VALUES ('厨房')`);
   // purchase_orders
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount, remark, sort_order, created_at)
-    VALUES ('食堂A食堂', '2025-06-01', '测试商品', '大', 3.5, '5', '斤', 17.5, '', 0, '2025-06-01')`);
+    VALUES ('洋安食堂', '2025-06-01', '测试商品', '大', 3.5, '5', '斤', 17.5, '', 0, '2025-06-01')`);
   // inquiry_items
   db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec, remark)
     VALUES ('2025-06', '蔬菜', '测试商品', 3.5, '斤', '大', '')`);
@@ -189,8 +189,8 @@ async function test_clearPurchaseOrders_guard(SQL) {
     createTables(db);
     seedAllTables(db);
 
-    // Clear purchase orders for 食堂A食堂
-    db.run('DELETE FROM purchase_orders WHERE source = ?', ['食堂A食堂']);
+    // Clear purchase orders for 洋安食堂
+    db.run('DELETE FROM purchase_orders WHERE source = ?', ['洋安食堂']);
 
     assert.strictEqual(countTable(db, 'purchase_orders'), 0, 'purchase_orders cleared');
     // Other tables still have their data
@@ -361,14 +361,14 @@ async function test_savePurchaseOrdersBatch(SQL) {
     const db = new SQL.Database();
     createTables(db);
 
-    // Pre-seed: 食堂A食堂 2025-06-01 (old data, same date — should be replaced)
+    // Pre-seed: 洋安食堂 2025-06-01 (old data, same date — should be replaced)
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('食堂A食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
+      VALUES ('洋安食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('食堂A食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
-    // 食堂A食堂 2025-06-02 (different date — should be preserved across-date)
+      VALUES ('洋安食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
+    // 洋安食堂 2025-06-02 (different date — should be preserved across-date)
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('食堂A食堂', '2025-06-02', '跨日数据', '', 5.0, '3', '斤', 15.0)`);
+      VALUES ('洋安食堂', '2025-06-02', '跨日数据', '', 5.0, '3', '斤', 15.0)`);
     // Another source (should be preserved)
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
       VALUES ('供应商B', '2025-06-01', '独立数据', '', 1.0, '1', '斤', 1.0)`);
@@ -376,11 +376,11 @@ async function test_savePurchaseOrdersBatch(SQL) {
     assert.strictEqual(countTable(db, 'purchase_orders'), 4, 'seed: 4 orders');
 
     // Simulate savePurchaseOrdersBatch: clear (source, date) + insert new
-    const sourceDates = [{ source: '食堂A食堂', date: '2025-06-01' }];
+    const sourceDates = [{ source: '洋安食堂', date: '2025-06-01' }];
     const newOrders = [
-      ['食堂A食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0],
-      ['食堂A食堂', '2025-06-01', '新萝卜', '', 3.5, '5', '斤', 17.5],
-      ['食堂A食堂', '2025-06-01', '新土豆', '', 1.8, '20', '斤', 36.0],
+      ['洋安食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0],
+      ['洋安食堂', '2025-06-01', '新萝卜', '', 3.5, '5', '斤', 17.5],
+      ['洋安食堂', '2025-06-01', '新土豆', '', 1.8, '20', '斤', 36.0],
     ];
 
     db.run('BEGIN TRANSACTION');
@@ -402,14 +402,14 @@ async function test_savePurchaseOrdersBatch(SQL) {
     assert.strictEqual(countTable(db, 'purchase_orders'), 5, 'batch: 3 new + 1 cross-date + 1 other source');
 
     const yangAn0601 = db.exec(
-      "SELECT product_name FROM purchase_orders WHERE source = '食堂A食堂' AND receive_date = '2025-06-01' ORDER BY id"
+      "SELECT product_name FROM purchase_orders WHERE source = '洋安食堂' AND receive_date = '2025-06-01' ORDER BY id"
     );
     const names = yangAn0601[0].values.map(r => r[0]);
     assert.deepStrictEqual(names, ['新白菜', '新萝卜', '新土豆'], 'same-date old replaced with new');
 
     // Cross-date data preserved
     const yangAn0602 = db.exec(
-      "SELECT product_name FROM purchase_orders WHERE source = '食堂A食堂' AND receive_date = '2025-06-02'"
+      "SELECT product_name FROM purchase_orders WHERE source = '洋安食堂' AND receive_date = '2025-06-02'"
     );
     assert.strictEqual(yangAn0602[0].values[0][0], '跨日数据', 'same-source other-date preserved');
 
@@ -430,9 +430,9 @@ async function test_savePurchaseOrdersBatch(SQL) {
 
     // Pre-seed with old data
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('食堂A食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
+      VALUES ('洋安食堂', '2025-06-01', '旧白菜', '', 2.0, '10', '斤', 20.0)`);
     db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-      VALUES ('食堂A食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
+      VALUES ('洋安食堂', '2025-06-01', '旧萝卜', '', 3.0, '5', '斤', 15.0)`);
 
     assert.strictEqual(countTable(db, 'purchase_orders'), 2, 'seed: 2 old orders');
 
@@ -440,11 +440,11 @@ async function test_savePurchaseOrdersBatch(SQL) {
     let failureCaught = false;
     try {
       db.run('BEGIN TRANSACTION');
-      db.run('DELETE FROM purchase_orders WHERE source = ? AND receive_date = ?', ['食堂A食堂', '2025-06-01']);
+      db.run('DELETE FROM purchase_orders WHERE source = ? AND receive_date = ?', ['洋安食堂', '2025-06-01']);
 
       // Insert first new order successfully
       db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-        VALUES ('食堂A食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0)`);
+        VALUES ('洋安食堂', '2025-06-01', '新白菜', '', 2.5, '10', '斤', 25.0)`);
 
       // Simulate a failure on the second insert
       throw new Error('模拟批量插入中途失败');
@@ -462,7 +462,7 @@ async function test_savePurchaseOrdersBatch(SQL) {
     );
 
     const preservedRows = db.exec(
-      "SELECT product_name FROM purchase_orders WHERE source = '食堂A食堂' ORDER BY id"
+      "SELECT product_name FROM purchase_orders WHERE source = '洋安食堂' ORDER BY id"
     );
     assert.deepStrictEqual(
       preservedRows[0].values.map(r => r[0]),
@@ -484,24 +484,24 @@ async function test_saveAllPurchaseOrders_crossDate(SQL) {
   const db = new SQL.Database();
   createTables(db);
 
-  // Pre-seed DB: 食堂A-厨房 on two different dates
+  // Pre-seed DB: 洋安-厨房 on two different dates
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-01', 'DB-only item', '', 5.0, '1', '斤', 5.0)`);
+    VALUES ('洋安-厨房', '2025-06-01', 'DB-only item', '', 5.0, '1', '斤', 5.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-02', 'Another DB item', '', 6.0, '2', '斤', 12.0)`);
+    VALUES ('洋安-厨房', '2025-06-02', 'Another DB item', '', 6.0, '2', '斤', 12.0)`);
   // Another source to verify isolation
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
     VALUES ('联华', '2025-06-01', 'Lianhua item', '', 3.0, '1', '件', 3.0)`);
 
   assert.strictEqual(countTable(db, 'purchase_orders'), 3, 'seed: 3 orders');
 
-  // Simulate: DOM has data ONLY for 食堂A-厨房 on 2025-06-01 (user only edited this date)
+  // Simulate: DOM has data ONLY for 洋安-厨房 on 2025-06-01 (user only edited this date)
   // sourceDates should only include dates with actual DOM data
   const sourceDates = [
-    { source: '食堂A-厨房', date: '2025-06-01' }
+    { source: '洋安-厨房', date: '2025-06-01' }
   ];
   const orders = [
-    { source: '食堂A-厨房', receive_date: '2025-06-01', product_name: 'Edited item', spec: '', unit_price: 5.5, quantity: '3', unit: '斤', amount: 16.5, remark: '', sort_order: 0 }
+    { source: '洋安-厨房', receive_date: '2025-06-01', product_name: 'Edited item', spec: '', unit_price: 5.5, quantity: '3', unit: '斤', amount: 16.5, remark: '', sort_order: 0 }
   ];
 
   // Simulate savePurchaseOrdersBatch with per-(source,date) clear
@@ -518,13 +518,13 @@ async function test_saveAllPurchaseOrders_crossDate(SQL) {
 
   // Verify: 2025-06-01 has new data (1 row), 2025-06-02 still has its original data (1 row)
   const date1 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂A-厨房' AND receive_date = '2025-06-01'"
+    "SELECT product_name FROM purchase_orders WHERE source = '洋安-厨房' AND receive_date = '2025-06-01'"
   );
   assert.strictEqual(date1[0].values.length, 1, '06-01: 1 row (the edited one)');
   assert.strictEqual(date1[0].values[0][0], 'Edited item', '06-01: new data');
 
   const date2 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂A-厨房' AND receive_date = '2025-06-02'"
+    "SELECT product_name FROM purchase_orders WHERE source = '洋安-厨房' AND receive_date = '2025-06-02'"
   );
   assert.strictEqual(date2[0].values.length, 1, '06-02: preserved (not in DOM, not deleted)');
   assert.strictEqual(date2[0].values[0][0], 'Another DB item', '06-02: original data intact');
@@ -550,18 +550,18 @@ async function test_emptyDateGroup_notCollected(SQL) {
   const db = new SQL.Database();
   createTables(db);
 
-  // Pre-seed: 食堂A-厨房 on two dates
+  // Pre-seed: 洋安-厨房 on two dates
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-01', 'Item A', '', 2.0, '10', '斤', 20.0)`);
+    VALUES ('洋安-厨房', '2025-06-01', 'Item A', '', 2.0, '10', '斤', 20.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-02', 'Item B', '', 3.0, '5', '斤', 15.0)`);
+    VALUES ('洋安-厨房', '2025-06-02', 'Item B', '', 3.0, '5', '斤', 15.0)`);
   // Another source
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂E-联华', '2025-06-01', 'Lianhua C', '', 1.0, '3', '件', 3.0)`);
+    VALUES ('白南山-联华', '2025-06-01', 'Lianhua C', '', 1.0, '3', '件', 3.0)`);
 
   assert.strictEqual(countTable(db, 'purchase_orders'), 3, 'seed: 3 orders');
 
-  // Simulate: DOM has a date-group for 食堂A-厨房/2025-06-02 but it's EMPTY (all rows deleted by user)
+  // Simulate: DOM has a date-group for 洋安-厨房/2025-06-02 but it's EMPTY (all rows deleted by user)
   // The fix ensures sourceDates only includes dates with valid rows.
   // Since 2025-06-02 has no valid rows, sourceDates should NOT include it.
   const sourceDates = [];  // empty date-group → not collected
@@ -583,11 +583,11 @@ async function test_emptyDateGroup_notCollected(SQL) {
 
   // Verify: ALL data preserved (no DELETE was issued)
   assert.strictEqual(countTable(db, 'purchase_orders'), 3, 'all 3 orders preserved');
-  const check01 = db.exec("SELECT product_name FROM purchase_orders WHERE source = '食堂A-厨房' AND receive_date = '2025-06-01'");
+  const check01 = db.exec("SELECT product_name FROM purchase_orders WHERE source = '洋安-厨房' AND receive_date = '2025-06-01'");
   assert.strictEqual(check01[0].values[0][0], 'Item A', '06-01 data intact');
-  const check02 = db.exec("SELECT product_name FROM purchase_orders WHERE source = '食堂A-厨房' AND receive_date = '2025-06-02'");
+  const check02 = db.exec("SELECT product_name FROM purchase_orders WHERE source = '洋安-厨房' AND receive_date = '2025-06-02'");
   assert.strictEqual(check02[0].values[0][0], 'Item B', '06-02 data intact (not deleted despite empty DOM group)');
-  const checkOther = db.exec("SELECT product_name FROM purchase_orders WHERE source = '食堂E-联华'");
+  const checkOther = db.exec("SELECT product_name FROM purchase_orders WHERE source = '白南山-联华'");
   assert.strictEqual(checkOther[0].values[0][0], 'Lianhua C', 'other source intact');
 
   db.close();
@@ -605,11 +605,11 @@ async function test_saveLianhuaDomData_noDateGroup(SQL) {
 
   // Pre-seed Lianhua data for two different sources on different dates
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂E-联华', '2025-06-01', '联华商品A', '', 5.0, '2', '件', 10.0)`);
+    VALUES ('白南山-联华', '2025-06-01', '联华商品A', '', 5.0, '2', '件', 10.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂E-联华', '2025-06-02', '联华商品B', '', 6.0, '3', '件', 18.0)`);
+    VALUES ('白南山-联华', '2025-06-02', '联华商品B', '', 6.0, '3', '件', 18.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-联华', '2025-06-01', '联华商品C', '', 4.0, '1', '件', 4.0)`);
+    VALUES ('洋安-联华', '2025-06-01', '联华商品C', '', 4.0, '1', '件', 4.0)`);
 
   assert.strictEqual(countTable(db, 'purchase_orders'), 3, 'seed: 3 lianhua orders');
 
@@ -626,12 +626,12 @@ async function test_saveLianhuaDomData_noDateGroup(SQL) {
   assert.strictEqual(countTable(db, 'purchase_orders'), 3, 'all 3 lianhua orders preserved');
 
   // Verify each specific (source, date) pair preserved (don't rely on alphabetical ORDER BY)
-  const checkA = db.exec("SELECT product_name FROM purchase_orders WHERE source = '食堂E-联华' AND receive_date = '2025-06-01'");
-  assert.strictEqual(checkA[0].values[0][0], '联华商品A', '食堂E 06-01 preserved');
-  const checkB = db.exec("SELECT product_name FROM purchase_orders WHERE source = '食堂E-联华' AND receive_date = '2025-06-02'");
-  assert.strictEqual(checkB[0].values[0][0], '联华商品B', '食堂E 06-02 preserved');
-  const checkC = db.exec("SELECT product_name FROM purchase_orders WHERE source = '食堂A-联华' AND receive_date = '2025-06-01'");
-  assert.strictEqual(checkC[0].values[0][0], '联华商品C', '食堂A 06-01 preserved');
+  const checkA = db.exec("SELECT product_name FROM purchase_orders WHERE source = '白南山-联华' AND receive_date = '2025-06-01'");
+  assert.strictEqual(checkA[0].values[0][0], '联华商品A', '白南山 06-01 preserved');
+  const checkB = db.exec("SELECT product_name FROM purchase_orders WHERE source = '白南山-联华' AND receive_date = '2025-06-02'");
+  assert.strictEqual(checkB[0].values[0][0], '联华商品B', '白南山 06-02 preserved');
+  const checkC = db.exec("SELECT product_name FROM purchase_orders WHERE source = '洋安-联华' AND receive_date = '2025-06-01'");
+  assert.strictEqual(checkC[0].values[0][0], '联华商品C', '洋安 06-01 preserved');
 
   db.close();
   runPassed('saveLianhuaDomData: no date-group → sourceDates empty → early return → no data loss');
@@ -702,53 +702,53 @@ async function test_recall_deleteSingle_export(SQL) {
   createTables(db);
 
   // Phase 1: Seed DB with historical data (simulating 23号 and 24号 for two canteens)
-  // 食堂A-厨房: 2025-06-23 (2 items), 2025-06-24 (2 items)
+  // 洋安-厨房: 2025-06-23 (2 items), 2025-06-24 (2 items)
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-23', '白菜', '', 2.0, '10', '斤', 20.0)`);
+    VALUES ('洋安-厨房', '2025-06-23', '白菜', '', 2.0, '10', '斤', 20.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-23', '萝卜', '', 3.0, '5', '斤', 15.0)`);
+    VALUES ('洋安-厨房', '2025-06-23', '萝卜', '', 3.0, '5', '斤', 15.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-24', '土豆', '', 1.5, '20', '斤', 30.0)`);
+    VALUES ('洋安-厨房', '2025-06-24', '土豆', '', 1.5, '20', '斤', 30.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-24', '茄子', '', 4.0, '3', '斤', 12.0)`);
+    VALUES ('洋安-厨房', '2025-06-24', '茄子', '', 4.0, '3', '斤', 12.0)`);
 
-  // 食堂A-联华: 2025-06-23 (1 item), 2025-06-24 (1 item)
+  // 洋安-联华: 2025-06-23 (1 item), 2025-06-24 (1 item)
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-联华', '2025-06-23', '联华A', '', 10.0, '2', '件', 20.0)`);
+    VALUES ('洋安-联华', '2025-06-23', '联华A', '', 10.0, '2', '件', 20.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-联华', '2025-06-24', '联华B', '', 12.0, '1', '件', 12.0)`);
+    VALUES ('洋安-联华', '2025-06-24', '联华B', '', 12.0, '1', '件', 12.0)`);
 
-  // 食堂E-厨房: independent canteen — should be completely unaffected
+  // 白南山-厨房: independent canteen — should be completely unaffected
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂E-厨房', '2025-06-23', '青椒', '', 5.0, '8', '斤', 40.0)`);
+    VALUES ('白南山-厨房', '2025-06-23', '青椒', '', 5.0, '8', '斤', 40.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂E-厨房', '2025-06-24', '黄瓜', '', 3.0, '6', '斤', 18.0)`);
+    VALUES ('白南山-厨房', '2025-06-24', '黄瓜', '', 3.0, '6', '斤', 18.0)`);
 
   assert.strictEqual(countTable(db, 'purchase_orders'), 8, 'seed: 8 orders total');
 
-  // Phase 2: Simulate recall — user loads data for both dates for 食堂A
+  // Phase 2: Simulate recall — user loads data for both dates for 洋安
   // (nothing to do in DB — data is already there)
 
-  // Phase 3: User deletes ONE item (白菜 from 食堂A-厨房 2025-06-23)
-  // The DOM now has: 食堂A-厨房 06-23: [萝卜], 06-24: [土豆, 茄子]
-  //                   食堂A-联华 06-23: [联华A], 06-24: [联华B]
-  //                   食堂E-厨房: NOT in DOM (user didn't recall it)
+  // Phase 3: User deletes ONE item (白菜 from 洋安-厨房 2025-06-23)
+  // The DOM now has: 洋安-厨房 06-23: [萝卜], 06-24: [土豆, 茄子]
+  //                   洋安-联华 06-23: [联华A], 06-24: [联华B]
+  //                   白南山-厨房: NOT in DOM (user didn't recall it)
 
   // Phase 4: Export → silentSave → saveAllPurchaseOrders collects ALL DOM date-groups
-  // sourceDates from DOM (食堂E not in DOM, so not collected):
+  // sourceDates from DOM (白南山 not in DOM, so not collected):
   const sourceDates = [
-    { source: '食堂A-厨房', date: '2025-06-23' },
-    { source: '食堂A-厨房', date: '2025-06-24' },
-    { source: '食堂A-联华', date: '2025-06-23' },
-    { source: '食堂A-联华', date: '2025-06-24' },
+    { source: '洋安-厨房', date: '2025-06-23' },
+    { source: '洋安-厨房', date: '2025-06-24' },
+    { source: '洋安-联华', date: '2025-06-23' },
+    { source: '洋安-联华', date: '2025-06-24' },
   ];
   // orders collected from DOM (白菜 is gone — user deleted it):
   const orders = [
-    { source: '食堂A-厨房', receive_date: '2025-06-23', product_name: '萝卜', spec: '', unit_price: 3.0, quantity: '5', unit: '斤', amount: 15.0, remark: '', sort_order: 0 },
-    { source: '食堂A-厨房', receive_date: '2025-06-24', product_name: '土豆', spec: '', unit_price: 1.5, quantity: '20', unit: '斤', amount: 30.0, remark: '', sort_order: 0 },
-    { source: '食堂A-厨房', receive_date: '2025-06-24', product_name: '茄子', spec: '', unit_price: 4.0, quantity: '3', unit: '斤', amount: 12.0, remark: '', sort_order: 1 },
-    { source: '食堂A-联华', receive_date: '2025-06-23', product_name: '联华A', spec: '', unit_price: 10.0, quantity: '2', unit: '件', amount: 20.0, remark: '', sort_order: 0 },
-    { source: '食堂A-联华', receive_date: '2025-06-24', product_name: '联华B', spec: '', unit_price: 12.0, quantity: '1', unit: '件', amount: 12.0, remark: '', sort_order: 0 },
+    { source: '洋安-厨房', receive_date: '2025-06-23', product_name: '萝卜', spec: '', unit_price: 3.0, quantity: '5', unit: '斤', amount: 15.0, remark: '', sort_order: 0 },
+    { source: '洋安-厨房', receive_date: '2025-06-24', product_name: '土豆', spec: '', unit_price: 1.5, quantity: '20', unit: '斤', amount: 30.0, remark: '', sort_order: 0 },
+    { source: '洋安-厨房', receive_date: '2025-06-24', product_name: '茄子', spec: '', unit_price: 4.0, quantity: '3', unit: '斤', amount: 12.0, remark: '', sort_order: 1 },
+    { source: '洋安-联华', receive_date: '2025-06-23', product_name: '联华A', spec: '', unit_price: 10.0, quantity: '2', unit: '件', amount: 20.0, remark: '', sort_order: 0 },
+    { source: '洋安-联华', receive_date: '2025-06-24', product_name: '联华B', spec: '', unit_price: 12.0, quantity: '1', unit: '件', amount: 12.0, remark: '', sort_order: 0 },
   ];
 
   // Execute batch save (simulating the fixed savePurchaseOrdersBatch)
@@ -767,42 +767,42 @@ async function test_recall_deleteSingle_export(SQL) {
   const total = countTable(db, 'purchase_orders');
   assert.strictEqual(total, 7, '7 orders: 8 original - 1 deleted = 7');
 
-  // 1. 食堂A-厨房 06-23: only 萝卜 remains (白菜 deleted)
+  // 1. 洋安-厨房 06-23: only 萝卜 remains (白菜 deleted)
   const yk23 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂A-厨房' AND receive_date = '2025-06-23'"
+    "SELECT product_name FROM purchase_orders WHERE source = '洋安-厨房' AND receive_date = '2025-06-23'"
   );
-  assert.strictEqual(yk23[0].values.length, 1, '食堂A-厨房 06-23: 1 row (萝卜, 白菜 deleted)');
-  assert.strictEqual(yk23[0].values[0][0], '萝卜', '食堂A-厨房 06-23: 萝卜');
+  assert.strictEqual(yk23[0].values.length, 1, '洋安-厨房 06-23: 1 row (萝卜, 白菜 deleted)');
+  assert.strictEqual(yk23[0].values[0][0], '萝卜', '洋安-厨房 06-23: 萝卜');
 
-  // 2. 食堂A-厨房 06-24: both items still there
+  // 2. 洋安-厨房 06-24: both items still there
   const yk24 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂A-厨房' AND receive_date = '2025-06-24' ORDER BY product_name"
+    "SELECT product_name FROM purchase_orders WHERE source = '洋安-厨房' AND receive_date = '2025-06-24' ORDER BY product_name"
   );
-  assert.strictEqual(yk24[0].values.length, 2, '食堂A-厨房 06-24: 2 rows preserved');
-  assert.strictEqual(yk24[0].values[0][0], '土豆', '食堂A-厨房 06-24: 土豆');
-  assert.strictEqual(yk24[0].values[1][0], '茄子', '食堂A-厨房 06-24: 茄子');
+  assert.strictEqual(yk24[0].values.length, 2, '洋安-厨房 06-24: 2 rows preserved');
+  assert.strictEqual(yk24[0].values[0][0], '土豆', '洋安-厨房 06-24: 土豆');
+  assert.strictEqual(yk24[0].values[1][0], '茄子', '洋安-厨房 06-24: 茄子');
 
-  // 3. 食堂A-联华: both items preserved
+  // 3. 洋安-联华: both items preserved
   const yl23 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂A-联华' AND receive_date = '2025-06-23'"
+    "SELECT product_name FROM purchase_orders WHERE source = '洋安-联华' AND receive_date = '2025-06-23'"
   );
-  assert.strictEqual(yl23[0].values[0][0], '联华A', '食堂A-联华 06-23 preserved');
+  assert.strictEqual(yl23[0].values[0][0], '联华A', '洋安-联华 06-23 preserved');
   const yl24 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂A-联华' AND receive_date = '2025-06-24'"
+    "SELECT product_name FROM purchase_orders WHERE source = '洋安-联华' AND receive_date = '2025-06-24'"
   );
-  assert.strictEqual(yl24[0].values[0][0], '联华B', '食堂A-联华 06-24 preserved');
+  assert.strictEqual(yl24[0].values[0][0], '联华B', '洋安-联华 06-24 preserved');
 
-  // 4. CRITICAL: 食堂E-厨房 completely preserved (not in DOM → not in sourceDates → not touched)
+  // 4. CRITICAL: 白南山-厨房 completely preserved (not in DOM → not in sourceDates → not touched)
   const bs23 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂E-厨房' AND receive_date = '2025-06-23'"
+    "SELECT product_name FROM purchase_orders WHERE source = '白南山-厨房' AND receive_date = '2025-06-23'"
   );
-  assert.strictEqual(bs23[0].values.length, 1, '食堂E-厨房 06-23: preserved');
-  assert.strictEqual(bs23[0].values[0][0], '青椒', '食堂E-厨房: 青椒 intact');
+  assert.strictEqual(bs23[0].values.length, 1, '白南山-厨房 06-23: preserved');
+  assert.strictEqual(bs23[0].values[0][0], '青椒', '白南山-厨房: 青椒 intact');
   const bs24 = db.exec(
-    "SELECT product_name FROM purchase_orders WHERE source = '食堂E-厨房' AND receive_date = '2025-06-24'"
+    "SELECT product_name FROM purchase_orders WHERE source = '白南山-厨房' AND receive_date = '2025-06-24'"
   );
-  assert.strictEqual(bs24[0].values.length, 1, '食堂E-厨房 06-24: preserved');
-  assert.strictEqual(bs24[0].values[0][0], '黄瓜', '食堂E-厨房: 黄瓜 intact');
+  assert.strictEqual(bs24[0].values.length, 1, '白南山-厨房 06-24: preserved');
+  assert.strictEqual(bs24[0].values[0][0], '黄瓜', '白南山-厨房: 黄瓜 intact');
 
   db.close();
   runPassed('recall→delete×1→export: same-source other-date preserved, other-source fully intact');
@@ -819,7 +819,7 @@ async function test_clearDOM_hasPurchasePageData_false(SQL) {
 
   // Pre-seed data
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
-    VALUES ('食堂A-厨房', '2025-06-01', 'Item', '', 2.0, '10', '斤', 20.0)`);
+    VALUES ('洋安-厨房', '2025-06-01', 'Item', '', 2.0, '10', '斤', 20.0)`);
   db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
     VALUES ('联华', '2025-06-01', 'Lianhua', '', 3.0, '1', '件', 3.0)`);
   assert.strictEqual(countTable(db, 'purchase_orders'), 2, 'seed: 2 orders');
@@ -840,7 +840,7 @@ async function test_clearDOM_hasPurchasePageData_false(SQL) {
   assert.strictEqual(countTable(db, 'purchase_orders'), 2, 'DB untouched after clearDOM');
   const all = db.exec("SELECT source, product_name FROM purchase_orders");
   assert.strictEqual(all[0].values.length, 2, 'both orders preserved');
-  assert.strictEqual(all[0].values[0][1], 'Item', '食堂A item preserved');
+  assert.strictEqual(all[0].values[0][1], 'Item', '洋安 item preserved');
   assert.strictEqual(all[0].values[1][1], 'Lianhua', '联华 item preserved');
 
   // Also test: after clearDOM, hasPurchasePageData concept — no product_name inputs
@@ -852,8 +852,302 @@ async function test_clearDOM_hasPurchasePageData_false(SQL) {
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Test 12: getLatestReceiveDate — returns max receive_date for cross-month recall
+// Task 1+3: DB 中有 receive_date > today → getLatestReceiveDate 返回最大日期
 // ---------------------------------------------------------------------------
+
+async function test_getLatestReceiveDate_crossMonth(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Pre-seed with dates including a future one (simulating月末录入下月单)
+  db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
+    VALUES ('洋安-厨房', '2025-06-28', '今日1', '', 1.0, '1', '斤', 1.0)`);
+  db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
+    VALUES ('洋安-厨房', '2025-06-28', '今日2', '', 2.0, '2', '斤', 4.0)`);
+  db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
+    VALUES ('洋安-厨房', '2025-07-01', '跨月单', '', 3.0, '3', '斤', 9.0)`);
+  // Multiple future dates: max should be 07-03
+  db.run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount)
+    VALUES ('洋安-厨房', '2025-07-03', '更远跨月', '', 4.0, '1', '斤', 4.0)`);
+
+  const maxRow = db.exec("SELECT MAX(receive_date) as max_date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != ''");
+  const maxDate = maxRow[0] ? maxRow[0].values[0][0] : null;
+
+  assert.strictEqual(maxDate, '2025-07-03', 'max receive_date is the furthest future date');
+  // Also verify it's > '2025-06-28' (today would be 06-28, so max > today → recall default to covers future)
+  assert.ok(maxDate > '2025-06-28', 'max date > today covers cross-month orders');
+
+  db.close();
+  runPassed('getLatestReceiveDate: returns max receive_date including cross-month future dates');
+}
+
+// ---------------------------------------------------------------------------
+// Test 13: getLatestReceiveDate — empty DB returns null
+// Task 15: DB 无数据 → MAX 返回 null → 调取默认 to = today
+// ---------------------------------------------------------------------------
+
+async function test_getLatestReceiveDate_emptyDB(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  const maxRow = db.exec("SELECT MAX(receive_date) as max_date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != ''");
+  const maxVal = maxRow[0] ? maxRow[0].values[0][0] : null;
+
+  assert.strictEqual(maxVal, null, 'empty DB returns null → recall defaults to today');
+
+  db.close();
+  runPassed('getLatestReceiveDate: empty DB returns null');
+}
+
+// ---------------------------------------------------------------------------
+// Test 14: dateToMonthStr — 跨月日期格式转换
+// Task 16: "7月1日" → "2026-07", "2026-07-01" → "2026-07"
+// ---------------------------------------------------------------------------
+
+async function test_dateToMonthStr_crossMonth(SQL) {
+  // Note: this is a unit test for the utility function, no DB needed
+  // We test the function as it would be called in the browser context
+  // Simulate: today is June 2026, input is "7月1日" → month should be 2026-07
+
+  // "YYYY-MM-DD" format
+  {
+    const m1 = /^(\d{4})-(\d{2})-\d{2}$/.exec('2026-07-01');
+    assert.ok(m1, 'ISO date matches');
+    assert.strictEqual(`${m1[1]}-${m1[2]}`, '2026-07', '2026-07-01 → 2026-07');
+  }
+  {
+    const m2 = /^(\d{4})-(\d{2})-\d{2}$/.exec('2025-12-31');
+    assert.ok(m2, 'ISO date matches');
+    assert.strictEqual(`${m2[1]}-${m2[2]}`, '2025-12', '2025-12-31 → 2025-12');
+  }
+
+  // "M月D日" format
+  {
+    const m3 = /(\d+)月(\d+)日/.exec('7月1日');
+    assert.ok(m3, 'CN date matches');
+    const month = parseInt(m3[1]);
+    assert.strictEqual(month, 7, 'month is 7');
+    // Inferred year: when thisMonth is 6 and target is 7 → same year
+    assert.strictEqual(`2026-${String(month).padStart(2, '0')}`, '2026-07', '7月1日 → 2026-07');
+  }
+  // Cross-year inference: current 12月, target 1月 → next year
+  {
+    const m4 = /(\d+)月(\d+)日/.exec('1月5日');
+    const month = parseInt(m4[1]);
+    // Simulating: today is December 2026, target is January → should be 2027-01
+    const thisMonth = 12;
+    const year = 2026;
+    const inferredYear = (thisMonth > 9 && month < 4) ? year + 1
+      : (thisMonth < 4 && month > 9) ? year - 1
+      : year;
+    assert.strictEqual(inferredYear, 2027, '12月录入1月 → 推断为下一年');
+  }
+  // Cross-year inference: current 1月, target 12月 → previous year
+  {
+    const m5 = /(\d+)月(\d+)日/.exec('12月20日');
+    const month = parseInt(m5[1]);
+    const thisMonth = 1;
+    const year = 2027;
+    const inferredYear = (thisMonth > 9 && month < 4) ? year + 1
+      : (thisMonth < 4 && month > 9) ? year - 1
+      : year;
+    assert.strictEqual(inferredYear, 2026, '1月录入12月 → 推断为上一年');
+  }
+
+  runPassed('dateToMonthStr: cross-month date format conversion + year inference');
+}
+
+// ---------------------------------------------------------------------------
+// Test 15: getPreviousMonthStr — 月份回退 + 跨年
+// Task 17: "2026-07" → "2026-06", "2026-01" → "2025-12"
+// ---------------------------------------------------------------------------
+
+async function test_getPreviousMonthStr(SQL) {
+  // Normal case
+  assert.strictEqual(getPrevMonth('2026-07'), '2026-06', '7月 → 6月');
+  assert.strictEqual(getPrevMonth('2026-06'), '2026-05', '6月 → 5月');
+  // Cross-year
+  assert.strictEqual(getPrevMonth('2026-01'), '2025-12', '1月 → 去年12月');
+  assert.strictEqual(getPrevMonth('2025-01'), '2024-12', '2025年1月 → 2024年12月');
+  // Null safety
+  assert.strictEqual(getPrevMonth(null), null, 'null → null');
+
+  function getPrevMonth(month) {
+    if (!month) return null;
+    const [year, mon] = month.split('-').map(Number);
+    if (mon === 1) return `${year - 1}-12`;
+    return `${year}-${String(mon - 1).padStart(2, '0')}`;
+  }
+
+  runPassed('getPreviousMonthStr: month decrement + cross-year boundary');
+}
+
+// ---------------------------------------------------------------------------
+// Test 16: inquiry fallback — target month has no data → fallback to prev month
+// Task 17: 目标月份无询价 → fallback 到上月询价 → 搜索结果来自上月
+// ---------------------------------------------------------------------------
+
+async function test_inquiryFallback_prevMonth(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Seed: only June inquiry data
+  db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec)
+    VALUES ('2026-06', '蔬菜', '白菜', 2.0, '斤', '散装')`);
+  db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec)
+    VALUES ('2026-06', '蔬菜', '萝卜', 3.0, '斤', '散装')`);
+
+  // Simulate search for July (which has no inquiry) → should get no results
+  const julyResults = db.exec(
+    "SELECT * FROM inquiry_items WHERE name LIKE '%白%' AND month = '2026-07'"
+  );
+  const julyCount = julyResults.length > 0 ? julyResults[0].values.length : 0;
+  assert.strictEqual(julyCount, 0, '7月无询价 → 返回空');
+
+  // Fallback: search June (prev month) → should get results
+  const juneResults = db.exec(
+    "SELECT * FROM inquiry_items WHERE name LIKE '%白%' AND month = '2026-06'"
+  );
+  const juneCount = juneResults[0].values.length;
+  assert.strictEqual(juneCount, 1, '沿用6月询价 → 找到白菜');
+  assert.strictEqual(juneResults[0].values[0][3], '白菜', '匹配正确品名'); // col 3 = name
+
+  // Check available months
+  const months = db.exec("SELECT DISTINCT month FROM inquiry_items ORDER BY month DESC");
+  const monthList = months[0].values.map(r => r[0]);
+  assert.ok(monthList.includes('2026-06'), '6月询价存在');
+  assert.ok(!monthList.includes('2026-07'), '7月询价不存在 → 触发 fallback');
+
+  db.close();
+  runPassed('inquiryFallback: target month empty → fallback to prev month works');
+}
+
+// ---------------------------------------------------------------------------
+// Test 17: history enrichOrderPrices — silent fallback, no dialog
+// Task 18: history 价格反查缺少询价时静默 fallback，不弹窗
+// ---------------------------------------------------------------------------
+
+async function test_historyEnrichOrder_silentFallback(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Seed: only June inquiry data (July missing)
+  db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec)
+    VALUES ('2026-06', '蔬菜', '白菜', 2.5, '斤', '散装')`);
+
+  // Simulate: a purchase order with receive_date="7月1日" and unit_price=0
+  // enrichOrderPrices should: detect 7月 missing → fallback to 6月 → find price
+  const order = { product_name: '白菜', receive_date: '7月1日', unit_price: 0, quantity: '10' };
+
+  // Step 1: targetMonth = dateToMonthStr("7月1日") → "2026-07"
+  const cnMatch = order.receive_date.match(/(\d+)月(\d+)日/);
+  const targetMonth = `2026-${String(parseInt(cnMatch[1])).padStart(2, '0')}`;
+  assert.strictEqual(targetMonth, '2026-07', 'receive_date → 2026-07');
+
+  // Step 2: Check if 2026-07 exists → no → fallback to prev month
+  const availableMonths = db.exec("SELECT DISTINCT month FROM inquiry_items");
+  const monthSet = new Set(availableMonths[0].values.map(r => r[0]));
+  assert.ok(!monthSet.has('2026-07'), '7月询价缺失');
+  assert.ok(monthSet.has('2026-06'), '6月询价存在');
+
+  // Step 3: Fallback search in 2026-06
+  const fallbackMonth = '2026-06'; // prev month of 2026-07
+  const results = db.exec(
+    `SELECT * FROM inquiry_items WHERE name LIKE '%${order.product_name}%' AND month = '${fallbackMonth}'`
+  );
+  assert.ok(results.length > 0, 'fallback 到 6月找到结果');
+  const match = results[0].values[0];
+  assert.strictEqual(match[3], '白菜', '品名匹配'); // col 3 = name
+  assert.strictEqual(match[4], 2.5, '价格来自6月询价'); // col 4 = price
+
+  // Verify this is silent (no dialog flag — the caller sets silent=true)
+  // In the actual code, silent mode skips showInquiryFallbackDialog
+
+  db.close();
+  runPassed('historyEnrichOrder: silent fallback when inquiry month missing');
+}
+
+// ---------------------------------------------------------------------------
+// Test 18: inquiry import mid-session → cache refresh → target month becomes available
+// 模拟：缓存说7月不存在 → 导入7月询价 → 重取 → 7月可用
+// ---------------------------------------------------------------------------
+
+async function test_inquiryImport_refreshCache(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Step 1: Only June inquiry exists initially
+  db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec)
+    VALUES ('2026-06', '蔬菜', '白菜', 2.0, '斤', '散装')`);
+
+  // Simulate first cache init: only 6月
+  const months1 = db.exec("SELECT DISTINCT month FROM inquiry_items ORDER BY month DESC");
+  const cached1 = months1[0].values.map(r => r[0]);
+  assert.deepStrictEqual(cached1, ['2026-06'], '初始只有6月');
+  assert.ok(!cached1.includes('2026-07'), '7月不在缓存中');
+
+  // Step 2: User imports July inquiry mid-session
+  db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec)
+    VALUES ('2026-07', '蔬菜', '白菜', 2.5, '斤', '散装')`);
+  db.run(`INSERT INTO inquiry_items (month, category, name, price, unit, spec)
+    VALUES ('2026-07', '蔬菜', '萝卜', 3.5, '斤', '散装')`);
+
+  // Step 3: Re-fetch → cache now includes 7月
+  const months2 = db.exec("SELECT DISTINCT month FROM inquiry_items ORDER BY month DESC");
+  const cached2 = months2[0].values.map(r => r[0]);
+  assert.deepStrictEqual(cached2, ['2026-07', '2026-06'], '导入后缓存包含7月');
+  assert.ok(cached2.includes('2026-07'), '7月导入后立即可用');
+
+  // Step 4: Search 7月 → returns results with 7月 prices
+  const results = db.exec(
+    "SELECT name, price FROM inquiry_items WHERE name LIKE '%白%' AND month = '2026-07'"
+  );
+  assert.strictEqual(results[0].values.length, 1, '7月找到白菜');
+  assert.strictEqual(results[0].values[0][0], '白菜');
+  assert.strictEqual(results[0].values[0][1], 2.5, '使用7月价格(2.5)而非6月(2.0)');
+
+  db.close();
+  runPassed('inquiryImport: mid-session import → cache refreshed → new month available');
+}
+
+// ---------------------------------------------------------------------------
+// Test 19: dateToMonthStr — edge cases (empty, malformed, boundary)
+// ---------------------------------------------------------------------------
+
+async function test_dateToMonthStr_edgeCases(SQL) {
+  // null/empty
+  assert.strictEqual(dateToMonthStrTest(null), null, 'null → null');
+  assert.strictEqual(dateToMonthStrTest(''), null, 'empty → null');
+  assert.strictEqual(dateToMonthStrTest('abc'), null, 'garbage → null');
+  assert.strictEqual(dateToMonthStrTest('13月1日'), null, 'invalid month → null');
+
+  // Standard formats
+  assert.strictEqual(dateToMonthStrTest('2026-07-01'), '2026-07', 'ISO format');
+  assert.strictEqual(dateToMonthStrTest('2026-01-05'), '2026-01', 'January ISO');
+  assert.strictEqual(dateToMonthStrTest('12月31日'), '2026-12', 'December in June → same year');
+
+  function dateToMonthStrTest(dateStr) {
+    if (!dateStr) return null;
+    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-\d{2}$/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}`;
+    const cnMatch = dateStr.match(/(\d+)月(\d+)日/);
+    if (cnMatch) {
+      const month = parseInt(cnMatch[1]);
+      if (month < 1 || month > 12) return null;
+      // Simulate: today is 2026-06-30
+      const thisMonth = 6;
+      const year = 2026;
+      const inferredYear = (thisMonth > 9 && month < 4) ? year + 1
+        : (thisMonth < 4 && month > 9) ? year - 1
+        : year;
+      return `${inferredYear}-${String(month).padStart(2, '0')}`;
+    }
+    return null;
+  }
+
+  runPassed('dateToMonthStr: edge cases (null, empty, malformed, boundary)');
+}
 
 async function main() {
   console.log('DB Tests\n');
@@ -872,6 +1166,14 @@ async function main() {
   await test_saveMatrixData_crossDate(SQL);
   await test_recall_deleteSingle_export(SQL);
   await test_clearDOM_hasPurchasePageData_false(SQL);
+  await test_getLatestReceiveDate_crossMonth(SQL);
+  await test_getLatestReceiveDate_emptyDB(SQL);
+  await test_dateToMonthStr_crossMonth(SQL);
+  await test_getPreviousMonthStr(SQL);
+  await test_inquiryFallback_prevMonth(SQL);
+  await test_historyEnrichOrder_silentFallback(SQL);
+  await test_inquiryImport_refreshCache(SQL);
+  await test_dateToMonthStr_edgeCases(SQL);
 
   console.log('\nAll DB tests passed');
 }

@@ -200,6 +200,7 @@ ipcMain.handle('purchaseOrders:getByDate', (e, date) => {
 });
 ipcMain.handle('purchaseOrders:historyDates', (_, days, sources, excludeSources) => db.getPurchaseHistoryDates(days, sources, excludeSources));
 ipcMain.handle('purchaseOrders:cleanOld', (e, days) => db.cleanOldPurchaseOrders(days));
+ipcMain.handle('purchaseOrders:getLatestReceiveDate', () => db.getLatestReceiveDate());
 
 // 批量保存采购单（事务保护：按 source+date 清除，不误伤同 source 其他日期数据）
 ipcMain.handle('purchaseOrders:saveBatch', (e, { sourceDates, orders }) => {

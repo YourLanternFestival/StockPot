@@ -366,11 +366,11 @@ function filterOrdersByDate(orders, today) {
   return orders.filter(o => o.receive_date >= today);
 }
 const sampleOrders = [
-  { product_name: '青菜', receive_date: '2026-06-22', source: '食堂F-厨房' },
-  { product_name: '可乐', receive_date: '2026-06-22', source: '食堂F-联华' },
-  { product_name: '猪肉', receive_date: '2026-06-15', source: '食堂F-厨房' },  // 上周
-  { product_name: '雪碧', receive_date: '2026-06-15', source: '食堂F-联华' },  // 上周
-  { product_name: '白菜', receive_date: '2026-06-23', source: '食堂F-厨房' },  // 明天
+  { product_name: '青菜', receive_date: '2026-06-22', source: '寿昌-厨房' },
+  { product_name: '可乐', receive_date: '2026-06-22', source: '寿昌-联华' },
+  { product_name: '猪肉', receive_date: '2026-06-15', source: '寿昌-厨房' },  // 上周
+  { product_name: '雪碧', receive_date: '2026-06-15', source: '寿昌-联华' },  // 上周
+  { product_name: '白菜', receive_date: '2026-06-23', source: '寿昌-厨房' },  // 明天
 ];
 const filtered = filterOrdersByDate(sampleOrders, simToday);
 assertEqual(filtered.length, 3, 'receive_date >= today: 3条（今天2条+明天1条）');
@@ -386,11 +386,11 @@ function classifySource(source) {
   if (source.includes('面点房')) return 'pastry';
   return 'unknown';
 }
-assertEqual(classifySource('食堂F-厨房'), 'kitchen', '小所厨房 source');
-assertEqual(classifySource('食堂F-联华'), 'lianhua', '小所联华 source');
-assertEqual(classifySource('食堂A食堂厨房'), 'kitchen', '默认厨房 source');
+assertEqual(classifySource('寿昌-厨房'), 'kitchen', '小所厨房 source');
+assertEqual(classifySource('寿昌-联华'), 'lianhua', '小所联华 source');
+assertEqual(classifySource('洋安食堂厨房'), 'kitchen', '默认厨房 source');
 assertEqual(classifySource('联华'), 'lianhua', '默认联华 source');
-assertEqual(classifySource('食堂A面点房'), 'pastry', '默认面点房 source');
+assertEqual(classifySource('洋安面点房'), 'pastry', '默认面点房 source');
 
 // 保存时所有 source 在一个事务中（原子性）
 function simulateSaveBatch(sourcesWithData, allOrders) {
@@ -403,11 +403,11 @@ function simulateSaveBatch(sourcesWithData, allOrders) {
   return { clearedSources, insertedSources, missingClear, ok: missingClear.length === 0 };
 }
 const batchResult = simulateSaveBatch(
-  ['食堂F-厨房', '食堂F-联华', '食堂G-厨房'],
-  [{ source: '食堂F-厨房' }, { source: '食堂F-厨房' }, { source: '食堂F-联华' }]
+  ['寿昌-厨房', '寿昌-联华', '梅城-厨房'],
+  [{ source: '寿昌-厨房' }, { source: '寿昌-厨房' }, { source: '寿昌-联华' }]
 );
 assert(batchResult.ok, '所有 insert 的 source 都在 cleared 列表中');
-assert(batchResult.clearedSources.has('食堂G-厨房'), '食堂G厨房被清空（用户清空了 DOM）');
+assert(batchResult.clearedSources.has('梅城-厨房'), '梅城厨房被清空（用户清空了 DOM）');
 assertEqual(batchResult.missingClear.length, 0, '无遗漏的 source');
 
 // ── 结果汇总 ──────────────────────────────────────────────

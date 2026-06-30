@@ -45,6 +45,36 @@ function todayStr() {
   return toLocalDateStr(new Date());
 }
 
+// 将日期字符串转为 "YYYY-MM" 格式，支持 "YYYY-MM-DD" 和 "M月D日" 两种格式
+function dateToMonthStr(dateStr) {
+  if (!dateStr) return null;
+  // "YYYY-MM-DD" 格式
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-\d{2}$/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}`;
+  // "M月D日" 格式（DB 中存储的格式）
+  const cnMatch = dateStr.match(/(\d+)月(\d+)日/);
+  if (cnMatch) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = parseInt(cnMatch[1]);
+    // 跨年推断：当前12月，日期是1-3月 → 下一年；当前1-3月，日期是10-12月 → 上一年
+    const thisMonth = now.getMonth() + 1;
+    const inferredYear = (thisMonth > 9 && month < 4) ? year + 1
+      : (thisMonth < 4 && month > 9) ? year - 1
+      : year;
+    return `${inferredYear}-${String(month).padStart(2, '0')}`;
+  }
+  return null;
+}
+
+// 计算上一个月 "2026-07" → "2026-06", "2026-01" → "2025-12"
+function getPreviousMonthStr(month) {
+  if (!month) return null;
+  const [year, mon] = month.split('-').map(Number);
+  if (mon === 1) return `${year - 1}-12`;
+  return `${year}-${String(mon - 1).padStart(2, '0')}`;
+}
+
 // Excel serial number to YYYY-MM-DD (UTC，与时区无关)
 function excelSerialToDate(serial) {
   if (!serial || typeof serial !== 'number') return null;

@@ -88,6 +88,7 @@ contextBridge.exposeInMainWorld('api', {
   getPurchaseOrdersByDate: (date) => ipcRenderer.invoke('purchaseOrders:getByDate', date),
   getPurchaseHistoryDates: (days, sources, excludeSources) => ipcRenderer.invoke('purchaseOrders:historyDates', days, sources, excludeSources),
   cleanOldPurchaseOrders: (days) => ipcRenderer.invoke('purchaseOrders:cleanOld', days),
+  getLatestReceiveDate: () => ipcRenderer.invoke('purchaseOrders:getLatestReceiveDate'),
 
   // Inquiry Items
   getInquiryItems: (month, category) => ipcRenderer.invoke('inquiry:get', { month, category }),

@@ -57,13 +57,13 @@
 - `price_decimals` — 价格小数精度
 
 ### 食堂模式
-- `canteen_mode` — "default"、"multi" 或 "small"（注：持久化的 `canteen_mode` 设置使用代号 `'食堂A'`、`'食堂C'`、`'small'`，下拉框值映射到内部 `xiaosuo_mode` 设置）
+- `canteen_mode` — "default"、"multi" 或 "small"（注：持久化的 `canteen_mode` 设置使用旧地名 `'洋安'`、`'下涯'`、`'small'`，下拉框值映射到内部 `xiaosuo_mode` 设置）
 - `small_canteen_list` — 小所名称 JSON 数组（支持拖拽排序）
 - `small_display_style` — "groups" 或 "matrix"
 
 #### 模式映射
 - HTML 下拉框 `"default"` → `xiaosuo_mode='off'`, `show_pastry='on'`
-- HTML 下拉框 `"multi"` → `canteen_mode='食堂C'`, `xiaosuo_mode='on'`, `show_pastry='off'`
+- HTML 下拉框 `"multi"` → `canteen_mode='下涯'`, `xiaosuo_mode='on'`, `show_pastry='off'`
 - HTML 下拉框 `"small"` → `xiaosuo_mode='small'`, `show_pastry='off'`
 
 ### 图片配置

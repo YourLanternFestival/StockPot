@@ -111,7 +111,7 @@ let APP_SETTINGS = {
   price_decimals: 2,
   inv_inbound_limit: 5, inv_outbound_limit: 10,
   purchase_retention_days: 31,
-  small_canteens: ['食堂F', '食堂G', '食堂H', '食堂I', '食堂J', '食堂K', '食堂L'],
+  small_canteens: ['寿昌', '梅城', '大同', '大洋', '洋溪', '三都', '乾潭'],
 };
 
 // ===== Navigation =====

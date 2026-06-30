@@ -1,13 +1,13 @@
 {
   "name": "in-out",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win",
     "build:update": "node scripts/build-update.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/test-db.js && node test/test-utils.js && node test/test-inquiry-months.js && node test/test-spec-regression.js && node test/test-history-tree.js && node test/test-settings.js"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +28,7 @@
     "jszip": "^3.10.1"
   },
   "build": {
-    "appId": "com.canteen.inventory",
+    "appId": "com.yang-an.inventory",
     "productName": "食堂物资管理",
     "win": {
       "target": [

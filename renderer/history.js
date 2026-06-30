@@ -3,7 +3,7 @@ let historySelectedDate = '';
 let historyData = [];
 
 // 多食堂模式 canteen 列表（与 purchase.js 保持一致）
-const MULTI_CANTEEN_NAMES = ['食堂C', '食堂D', '食堂E'];
+const MULTI_CANTEEN_NAMES = ['下涯', '制杆厂', '白南山'];
 
 // 获取当前模式下应显示/排除的 source 列表
 function getModeSourceFilter() {
@@ -99,6 +99,7 @@ async function loadHistoryByDate(date, btn) {
 }
 
 // 从询价表反查价格，填充 unit_price=0 的记录
+// 按每条 order 的 receive_date 月份查询，缺失时静默 fallback
 async function enrichOrderPrices(orders) {
   const needPrice = orders.filter(o => (!o.unit_price || o.unit_price === 0) && o.product_name);
   if (needPrice.length === 0) return;
@@ -107,19 +108,41 @@ async function enrichOrderPrices(orders) {
   const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
   const factor = Math.pow(10, dec);
 
-  // 获取最新月份的询价数据
-  let currentMonth = null;
-  try {
-    const months = await window.api.getInquiryMonths();
-    currentMonth = months.length > 0 ? months[0].month : null;
-  } catch (e) { /* ignore */ }
+  // 获取所有可用询价月份（复用 purchase.js 的缓存，避免重复 IPC）
+  if (!window._availableInquiryMonths) {
+    try {
+      const months = await window.api.getInquiryMonths();
+      window._availableInquiryMonths = months.map(m => m.month);
+    } catch (e) { /* ignore */ }
+  }
+  const availableMonths = window._availableInquiryMonths || [];
+  if (availableMonths.length === 0) return;
+  const monthSet = new Set(availableMonths);
 
-  if (!currentMonth) return;
-
-  // 逐条反查（批量查询避免全表扫描）
+  // 逐条反查：按 receive_date 月份查询，缺失时 fallback
   for (const order of needPrice) {
     try {
-      const results = await window.api.searchInquiryItems(order.product_name, currentMonth);
+      const targetMonth = dateToMonthStr(order.receive_date);
+      let searchMonth = null;
+
+      // 1. 优先用 targetMonth
+      if (targetMonth && monthSet.has(targetMonth)) {
+        searchMonth = targetMonth;
+      } else if (targetMonth) {
+        // 2. targetMonth 缺失 → fallback 上月
+        const prevMonth = getPreviousMonthStr(targetMonth);
+        if (prevMonth && monthSet.has(prevMonth)) {
+          searchMonth = prevMonth;
+        }
+      }
+
+      // 3. 兜底：最新月份
+      if (!searchMonth && availableMonths.length > 0) {
+        searchMonth = availableMonths[0].month;
+      }
+      if (!searchMonth) continue;
+
+      const results = await window.api.searchInquiryItems(order.product_name, searchMonth);
       const match = results.find(r => r.name.toLowerCase() === order.product_name.toLowerCase()) || results[0];
       if (match && match.price) {
         const rawPrice = match.price;
@@ -267,7 +290,7 @@ function renderHistoryTable(title, items, subtotal, dec) {
 // 多食堂模式历史：按所分割（复用小所模式的分割线布局）
 function renderMultiCanteenHistory(orders, date) {
   const dec = APP_SETTINGS.price_decimals || 2;
-  const canteenNames = ['食堂C', '食堂D', '食堂E'];
+  const canteenNames = ['下涯', '制杆厂', '白南山'];
 
   const groups = {};
   orders.forEach(order => {
@@ -335,7 +358,7 @@ function renderDefaultHistory(orders) {
     groups[source].push(order);
   });
 
-  const orderedSources = ['联华', '食堂A厨房', '食堂A面点房', '食堂B厨房', '食堂B面点房', '食堂A厨房', '食堂B厨房'];
+  const orderedSources = ['联华', '洋安食堂厨房', '洋安面点房', '新安食堂厨房', '新安面点房', '洋安厨房', '新安厨房'];
   Object.keys(groups).forEach(source => {
     if (!orderedSources.includes(source)) orderedSources.push(source);
   });

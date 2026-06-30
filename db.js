@@ -69,7 +69,7 @@ async function init() {
 
     CREATE TABLE IF NOT EXISTS purchase_orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      source TEXT DEFAULT '食堂A',
+      source TEXT DEFAULT '洋安食堂',
       receive_date TEXT,
       product_name TEXT NOT NULL,
       spec TEXT DEFAULT '',
@@ -707,7 +707,7 @@ function getPurchaseOrders(source) {
 function addPurchaseOrder(data) {
   run(`INSERT INTO purchase_orders (source, receive_date, product_name, spec, unit_price, quantity, unit, amount, remark, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [data.source || '食堂A', data.receive_date || '', data.product_name, data.spec || '',
+    [data.source || '洋安食堂', data.receive_date || '', data.product_name, data.spec || '',
      data.unit_price || 0, data.quantity || '', data.unit || '', data.amount || 0, data.remark || '', data.sort_order || 0]);
   if (!inTransaction) save();
 }
@@ -760,6 +760,11 @@ function getPurchaseHistoryDates(days = 31, sources, excludeSources) {
   sql += ' ORDER BY date DESC LIMIT ?';
   params.push(days);
   return queryAll(sql, params);
+}
+
+function getLatestReceiveDate() {
+  const row = queryOne('SELECT MAX(receive_date) as max_date FROM purchase_orders WHERE receive_date IS NOT NULL AND receive_date != \'\'');
+  return row ? row.max_date : null;
 }
 
 function cleanOldPurchaseOrders(daysToKeep = 31) {
@@ -982,7 +987,7 @@ module.exports = {
   getDashboardStats,
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,
-  deletePurchaseOrdersByDate, getPurchaseOrdersByDate, getPurchaseHistoryDates, cleanOldPurchaseOrders,
+  deletePurchaseOrdersByDate, getPurchaseOrdersByDate, getPurchaseHistoryDates, getLatestReceiveDate, cleanOldPurchaseOrders,
   // Inquiry Items
   getInquiryItems, searchInquiryItems, addInquiryItem, updateInquiryItem, importInquiryItems, getInquiryMonths, getLatestCategoryForName, deleteInquiryItem,
   // Remark Memory

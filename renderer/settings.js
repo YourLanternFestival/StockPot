@@ -35,9 +35,9 @@ const SETTING_DEFAULTS = {
   enter_mode: 'next-row',
   photo_folder: '',
   inv_inbound_limit: '5', inv_outbound_limit: '10',
-  canteen_mode: '食堂A', show_pastry: 'on', xiaosuo_mode: 'off',
-  current_canteen: '食堂A',
-  small_canteens: '["食堂F","食堂G","食堂H","食堂I","食堂J","食堂K","食堂L"]',
+  canteen_mode: '洋安', show_pastry: 'on', xiaosuo_mode: 'off',
+  current_canteen: '洋安',
+  small_canteens: '["寿昌","梅城","大同","大洋","洋溪","三都","乾潭"]',
   small_export_style: 'matrix',
   small_display_style: 'groups',
   show_matrix_remarks: 'on',
@@ -94,7 +94,7 @@ async function initSettingsPage() {
     const rawMode = settings.canteen_mode || SETTING_DEFAULTS.canteen_mode;
     const xiaosuoMode = settings.xiaosuo_mode || SETTING_DEFAULTS.xiaosuo_mode;
     let modeValue = 'default';
-    if (xiaosuoMode === 'on' || ['食堂C','食堂D','食堂E'].includes(rawMode)) {
+    if (xiaosuoMode === 'on' || ['下涯','制杆厂','白南山'].includes(rawMode)) {
       modeValue = 'multi';
     }
     document.getElementById('setting-canteen-mode').value = modeValue;
@@ -105,6 +105,14 @@ async function initSettingsPage() {
     const displayStyleEl = document.getElementById('setting-small-display-style');
     if (displayStyleEl) displayStyleEl.value = settings.small_display_style || SETTING_DEFAULTS.small_display_style;
     toggleSmallCanteenConfig();
+    // 恢复已保存的 CSS 状态，清理上次预览可能残留的 biophilic CSS 属性
+    applyTheme(
+      settings.theme || SETTING_DEFAULTS.theme,
+      settings.theme_font || SETTING_DEFAULTS.theme_font,
+      settings.theme_nav_size || SETTING_DEFAULTS.theme_nav_size,
+      settings.theme_body_size || SETTING_DEFAULTS.theme_body_size,
+      settings.theme_color || SETTING_DEFAULTS.theme_color
+    );
   } catch (err) {
     console.error('Load settings error:', err);
   }
@@ -127,7 +135,7 @@ async function saveSettings() {
     // 食堂模式：将新模式映射到旧的 canteen_mode / xiaosuo_mode / show_pastry
     const mode = document.getElementById('setting-canteen-mode').value;
     if (mode === 'multi') {
-      await window.api.setSetting('canteen_mode', '食堂C');
+      await window.api.setSetting('canteen_mode', '下涯');
       await window.api.setSetting('xiaosuo_mode', 'on');
       await window.api.setSetting('show_pastry', 'off');
     } else if (mode === 'small') {
@@ -173,7 +181,7 @@ async function loadAppSettings() {
       canteen_mode: g('canteen_mode'),
       show_pastry: g('show_pastry'),
       xiaosuo_mode: g('xiaosuo_mode'),
-      current_canteen: g('current_canteen') || g('canteen_mode') || '食堂A',
+      current_canteen: g('current_canteen') || g('canteen_mode') || '洋安',
       small_canteens: JSON.parse(g('small_canteens')),
       small_export_style: g('small_export_style'),
       small_display_style: g('small_display_style'),
@@ -309,9 +317,17 @@ function onThemeColorChange(hex) {
   const theme = document.getElementById('setting-theme').value;
   if (theme === 'biophilic') {
     applyThemeColor(hex);
-  } else {
-    // 默认模式：应用自定义配色（用户可选择覆盖默认蓝色）
-    applyThemeColor(hex);
+  }
+  // 默认主题：仅更新预览色块和 hex 显示，不设置全局 CSS 变量（避免泄露）
+  else {
+    const palette = generatePalette(hex);
+    const ids = { 'tc-primary': palette.primary, 'tc-sage': palette.sage, 'tc-moss': palette.moss, 'tc-leaf': palette.leaf, 'tc-cream': palette.cream };
+    for (const [id, color] of Object.entries(ids)) {
+      const el = document.getElementById(id);
+      if (el) el.style.background = color;
+    }
+    const hexEl = document.getElementById('theme-color-hex');
+    if (hexEl) hexEl.textContent = hex;
   }
 }
 
@@ -342,7 +358,7 @@ function syncDiscountToInquiry() {
 // ===== 小所配置 =====
 function renderSmallCanteenList(jsonStr) {
   let canteens;
-  try { canteens = JSON.parse(jsonStr); } catch { canteens = ['食堂F','食堂G','食堂H','食堂I','食堂J','食堂K','食堂L']; }
+  try { canteens = JSON.parse(jsonStr); } catch { canteens = ['寿昌','梅城','大同','大洋','洋溪','三都','乾潭']; }
   const container = document.getElementById('small-canteen-list');
   if (!container) return;
   container.innerHTML = canteens.map((name, idx) => `
