@@ -277,14 +277,25 @@ function initSmallCanteenMode() {
     return `<button class="tab-btn${idx === 0 ? ' active' : ''}" data-page="${idx}" onclick="switchSmallCanteenPage(${idx})">${label}</button>`;
   }).join('');
 
-  if (!smallModeInitialized) {
-    // 填充联华加购下拉菜单
-    const dropdown = document.getElementById('lianhua-dropdown');
-    if (dropdown) {
-      dropdown.innerHTML = canteens.map(c =>
-        `<div class="dropdown-menu-item" onclick="showAddLianhuaDate('${c}-联华'); document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));">${c}</div>`
-      ).join('');
-    }
+  // 检测小所列表是否变动（新增/删除），需要重建 purchase-group DOM
+  const existingSources = new Set();
+  areaEl.querySelectorAll('.purchase-group[data-source]').forEach(g => existingSources.add(g.dataset.source));
+  const neededSources = new Set();
+  canteens.forEach(c => { neededSources.add(`${c}-厨房`); neededSources.add(`${c}-联华`); });
+  const sourcesChanged = existingSources.size !== neededSources.size ||
+    [...neededSources].some(s => !existingSources.has(s));
+
+  // 填充联华加购下拉菜单（每次刷新，支持新增/删除小所）
+  const dropdown = document.getElementById('lianhua-dropdown');
+  if (dropdown) {
+    dropdown.innerHTML = canteens.map(c =>
+      `<div class="dropdown-menu-item" onclick="showAddLianhuaDate('${c}-联华'); document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));">${c}</div>`
+    ).join('');
+  }
+
+  if (!smallModeInitialized || sourcesChanged) {
+    // 清空旧 DOM（联动切换时可能有残留）
+    areaEl.querySelectorAll('.purchase-group').forEach(g => g.remove());
 
     // 先创建所有厨房 group，再创建所有联华 group
     // 这样 .small-parallel 的 grid 两列会把同类型（厨房/厨房）并排显示
