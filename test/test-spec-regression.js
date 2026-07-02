@@ -361,23 +361,37 @@ assert(!shouldLoadPurchaseData(afterExport, simToday), '导出后下次进入 �
 const afterReEdit = simulateSave(afterExport, simToday, false);
 assert(shouldLoadPurchaseData(afterReEdit, simToday), '导出后重新编辑保存 → shouldLoadData=true');
 
-// loadPurchaseGroupData 的 DB 过滤逻辑：只加载 receive_date >= today
+// loadPurchaseGroupData / loadAllSmallMatrixData 的过滤：按 created_at（创建日期）过滤
+  // 修复：之前用 receive_date >= today，昨天创建但收货日=今天的单子被误加载
 function filterOrdersByDate(orders, today) {
-  return orders.filter(o => o.receive_date >= today);
+  return orders.filter(o => o.created_at && o.created_at.startsWith(today));
 }
 const sampleOrders = [
-  { product_name: '青菜', receive_date: '2026-06-22', source: '寿昌-厨房' },
-  { product_name: '可乐', receive_date: '2026-06-22', source: '寿昌-联华' },
-  { product_name: '猪肉', receive_date: '2026-06-15', source: '寿昌-厨房' },  // 上周
-  { product_name: '雪碧', receive_date: '2026-06-15', source: '寿昌-联华' },  // 上周
-  { product_name: '白菜', receive_date: '2026-06-23', source: '寿昌-厨房' },  // 明天
+  { product_name: '青菜', receive_date: '2026-06-22', created_at: '2026-06-22 09:00:00', source: '寿昌-厨房' },
+  { product_name: '可乐', receive_date: '2026-06-22', created_at: '2026-06-22 10:00:00', source: '寿昌-联华' },
+  { product_name: '猪肉', receive_date: '2026-06-22', created_at: '2026-06-15 08:00:00', source: '寿昌-厨房' },  // 上周创建，收货日=今天（应过滤）
+  { product_name: '雪碧', receive_date: '2026-06-22', created_at: '2026-06-15 08:00:00', source: '寿昌-联华' },  // 同上
+  { product_name: '白菜', receive_date: '2026-06-23', created_at: '2026-06-22 11:00:00', source: '寿昌-厨房' },  // 今天创建，明天收货
+  { product_name: '老数据', receive_date: '2026-06-22', source: '寿昌-厨房' },  // created_at 缺失（旧数据）
 ];
 const filtered = filterOrdersByDate(sampleOrders, simToday);
-assertEqual(filtered.length, 3, 'receive_date >= today: 3条（今天2条+明天1条）');
-assert(filtered.every(o => o.receive_date >= simToday), '所有过滤结果 receive_date >= today');
-assert(filtered.find(o => o.product_name === '猪肉') === undefined, '上周猪肉被过滤');
-assert(filtered.find(o => o.product_name === '雪碧') === undefined, '上周雪碧被过滤');
-assert(filtered.find(o => o.product_name === '白菜') !== undefined, '明天的白菜保留（提前录入）');
+assertEqual(filtered.length, 3, 'created_at filter: 3条（今天2条+明天1条）');
+assert(filtered.every(o => o.created_at && o.created_at.startsWith(simToday)), 'all kept have created_at = today');
+assert(filtered.find(o => o.product_name === '青菜') !== undefined, 'today-created qingcai kept');
+assert(filtered.find(o => o.product_name === '可乐') !== undefined, 'today-created kele kept');
+assert(filtered.find(o => o.product_name === '白菜') !== undefined, 'today-created baicai kept');
+assert(filtered.find(o => o.product_name === '猪肉') === undefined, 'last-week zhurou filtered (receive=today but created!=today)');
+assert(filtered.find(o => o.product_name === '雪碧') === undefined, 'last-week xuebi filtered');
+assert(filtered.find(o => o.product_name === '老数据') === undefined, 'no-created_at old data filtered');
+
+  // Edge case: created_at is null → safely skipped
+  const nullOrders = [
+    { product_name: 'A', receive_date: '2026-06-22', created_at: null, source: 'test' },
+    { product_name: 'B', receive_date: '2026-06-22', created_at: '2026-06-22 08:00:00', source: 'test' },
+  ];
+  const nullFiltered = filterOrdersByDate(nullOrders, simToday);
+  assertEqual(nullFiltered.length, 1, 'created_at=null skipped');
+  assertEqual(nullFiltered[0].product_name, 'B', 'valid created_at kept');
 
 // 所有模式下数据是一个整体：厨房+联华通过 source 后缀区分
 function classifySource(source) {

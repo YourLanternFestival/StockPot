@@ -117,6 +117,14 @@ async function applyCanteenMode() {
   // 隐藏所有
   [tabsEl, switchEl, multiArea, smallTabsEl, smallActionsEl, smallAreaEl, smallMatrixEl, lianhuaEl, kitchenEl, pastryEl].forEach(el => { if (el) el.style.display = 'none'; });
 
+  // 清空非活动模式的 group-content，防止 saveAllPurchaseOrders 跨模式收集残留数据
+  const clearGroupContents = (area) => {
+    if (area) area.querySelectorAll('.group-content').forEach(gc => gc.innerHTML = '');
+  };
+  if (mode !== 'small') { clearGroupContents(smallAreaEl); clearGroupContents(smallMatrixEl); }
+  if (mode !== 'on') clearGroupContents(multiArea);
+  if (mode === 'on' || mode === 'small') { clearGroupContents(lianhuaEl); clearGroupContents(kitchenEl); clearGroupContents(pastryEl); }
+
   if (mode === 'on') {
     // 多食堂模式
     tabsEl.style.display = 'flex';
@@ -519,7 +527,7 @@ async function loadAllSmallMatrixData(canteens, area) {
       const orders = await window.api.getPurchaseOrders(source);
       const today = todayStr();
       for (const order of orders) {
-        if (order.receive_date < today) continue;
+        if (!order.created_at || !order.created_at.startsWith(today)) continue;
         const name = order.product_name;
         if (!name) continue;
         // 使用 name + spec 作为复合键，避免同名不同规格的产品合并到一行
@@ -824,7 +832,7 @@ async function loadPurchaseGroupData(source) {
     const orders = await window.api.getPurchaseOrders(source);
     const today = todayStr();
     const byDate = {};
-    orders.filter(o => o.receive_date >= today).forEach(o => {
+    orders.filter(o => o.created_at && o.created_at.startsWith(today)).forEach(o => {
       if (!byDate[o.receive_date]) byDate[o.receive_date] = [];
       byDate[o.receive_date].push(o);
     });
@@ -1814,7 +1822,7 @@ async function exportAllPurchaseOrders() {
     }
 
     // 确保 DOM 中已加载 DB 数据（新天时 _purchaseShouldLoadData 为 false 会导致 DOM 为空）
-    // 但如果 DOM 已有数据（用户输入或调取加载），跳过清空重载，避免 >= today 过滤丢弃过去日期数据
+    // 但如果 DOM 已有数据（用户输入或调取加载），跳过清空重载，避免覆盖用户正在编辑的内容
     if (!hasPurchasePageData()) {
       const wasShouldLoad = window._purchaseShouldLoadData;
       window._purchaseShouldLoadData = true;

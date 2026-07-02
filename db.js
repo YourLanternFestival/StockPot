@@ -140,6 +140,11 @@ async function init() {
     db.run('ALTER TABLE recipients ADD COLUMN sort_order INTEGER DEFAULT 0');
   } catch (e) { /* column already exists */ }
 
+  // Migration: add created_at column to purchase_orders if missing
+  try {
+    db.run('ALTER TABLE purchase_orders ADD COLUMN created_at TEXT DEFAULT (datetime(\'now\',\'localtime\'))');
+  } catch (e) { /* column already exists */ }
+
   // Create remark_memory table for 备注记忆
   db.run(`
     CREATE TABLE IF NOT EXISTS remark_memory (

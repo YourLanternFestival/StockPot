@@ -242,8 +242,55 @@
 ### 需求：切换时保存
 切换食堂标签页或样式时，系统应先将当前数据保存到数据库。
 
-### 需求：从数据库加载
-进入采购页面时，系统应清空 DOM 并从数据库加载最新数据。
+### 需求：从数据库加载（按创建日期过滤）
+
+进入采购页面时，系统应清空 DOM 并从数据库加载当日创建的数据。
+
+**过滤键**：`created_at`（创建日期戳），非 `receive_date`（收货日期）。
+
+**理由**：`receive_date` 是业务日期（货物哪天到），用户可填未来日期。按 `receive_date >= today` 过滤会把昨天创建但收货日填了今天的单子误加载到今天的采购页。`created_at` 由 DB 自动生成（`datetime('now','localtime')`），精确反映录入时间。
+
+**加载流程**：
+1. `initPurchasePage()` 比较 `last_purchase_date` 与 `todayStr()`：相等 → `_purchaseShouldLoadData = true`，否则 `false`
+2. `loadPurchaseGroupData(source)` 若 `_purchaseShouldLoadData === false` 则清空 DOM 后直接返回（新天 = 空白页）
+3. 若为 `true`：`getPurchaseOrders(source)` 取所有行 → JS 层过滤 `created_at.startsWith(today)` → 按 `receive_date` 分组渲染
+4. 矩阵模式 `loadAllSmallMatrixData` 使用相同过滤逻辑
+
+#### 场景：当天创建的数据被加载
+- 假设 今天为 2026-07-02，DB 中有 `created_at = '2026-07-02 09:00:00'` 的采购记录
+- 且 `last_purchase_date = '2026-07-02'`
+- 当 用户进入采购页面
+- 那么 该记录被加载到 DOM
+
+#### 场景：昨天创建但收货日为今天的数据不被加载
+- 假设 今天为 2026-07-02，DB 中有 `created_at = '2026-07-01 15:00:00'`、`receive_date = '2026-07-02'` 的采购记录
+- 当 用户进入采购页面
+- 那么 该记录**不**被加载（created_at 不是今天）
+- 且 用户可通过"调取"功能按 receive_date 范围手动加载
+
+#### 场景：created_at 缺失的旧数据安全跳过
+- 假设 旧数据库 migration 后 `created_at` 列为 NULL 的行
+- 当 `loadPurchaseGroupData` 执行过滤
+- 那么 `o.created_at &&` 短路 → 该行被跳过，不崩溃
+
+#### 场景：新天首次进入不加载任何数据
+- 假设 `last_purchase_date` 为空或为昨天
+- 当 用户进入采购页面
+- 那么 `_purchaseShouldLoadData = false`
+- 且 DOM 被清空，显示空白编辑区
+- 且 用户可手动"添加日期"开始录入
+
+### 需求：切换模式时清理非活动模式 DOM
+`applyCanteenMode()` 切换默认/多食堂/小所模式时：
+1. 隐藏所有模式区域（`display: none`）
+2. **清空非活动模式的 `group-content`**，防止 `saveAllPurchaseOrders`（查询 `#purchase-container .date-group`）跨模式收集残留数据
+3. 显示活动模式区域并调用对应 `init*` 函数从 DB 重新加载
+
+#### 场景：从小所模式切换到默认模式
+- 假设 用户在小所模式下有 date-group 数据
+- 当 用户切换为默认模式
+- 那么 小所区域的 `group-content` 被清空
+- 且 `saveAllPurchaseOrders` 不再收集到小所模式的残留 date-group
 
 ### 需求：不缓存 DOM
 系统不应在 DOM 状态中缓存采购数据。数据库是唯一真相源。
