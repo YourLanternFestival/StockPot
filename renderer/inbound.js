@@ -287,10 +287,13 @@ async function doSubmitInbound(records) {
   }
 
   showToast(`成功入库 ${records.length} 条记录`);
+  inboundHistoryDirty = true;
   tbody.innerHTML = '';
   inboundInitialized = false;
   initInboundPage();
 }
+
+let inboundHistoryDirty = true;
 
 async function loadRecentInbound() {
   const container = document.getElementById('inbound-history-tree');
@@ -301,14 +304,18 @@ async function loadRecentInbound() {
   }
   if (card) card.style.display = '';
   if (!container) return;
+  if (!inboundHistoryDirty) return;  // ponytail: skip rebuild if no changes
   try {
     const records = await window.api.getInbound({});
     const tree = groupRecordsByDate(records);
     container.innerHTML = renderHistoryTree(tree, 'inbound');
+    inboundHistoryDirty = false;
   } catch (err) {
     console.error('Load recent inbound error:', err);
   }
 }
+
+function markInboundHistoryDirty() { inboundHistoryDirty = true; }
 
 function editInbound(r) {
   // 查找产品的保质期数据，用于编辑时自动重算到期日
@@ -356,6 +363,7 @@ async function doEditInbound(id) {
   });
   closeModal();
   showToast('已更新');
+  inboundHistoryDirty = true;
   loadRecentInbound();
 }
 
@@ -378,6 +386,7 @@ async function doDeleteInbound(id) {
     }
     closeModal();
     showToast('已删除');
+    inboundHistoryDirty = true;
     loadRecentInbound();
   } catch (err) {
     closeModal();

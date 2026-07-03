@@ -729,8 +729,8 @@ async function deleteCheckedHistory(container) {
     }
     showToast(`已删除 ${ids.length} 条`);
     // 刷新对应历史
-    if (type === 'inbound') loadRecentInbound();
-    else loadRecentOutbound();
+    if (type === 'inbound') { inboundHistoryDirty = true; loadRecentInbound(); }
+    else { outboundHistoryDirty = true; loadRecentOutbound(); }
   } catch (err) {
     showToast('批量删除失败: ' + err.message, 'error');
   }
@@ -782,8 +782,8 @@ async function doMoveCheckedHistoryDate() {
     }
     closeModal();
     showToast(`已移动 ${ids.length} 条`);
-    if (type === 'inbound') loadRecentInbound();
-    else loadRecentOutbound();
+    if (type === 'inbound') { inboundHistoryDirty = true; loadRecentInbound(); }
+    else { outboundHistoryDirty = true; loadRecentOutbound(); }
   } catch (err) {
     closeModal();
     showToast('移动失败: ' + err.message, 'error');
@@ -842,8 +842,8 @@ async function doEditCheckedHistory() {
     }
     closeModal();
     showToast(`已修改 ${ids.length} 条`);
-    if (type === 'inbound') loadRecentInbound();
-    else loadRecentOutbound();
+    if (type === 'inbound') { inboundHistoryDirty = true; loadRecentInbound(); }
+    else { outboundHistoryDirty = true; loadRecentOutbound(); }
   } catch (err) {
     closeModal();
     showToast('修改失败: ' + err.message, 'error');

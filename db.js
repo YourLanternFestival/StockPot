@@ -411,6 +411,7 @@ function updateRecipientOrder(orderedNames) {
 
 // ===== Inventory =====
 function getInventory() {
+  const today = toLocalDateStr(new Date());
   return queryAll(`
     SELECT
       p.id, p.name, p.spec, p.unit, p.shelf_months, p.shelf_days, p.unit_price,
@@ -419,11 +420,11 @@ function getInventory() {
       COALESCE(o.total_out, 0) as total_out,
       p.opening_stock + COALESCE(i.total_in, 0) - COALESCE(o.total_out, 0) as stock
     FROM products p
-    LEFT JOIN (SELECT product_id, SUM(quantity) as total_in FROM inbound_records GROUP BY product_id) i ON i.product_id = p.id
-    LEFT JOIN (SELECT product_id, SUM(quantity) as total_out FROM outbound_records GROUP BY product_id) o ON o.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_in FROM inbound_records WHERE date <= ? GROUP BY product_id) i ON i.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_out FROM outbound_records WHERE date <= ? GROUP BY product_id) o ON o.product_id = p.id
     WHERE p.active = 1
     ORDER BY p.id
-  `);
+  `, [today, today]);
 }
 
 function getProductStockDetail(productId, inboundLimit = 5, outboundLimit = 10) {
@@ -556,7 +557,7 @@ function getExpiryAlerts(daysAhead = 60) {
   futureDate.setDate(futureDate.getDate() + daysAhead);
   const future = toLocalDateStr(futureDate);
 
-  // Only alert for products with current stock > 0
+  // Only alert for products with current stock > 0 (up to today, not future-dated)
   return queryAll(`
     SELECT r.*, p.name as product_name, p.spec, p.unit
     FROM inbound_records r
@@ -565,13 +566,13 @@ function getExpiryAlerts(daysAhead = 60) {
       SELECT p2.id,
         p2.opening_stock + COALESCE(i2.s, 0) - COALESCE(o2.s, 0) as stock
       FROM products p2
-      LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM inbound_records GROUP BY product_id) i2 ON i2.product_id = p2.id
-      LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM outbound_records GROUP BY product_id) o2 ON o2.product_id = p2.id
+      LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM inbound_records WHERE date <= ? GROUP BY product_id) i2 ON i2.product_id = p2.id
+      LEFT JOIN (SELECT product_id, SUM(quantity) as s FROM outbound_records WHERE date <= ? GROUP BY product_id) o2 ON o2.product_id = p2.id
       WHERE p2.active = 1
     ) s ON s.id = p.id AND s.stock > 0
     WHERE r.expiry_date IS NOT NULL AND r.expiry_date <= ?
     ORDER BY r.expiry_date ASC
-  `, [future]);
+  `, [today, today, future]);
 }
 
 // ===== Import =====
@@ -689,8 +690,8 @@ function clearAllData() {
 // ===== Stats =====
 function getDashboardStats() {
   const productCount = queryOne('SELECT COUNT(*) as c FROM products WHERE active = 1').c;
-  const totalIn = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM inbound_records').c;
-  const totalOut = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM outbound_records').c;
+  const totalIn = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM inbound_records WHERE date <= ?', [endStr]).c;
+  const totalOut = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM outbound_records WHERE date <= ?', [endStr]).c;
 
   // 30-day trend: single query instead of 60
   const today = new Date();
@@ -730,14 +731,14 @@ function getDashboardStats() {
     SELECT p.name,
       p.opening_stock + COALESCE(i.total_in, 0) - COALESCE(o.total_out, 0) as stock
     FROM products p
-    LEFT JOIN (SELECT product_id, SUM(quantity) as total_in FROM inbound_records GROUP BY product_id) i ON i.product_id = p.id
-    LEFT JOIN (SELECT product_id, SUM(quantity) as total_out FROM outbound_records GROUP BY product_id) o ON o.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_in FROM inbound_records WHERE date <= ? GROUP BY product_id) i ON i.product_id = p.id
+    LEFT JOIN (SELECT product_id, SUM(quantity) as total_out FROM outbound_records WHERE date <= ? GROUP BY product_id) o ON o.product_id = p.id
     WHERE p.active = 1
     GROUP BY p.id
     HAVING stock > 0
     ORDER BY stock DESC
     LIMIT 10
-  `);
+  `, [endStr, endStr]);
 
   return { productCount, totalIn, totalOut, days, top10 };
 }

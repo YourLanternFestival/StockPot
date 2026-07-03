@@ -268,10 +268,13 @@ async function doSubmitOutbound(records) {
   }
 
   showToast(`成功出库 ${records.length} 条记录`);
+  outboundHistoryDirty = true;
   tbody.innerHTML = '';
   outboundInitialized = false;
   initOutboundPage();
 }
+
+let outboundHistoryDirty = true;
 
 async function loadRecentOutbound() {
   const container = document.getElementById('outbound-history-tree');
@@ -282,14 +285,18 @@ async function loadRecentOutbound() {
   }
   if (card) card.style.display = '';
   if (!container) return;
+  if (!outboundHistoryDirty) return;  // ponytail: skip rebuild if no changes
   try {
     const records = await window.api.getOutbound({});
     const tree = groupRecordsByDate(records);
     container.innerHTML = renderHistoryTree(tree, 'outbound');
+    outboundHistoryDirty = false;
   } catch (err) {
     console.error('Load recent outbound error:', err);
   }
 }
+
+function markOutboundHistoryDirty() { outboundHistoryDirty = true; }
 
 function editOutbound(r) {
   const recipientOptions = RECIPIENTS.map(rc => `<option value="${rc.name}" ${rc.name === r.recipient ? 'selected' : ''}>${rc.name}</option>`).join('');
@@ -314,6 +321,7 @@ async function doEditOutbound(id) {
   });
   closeModal();
   showToast('已更新');
+  outboundHistoryDirty = true;
   loadRecentOutbound();
 }
 
@@ -336,6 +344,7 @@ async function doDeleteOutbound(id) {
     }
     closeModal();
     showToast('已删除');
+    outboundHistoryDirty = true;
     loadRecentOutbound();
   } catch (err) {
     closeModal();
