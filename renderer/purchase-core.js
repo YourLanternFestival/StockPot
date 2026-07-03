@@ -372,7 +372,7 @@ function showAddDateDialog(source) {
     </div>
   `, `
     <button class="btn" onclick="closeModal()">取消</button>
-    <button class="btn btn-primary" onclick="doAddDateGroup('${escHtml(source)}')">确定</button>
+    <button class="btn btn-primary" onclick="doAddDateGroup(${JSON.stringify(source)})">确定</button>
   `);
 }
 
@@ -938,7 +938,7 @@ async function ensureDateGroup(source, date, orders) {
       dateGroup.innerHTML = `
         <div class="date-header expanded" onclick="toggleDateGroup(this)">
           <span class="date-toggle">▶</span>
-          <span class="date-label">${date} 收货</span>
+          <span class="date-label">${escHtml(date)} 收货</span>
           <span class="date-summary">${orders.length} 项</span>
           <div class="date-actions">
             <button class="btn btn-sm" onclick="event.stopPropagation(); addPurchaseRows(this)">+ 添加行</button>
