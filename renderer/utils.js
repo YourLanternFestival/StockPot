@@ -3,6 +3,11 @@ function escHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ===== Global Data Dirty Flags =====
+// Set to true after any inbound/outbound mutation (delete/edit/batch submit).
+// Inventory page checks this on activation to auto-refresh stale detail.
+let inventoryDetailDirty = false;
+
 // ===== Date Utilities =====
 function formatDate(dateStr) {
   if (!dateStr) return '';
@@ -654,6 +659,80 @@ function renderHistoryTree(tree, type) {
   }).join('');
 }
 
+// 局部删除单条历史记录行 —— 避免 innerHTML 全量重建导致输入卡顿
+// @param {string|number} recordId  被删除记录的 id
+// @param {string} type             'inbound' | 'outbound'
+function removeHistoryRowFromDOM(recordId, type) {
+  const containerId = type === 'inbound' ? 'inbound-history-tree' : 'outbound-history-tree';
+  const container = document.getElementById(containerId);
+  if (!container) return false;
+
+  // 找到对应的 <tr> —— 它包含一个 data-id 的 checkbox
+  const cb = container.querySelector(`.tree-row-cb[data-id="${recordId}"]`);
+  if (!cb) return false;
+  const tr = cb.closest('tr');
+  if (!tr) return false;
+
+  // 找到 day 节点
+  const dayNode = tr.closest('.tree-day');
+  if (!dayNode) return false;
+
+  // 移除该行
+  tr.remove();
+
+  // 更新 day 计数
+  const dayBody = dayNode.querySelector('.tree-day-body');
+  const remainingRows = dayBody?.querySelectorAll('tbody .tree-row-cb').length || 0;
+  const dayCount = dayNode.querySelector('.tree-day-header .tree-count');
+  if (dayCount) dayCount.textContent = `${remainingRows}条`;
+
+  // 如果当天已无记录，清理 day 节点（连带清理空 month/year）
+  if (remainingRows === 0) {
+    const monthNode = dayNode.closest('.tree-month');
+    dayNode.remove();
+    if (monthNode) {
+      const remainingDays = monthNode.querySelectorAll('.tree-day').length;
+      if (remainingDays === 0) {
+        const yearNode = monthNode.closest('.tree-year');
+        monthNode.remove();
+        if (yearNode) {
+          const remainingMonths = yearNode.querySelectorAll('.tree-month').length;
+          if (remainingMonths === 0) {
+            yearNode.remove();
+            // 全删完了显示空状态
+            if (container.children.length === 0) {
+              container.innerHTML = '<div class="tree-empty">暂无历史记录</div>';
+            }
+          } else {
+            updateTreeYearCount(yearNode);
+          }
+        }
+      } else {
+        updateTreeMonthCount(monthNode);
+      }
+    }
+  } else {
+    // 更新 day 的表头全选 checkbox 状态
+    const dayCb = dayBody.querySelector('.tree-day-cb');
+    if (dayCb) dayCb.checked = false;
+  }
+  return true;
+}
+
+// 更新 month 节点的计数
+function updateTreeMonthCount(monthNode) {
+  const count = monthNode.querySelectorAll('.tree-row-cb').length;
+  const countEl = monthNode.querySelector('.tree-month-header .tree-count');
+  if (countEl) countEl.textContent = `${count}条`;
+}
+
+// 更新 year 节点的计数
+function updateTreeYearCount(yearNode) {
+  const count = yearNode.querySelectorAll('.tree-row-cb').length;
+  const countEl = yearNode.querySelector('.tree-year-header .tree-count');
+  if (countEl) countEl.textContent = `${count}条`;
+}
+
 // 切换单个树节点折叠/展开
 function toggleTreeNode(header) {
   const body = header.nextElementSibling;
@@ -728,6 +807,7 @@ async function deleteCheckedHistory(container) {
       else await window.api.deleteOutbound(id);
     }
     showToast(`已删除 ${ids.length} 条`);
+    inventoryDetailDirty = true;
     // 刷新对应历史
     if (type === 'inbound') { inboundHistoryDirty = true; loadRecentInbound(); }
     else { outboundHistoryDirty = true; loadRecentOutbound(); }
@@ -782,6 +862,7 @@ async function doMoveCheckedHistoryDate() {
     }
     closeModal();
     showToast(`已移动 ${ids.length} 条`);
+    inventoryDetailDirty = true;
     if (type === 'inbound') { inboundHistoryDirty = true; loadRecentInbound(); }
     else { outboundHistoryDirty = true; loadRecentOutbound(); }
   } catch (err) {

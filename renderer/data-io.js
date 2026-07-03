@@ -257,6 +257,8 @@ async function doImportExecute(type, mode, records) {
         expiryDate: r.expiryDate || null,
       })));
       showToast(`入库导入完成: ${result.imported}条`);
+      inventoryDetailDirty = true;
+      inboundHistoryDirty = true;
       if (typeof loadRecentInbound === 'function') loadRecentInbound();
     } else if (type === 'outbound') {
       if (mode === 'overwrite') await window.api.clearOutbound();
@@ -267,6 +269,8 @@ async function doImportExecute(type, mode, records) {
         recipient: r.recipient || '',
       })));
       showToast(`出库导入完成: ${result.imported}条`);
+      inventoryDetailDirty = true;
+      outboundHistoryDirty = true;
       if (typeof loadRecentOutbound === 'function') loadRecentOutbound();
     }
   } catch (err) {

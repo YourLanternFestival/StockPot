@@ -253,16 +253,17 @@ async function submitInboundBatch() {
 
   // 有跳过的行时弹确认框，让用户看到哪些行被提交、哪些被跳过
   if (skipped.length > 0) {
-    const rowsPreview = records.map(r =>
-      `<tr><td>${r.date}</td><td>${PRODUCTS.find(p=>p.id===r.product_id)?.name||r.product_id}</td><td>${r.quantity}</td></tr>`
-    ).join('');
+    const rowsPreview = records.map(r => {
+      const name = escHtml(PRODUCTS.find(p=>p.id===r.product_id)?.name || String(r.product_id));
+      return `<tr><td>${escHtml(r.date)}</td><td>${name}</td><td>${escHtml(r.quantity)}</td></tr>`;
+    }).join('');
     openModal('确认提交', `
       <p>共 <strong>${records.length}</strong> 条有效记录将提交：</p>
       <table style="width:100%;font-size:13px;margin:8px 0;">
         <tr><th>日期</th><th>品名</th><th>数量</th></tr>
         ${rowsPreview}
       </table>
-      ${skipped.length > 0 ? `<p style="color:var(--warning);margin-top:8px;">⚠ 跳过的行：<br>${skipped.map(s => `· ${s}`).join('<br>')}</p>` : ''}
+      ${skipped.length > 0 ? `<p style="color:var(--warning);margin-top:8px;">⚠ 跳过的行：<br>${skipped.map(s => `· ${escHtml(s)}`).join('<br>')}</p>` : ''}
     `, `
       <button class="btn" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" id="confirm-inbound-submit">确认提交</button>
@@ -287,6 +288,7 @@ async function doSubmitInbound(records) {
   }
 
   showToast(`成功入库 ${records.length} 条记录`);
+  inventoryDetailDirty = true;
   inboundHistoryDirty = true;
   tbody.innerHTML = '';
   inboundInitialized = false;
@@ -363,6 +365,7 @@ async function doEditInbound(id) {
   });
   closeModal();
   showToast('已更新');
+  inventoryDetailDirty = true;
   inboundHistoryDirty = true;
   loadRecentInbound();
 }
@@ -386,8 +389,14 @@ async function doDeleteInbound(id) {
     }
     closeModal();
     showToast('已删除');
-    inboundHistoryDirty = true;
-    loadRecentInbound();
+    inventoryDetailDirty = true;
+    // 局部删除 DOM 行，避免 innerHTML 全量重建导致输入卡顿
+    const removed = removeHistoryRowFromDOM(id, 'inbound');
+    if (!removed) {
+      // DOM 中找不到该行（可能历史树未展开），退回全量刷新
+      inboundHistoryDirty = true;
+      loadRecentInbound();
+    }
   } catch (err) {
     closeModal();
     showToast('删除失败: ' + err.message, 'error');

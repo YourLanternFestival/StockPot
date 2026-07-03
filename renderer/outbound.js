@@ -178,6 +178,7 @@ async function submitOutboundBatch() {
   const records = [];
   const skipped = [];
   const inventory = await window.api.getInventory();
+  const deductMap = {};  // { productId: 已扣减总量 }，同批次多行逐行扣减
 
   await ensureProducts();
 
@@ -212,10 +213,13 @@ async function submitOutboundBatch() {
     }
 
     const inv = inventory.find(x => x.id === product.id);
-    if (inv && qty > inv.stock) {
-      skipped.push(`第${rowIdx}行：${name} 库存不足（当前: ${inv.stock}，需要: ${qty}）`);
+    const alreadyDeducted = deductMap[product.id] || 0;
+    const available = inv ? inv.stock - alreadyDeducted : 0;
+    if (inv && qty > available) {
+      skipped.push(`第${rowIdx}行：${name} 库存不足（可用: ${available}，需要: ${qty}）`);
       continue;
     }
+    deductMap[product.id] = alreadyDeducted + qty;
 
     records.push({
       product_id: product.id,
@@ -234,16 +238,17 @@ async function submitOutboundBatch() {
   }
 
   if (skipped.length > 0) {
-    const rowsPreview = records.map(r =>
-      `<tr><td>${r.date}</td><td>${PRODUCTS.find(p=>p.id===r.product_id)?.name||r.product_id}</td><td>${r.quantity}</td><td>${r.recipient}</td></tr>`
-    ).join('');
+    const rowsPreview = records.map(r => {
+      const name = escHtml(PRODUCTS.find(p=>p.id===r.product_id)?.name || String(r.product_id));
+      return `<tr><td>${escHtml(r.date)}</td><td>${name}</td><td>${escHtml(r.quantity)}</td><td>${escHtml(r.recipient)}</td></tr>`;
+    }).join('');
     openModal('确认提交', `
       <p>共 <strong>${records.length}</strong> 条有效记录将提交：</p>
       <table style="width:100%;font-size:13px;margin:8px 0;">
         <tr><th>日期</th><th>品名</th><th>数量</th><th>领取人</th></tr>
         ${rowsPreview}
       </table>
-      ${skipped.length > 0 ? `<p style="color:var(--warning);margin-top:8px;">⚠ 跳过的行：<br>${skipped.map(s => `· ${s}`).join('<br>')}</p>` : ''}
+      ${skipped.length > 0 ? `<p style="color:var(--warning);margin-top:8px;">⚠ 跳过的行：<br>${skipped.map(s => `· ${escHtml(s)}`).join('<br>')}</p>` : ''}
     `, `
       <button class="btn" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" id="confirm-outbound-submit">确认提交</button>
@@ -268,6 +273,7 @@ async function doSubmitOutbound(records) {
   }
 
   showToast(`成功出库 ${records.length} 条记录`);
+  inventoryDetailDirty = true;
   outboundHistoryDirty = true;
   tbody.innerHTML = '';
   outboundInitialized = false;
@@ -321,6 +327,7 @@ async function doEditOutbound(id) {
   });
   closeModal();
   showToast('已更新');
+  inventoryDetailDirty = true;
   outboundHistoryDirty = true;
   loadRecentOutbound();
 }
@@ -344,8 +351,14 @@ async function doDeleteOutbound(id) {
     }
     closeModal();
     showToast('已删除');
-    outboundHistoryDirty = true;
-    loadRecentOutbound();
+    inventoryDetailDirty = true;
+    // 局部删除 DOM 行，避免 innerHTML 全量重建导致输入卡顿
+    const removed = removeHistoryRowFromDOM(id, 'outbound');
+    if (!removed) {
+      // DOM 中找不到该行（可能历史树未展开），退回全量刷新
+      outboundHistoryDirty = true;
+      loadRecentOutbound();
+    }
   } catch (err) {
     closeModal();
     showToast('删除失败: ' + err.message, 'error');

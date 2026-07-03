@@ -7,7 +7,8 @@
     "start": "electron .",
     "build": "electron-builder --win",
     "build:update": "node scripts/build-update.js",
-    "test": "node test/test-db.js && node test/test-utils.js && node test/test-inquiry-months.js && node test/test-spec-regression.js && node test/test-history-tree.js && node test/test-settings.js"
+    "test": "node test/test-db.js && node test/test-utils.js && node test/test-inquiry-months.js && node test/test-spec-regression.js && node test/test-history-tree.js && node test/test-settings.js && node test/test-regression-mutations.js",
+    "test:regression": "node test/test-regression-mutations.js"
   },
   "keywords": [],
   "author": "",

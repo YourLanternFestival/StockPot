@@ -328,12 +328,12 @@ function batchAddInbound(records) {
 function updateInbound(id, { date, quantity, remark, production_date, expiry_date }) {
   run('UPDATE inbound_records SET date=?, quantity=?, remark=?, production_date=?, expiry_date=? WHERE id=?',
     [date, quantity, remark || '', production_date || null, expiry_date || null, id]);
-  save();
+  if (!inTransaction) save();
 }
 
 function deleteInbound(id) {
   run('DELETE FROM inbound_records WHERE id = ?', [id]);
-  save();
+  if (!inTransaction) save();
 }
 
 // ===== Outbound =====
@@ -365,12 +365,12 @@ function batchAddOutbound(records) {
 function updateOutbound(id, { date, quantity, recipient }) {
   run('UPDATE outbound_records SET date=?, quantity=?, recipient=? WHERE id=?',
     [date, quantity, recipient || '', id]);
-  save();
+  if (!inTransaction) save();
 }
 
 function deleteOutbound(id) {
   run('DELETE FROM outbound_records WHERE id = ?', [id]);
-  save();
+  if (!inTransaction) save();
 }
 
 // ===== Recipients =====
@@ -460,14 +460,14 @@ function getProductStockDetail(productId, inboundLimit = 5, outboundLimit = 10) 
 
   const stock = prevStock + monthIn - monthOut;
 
-  // 累计入库/出库（全量）
+  // 累计入库/出库（截至今天，不含未来日期记录）
   const totalIn = queryOne(
-    "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ?",
-    [productId]
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM inbound_records WHERE product_id = ? AND date <= ?",
+    [productId, monthEnd]
   ).v;
   const totalOut = queryOne(
-    "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ?",
-    [productId]
+    "SELECT COALESCE(SUM(quantity), 0) as v FROM outbound_records WHERE product_id = ? AND date <= ?",
+    [productId, monthEnd]
   ).v;
 
   const recentInbound = queryAll(
@@ -690,8 +690,6 @@ function clearAllData() {
 // ===== Stats =====
 function getDashboardStats() {
   const productCount = queryOne('SELECT COUNT(*) as c FROM products WHERE active = 1').c;
-  const totalIn = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM inbound_records WHERE date <= ?', [endStr]).c;
-  const totalOut = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM outbound_records WHERE date <= ?', [endStr]).c;
 
   // 30-day trend: single query instead of 60
   const today = new Date();
@@ -699,6 +697,9 @@ function getDashboardStats() {
   startDate.setDate(startDate.getDate() - 29);
   const startStr = toLocalDateStr(startDate);
   const endStr = toLocalDateStr(today);
+
+  const totalIn = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM inbound_records WHERE date <= ?', [endStr]).c;
+  const totalOut = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM outbound_records WHERE date <= ?', [endStr]).c;
 
   const dailyRows = queryAll(`
     SELECT date, SUM(quantity) as qty, 'in' as direction

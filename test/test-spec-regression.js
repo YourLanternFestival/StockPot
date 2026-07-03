@@ -424,6 +424,181 @@ assert(batchResult.ok, '所有 insert 的 source 都在 cleared 列表中');
 assert(batchResult.clearedSources.has('梅城-厨房'), '梅城厨房被清空（用户清空了 DOM）');
 assertEqual(batchResult.missingClear.length, 0, '无遗漏的 source');
 
+// ── 导入导出：智能列匹配（v2.3: data-io.js ImportDialog） ──────
+section('导入导出 — 智能列匹配');
+
+function autoMatchColumns(headers, fields) {
+  const mapping = {};
+  for (const f of fields) {
+    let matched = headers.findIndex(h => h === f.label);
+    if (matched === -1 && f.aliases) {
+      matched = headers.findIndex(h => f.aliases.some(a => h === a));
+    }
+    if (matched === -1 && f.label.length >= 2) {
+      matched = headers.findIndex(h => h.includes(f.label));
+    }
+    mapping[f.key] = matched >= 0 ? matched : null;
+  }
+  return mapping;
+}
+
+const PRODUCT_FIELDS = [
+  { key: 'name', label: '材料名称', required: true, aliases: ['品名', '名称', '产品名', '产品名称', '货品名'] },
+  { key: 'shelfMonths', label: '保质期(月)', required: false, aliases: ['保质期', '保质月份'] },
+];
+
+// 精确匹配
+{
+  const m = autoMatchColumns(['材料名称', '规格', '单位'], PRODUCT_FIELDS);
+  assertEqual(m.name, 0, '精确匹配：表头 == label');
+}
+
+// 别名匹配
+{
+  const m = autoMatchColumns(['品名', '规格'], PRODUCT_FIELDS);
+  assertEqual(m.name, 0, '别名匹配：品名 → name');
+}
+{
+  const m = autoMatchColumns(['产品名称', '规格'], PRODUCT_FIELDS);
+  assertEqual(m.name, 0, '别名匹配：产品名称 → name');
+}
+
+// 包含匹配
+{
+  const m = autoMatchColumns(['材料名称(必填)', '保质期(月)'], PRODUCT_FIELDS);
+  assertEqual(m.name, 0, '包含匹配：含"材料名称"');
+}
+
+// 未匹配
+{
+  const m = autoMatchColumns(['未知列A', '未知列B', '未知列C'], PRODUCT_FIELDS);
+  assertEqual(m.name, null, '未匹配：返回 null');
+  assertEqual(m.shelfMonths, null, '未匹配：所有字段均为 null');
+}
+
+// 空表头
+{
+  const m = autoMatchColumns([], PRODUCT_FIELDS);
+  assertEqual(m.name, null, '空表头：全部返回 null');
+}
+
+section('导入导出 — 列标签转换');
+
+function columnLabel(idx) {
+  let label = '';
+  let n = idx;
+  do {
+    label = String.fromCharCode(65 + (n % 26)) + label;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return label;
+}
+
+assertEqual(columnLabel(0), 'A', 'col 0 → A');
+assertEqual(columnLabel(25), 'Z', 'col 25 → Z');
+assertEqual(columnLabel(26), 'AA', 'col 26 → AA');
+assertEqual(columnLabel(27), 'AB', 'col 27 → AB');
+assertEqual(columnLabel(51), 'AZ', 'col 51 → AZ');
+assertEqual(columnLabel(52), 'BA', 'col 52 → BA');
+assertEqual(columnLabel(701), 'ZZ', 'col 701 → ZZ');
+assertEqual(columnLabel(702), 'AAA', 'col 702 → AAA');
+
+section('导入导出 — 导出→导入格式自洽');
+
+// 导出产品数据表头 → 应有对应的导入别名
+const EXPORT_PRODUCT_HEADERS = ['序号', '材料名称', '规格', '单位', '保质期(月)', '保质期(日)'];
+const IMPORT_PRODUCT_NAMES = ['name', 'spec', 'unit', 'shelfMonths', 'shelfDays'];
+
+// 模拟：用导入的智能匹配去解析导出表头
+const fullProductFields = [
+  { key: 'name', label: '材料名称', required: true, aliases: ['品名', '名称', '产品名', '产品名称', '货品名'] },
+  { key: 'spec', label: '规格', required: false, aliases: ['规格型号', '型号'] },
+  { key: 'unit', label: '单位', required: false, aliases: ['计量单位', '包装单位'] },
+  { key: 'shelfMonths', label: '保质期(月)', required: false, aliases: ['保质期', '保质月份'] },
+  { key: 'shelfDays', label: '保质期(日)', required: false, aliases: ['保质天数'] },
+];
+{
+  const m = autoMatchColumns(EXPORT_PRODUCT_HEADERS, fullProductFields);
+  IMPORT_PRODUCT_NAMES.forEach(k => assert(m[k] !== null, `产品导出→导入：${k} 可匹配`));
+}
+
+// 导出入库表头 → 导入入库字段
+const EXPORT_INBOUND_HEADERS = ['序号', '入库时间', '材料名称', '规格', '数量', '单位', '备注', '生产日期', '到期日'];
+const fullInboundFields = [
+  { key: 'name', label: '材料名称', required: true, aliases: ['品名', '名称', '产品名'] },
+  { key: 'date', label: '入库日期', required: false, aliases: ['日期', '入库时间', '时间'] },
+  { key: 'quantity', label: '入库数量', required: false, aliases: ['数量', '入库量'] },
+  { key: 'productionDate', label: '生产日期', required: false, aliases: ['生产时间'] },
+  { key: 'expiryDate', label: '到期日', required: false, aliases: ['有效期至', '保质期至', '过期日'] },
+  { key: 'remark', label: '入库备注', required: false, aliases: ['备注', '说明'] },
+];
+{
+  const m = autoMatchColumns(EXPORT_INBOUND_HEADERS, fullInboundFields);
+  assert(m.name !== null, '入库导出→导入：材料名称 可匹配');
+  assert(m.remark !== null, '入库导出→导入：备注 匹配入库备注');
+}
+
+// 导出出库表头 → 导入出库字段
+const EXPORT_OUTBOUND_HEADERS = ['序号', '出库时间', '名称', '规格', '数量', '单位', '领取人'];
+const fullOutboundFields = [
+  { key: 'name', label: '材料名称', required: true, aliases: ['品名', '名称', '产品名'] },
+  { key: 'date', label: '出库日期', required: false, aliases: ['日期', '出库时间', '时间'] },
+  { key: 'quantity', label: '出库数量', required: false, aliases: ['数量', '出库量'] },
+  { key: 'recipient', label: '领取人', required: false, aliases: ['领用人', '领取部门', '领料人', '签收人'] },
+];
+{
+  const m = autoMatchColumns(EXPORT_OUTBOUND_HEADERS, fullOutboundFields);
+  assert(m.recipient !== null, '出库导出→导入：领取人 可匹配');
+  assert(m.name !== null, '出库导出→导入：品名 匹配（包含匹配）');
+}
+
+section('导入导出 — 追加去重逻辑（模拟）');
+
+function dedupByNames(existingNames, newProducts) {
+  let imported = 0, skipped = 0;
+  for (const p of newProducts) {
+    if (existingNames.includes(p.name)) { skipped++; continue; }
+    existingNames.push(p.name);
+    imported++;
+  }
+  return { imported, skipped };
+}
+
+{
+  const existing = ['白菜', '萝卜', '青椒'];
+  const incoming = [{ name: '白菜' }, { name: '黄瓜' }, { name: '萝卜' }];
+  const r = dedupByNames(existing, incoming);
+  assertEqual(r.imported, 1, '追加模式：1 条新导入');
+  assertEqual(r.skipped, 2, '追加模式：2 条跳过（已存在）');
+  assertDeepEqual(existing, ['白菜', '萝卜', '青椒', '黄瓜'], '追加后列表仅含新名称');
+}
+
+{
+  const existing = [];
+  const incoming = [{ name: '白菜' }, { name: '萝卜' }];
+  const r = dedupByNames(existing, incoming);
+  assertEqual(r.imported, 2, '空库追加：全部导入');
+  assertEqual(r.skipped, 0, '空库追加：无跳过');
+}
+
+section('导入导出 — 覆盖模式（模拟）');
+
+function simulateOverwrite(existing, newData) {
+  const cleared = [...existing];
+  existing.length = 0;
+  for (const p of newData) existing.push(p);
+  return { clearedCount: cleared.length, imported: newData.length };
+}
+
+{
+  const existing = ['白菜', '萝卜'];
+  const incoming = [{ name: '黄瓜' }, { name: '西红柿' }];
+  const r = simulateOverwrite(existing, incoming);
+  assertEqual(r.clearedCount, 2, '覆盖模式：清空 2 条');
+  assertEqual(r.imported, 2, '覆盖模式：导入 2 条');
+  assertDeepEqual(existing, incoming, '覆盖后仅含新数据');
+}
+
 // ── 结果汇总 ──────────────────────────────────────────────
 const total = passed + failed;
 console.log(`\n═══════════════════════════════════════`);

@@ -1,4 +1,7 @@
 // ===== Inventory =====
+// 记录当前查询的产品 id，用于数据变更后自动刷新
+let currentInvProductId = null;
+
 async function loadInventory() {
   await ensureProducts();
   // Update alert badge count
@@ -10,6 +13,19 @@ async function loadInventory() {
       badge.style.display = alerts.length > 0 ? 'inline' : 'none';
     }
   } catch (e) { /* ignore */ }
+
+  // 如果库存详情已过期（删除/编辑/提交过记录），自动刷新当前查询的产品
+  if (inventoryDetailDirty && currentInvProductId !== null) {
+    inventoryDetailDirty = false;
+    try {
+      const detail = await window.api.getProductStockDetail(
+        currentInvProductId,
+        APP_SETTINGS.inv_inbound_limit || 5,
+        APP_SETTINGS.inv_outbound_limit || 10
+      );
+      if (detail) renderInvDetail(detail);
+    } catch (e) { /* ignore — 用户手动搜索时会重新加载 */ }
+  }
 }
 
 function switchInvTab(tabId) {
@@ -84,6 +100,7 @@ function switchInvTab(tabId) {
     if (!product) product = PRODUCTS.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (!product) product = PRODUCTS.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
     if (!product) {
+      currentInvProductId = null;
       document.getElementById('inv-search-hint').textContent = '未找到匹配的材料';
       document.getElementById('inv-detail').style.display = 'none';
       return;
@@ -96,6 +113,8 @@ function switchInvTab(tabId) {
         APP_SETTINGS.inv_outbound_limit || 10
       );
       if (!detail) return;
+      currentInvProductId = product.id;
+      inventoryDetailDirty = false;
       renderInvDetail(detail);
     } catch (err) {
       console.error('Stock detail error:', err);
@@ -119,6 +138,8 @@ function switchInvTab(tabId) {
         APP_SETTINGS.inv_outbound_limit || 10
       );
       if (!detail) return;
+      currentInvProductId = productId;
+      inventoryDetailDirty = false;
       renderInvDetail(detail);
     } catch (err) {
       console.error('Stock detail error:', err);
