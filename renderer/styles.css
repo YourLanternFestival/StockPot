@@ -447,6 +447,7 @@ body {
 .ledger-day-cell .in-val { color: var(--success); }
 .ledger-day-cell .out-val { color: var(--danger); }
 .ledger-day-cell .sep { color: var(--text-muted); margin: 0 2px; }
+.ledger-day-cell .day-balance { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
 
 .ledger-row-expandable { cursor: pointer; }
 .ledger-row-expandable:hover { background: var(--primary-light) !important; }

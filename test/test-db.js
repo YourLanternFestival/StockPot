@@ -1149,6 +1149,229 @@ async function test_dateToMonthStr_edgeCases(SQL) {
   runPassed('dateToMonthStr: edge cases (null, empty, malformed, boundary)');
 }
 
+// ---------------------------------------------------------------------------
+// Test: clearProducts, clearInbound, clearOutbound — per-type clear functions
+// ---------------------------------------------------------------------------
+
+async function test_clearPerType(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Seed data
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('product_a', '', '斤')`);
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('product_b', '', '个')`);
+  db.run(`INSERT INTO inbound_records (product_id, product_name, quantity, inbound_date) VALUES (1, 'product_a', 10, '2026-07-01')`);
+  db.run(`INSERT INTO inbound_records (product_id, product_name, quantity, inbound_date) VALUES (2, 'product_b', 5, '2026-07-02')`);
+  db.run(`INSERT INTO outbound_records (product_id, product_name, quantity, outbound_date) VALUES (1, 'product_a', 3, '2026-07-01')`);
+
+  assert.strictEqual(countTable(db, 'products'), 2, 'seed: 2 products');
+  assert.strictEqual(countTable(db, 'inbound_records'), 2, 'seed: 2 inbound');
+  assert.strictEqual(countTable(db, 'outbound_records'), 1, 'seed: 1 outbound');
+
+  // Clear only inbound → products and outbound untouched
+  db.run('DELETE FROM inbound_records');
+  assert.strictEqual(countTable(db, 'inbound_records'), 0, 'clearInbound: 0 inbound left');
+  assert.strictEqual(countTable(db, 'products'), 2, 'clearInbound: products untouched');
+  assert.strictEqual(countTable(db, 'outbound_records'), 1, 'clearInbound: outbound untouched');
+
+  // Clear only outbound
+  db.run('DELETE FROM outbound_records');
+  assert.strictEqual(countTable(db, 'outbound_records'), 0, 'clearOutbound: 0 outbound left');
+  assert.strictEqual(countTable(db, 'products'), 2, 'clearOutbound: products untouched');
+
+  // Clear only products
+  db.run('DELETE FROM products');
+  assert.strictEqual(countTable(db, 'products'), 0, 'clearProducts: 0 products left');
+  assert.strictEqual(countTable(db, 'inbound_records'), 0, 'clearProducts: inbound unchanged (already 0)');
+
+  db.close();
+  runPassed('clearPerType: clearProducts/clearInbound/clearOutbound independent, no cascade');
+}
+
+// ---------------------------------------------------------------------------
+// Test: importProducts dedup (append mode)
+// ---------------------------------------------------------------------------
+
+async function test_importProducts_appendDedup(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Seed: one existing product
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('白菜', '散装', '斤')`);
+
+  // Simulate importProducts logic
+  const existing = db.exec("SELECT name FROM products");
+  const existingNames = existing[0] ? existing[0].values.map(r => r[0]) : [];
+  assert.deepStrictEqual(existingNames, ['白菜'], '已有 1 个产品');
+
+  const newProducts = [
+    { name: '白菜', spec: '散装' },   // duplicate → skip
+    { name: '黄瓜', spec: '' },       // new → import
+    { name: '萝卜', spec: '' },       // new → import
+  ];
+
+  let imported = 0, skipped = 0;
+  for (const p of newProducts) {
+    if (existingNames.includes(p.name)) { skipped++; continue; }
+    db.run('INSERT INTO products (name, spec, unit) VALUES (?, ?, ?)', [p.name, p.spec, '']);
+    imported++;
+  }
+
+  assert.strictEqual(imported, 2, '追加导入：2 条新导入');
+  assert.strictEqual(skipped, 1, '追加导入：1 条跳过（白菜已存在）');
+  assert.strictEqual(countTable(db, 'products'), 3, '追加后：共 3 个产品');
+
+  // Verify 白菜 is the original one
+  const all = db.exec("SELECT name FROM products ORDER BY id");
+  const names = all[0].values.map(r => r[0]);
+  assert.deepStrictEqual(names, ['白菜', '黄瓜', '萝卜'], '白菜保留原始记录');
+
+  db.close();
+  runPassed('importProducts: append mode dedup, existing products preserved');
+}
+
+// ---------------------------------------------------------------------------
+// Test: importProducts overwrite (clear then import)
+// ---------------------------------------------------------------------------
+
+async function test_importProducts_overwrite(SQL) {
+  const db = new SQL.Database();
+  createTables(db);
+
+  // Seed: two existing products
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('白菜', '散装', '斤')`);
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('萝卜', '散装', '斤')`);
+  assert.strictEqual(countTable(db, 'products'), 2, 'seed: 2 products');
+
+  // Simulate overwrite: clear then import
+  db.run('DELETE FROM products');
+  assert.strictEqual(countTable(db, 'products'), 0, 'overwrite: 清空后 0 条');
+
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('黄瓜', '', '斤')`);
+  db.run(`INSERT INTO products (name, spec, unit) VALUES ('西红柿', '', '个')`);
+  assert.strictEqual(countTable(db, 'products'), 2, 'overwrite: 导入后 2 条');
+
+  const all = db.exec("SELECT name FROM products ORDER BY id");
+  const names = all[0].values.map(r => r[0]);
+  assert.deepStrictEqual(names, ['黄瓜', '西红柿'], '覆盖后仅含新数据');
+
+  db.close();
+  runPassed('importProducts: overwrite mode clears old data before import');
+}
+
+// ---------------------------------------------------------------------------
+// Test 20: batchAddInbound / batchAddOutbound — transaction atomicity
+// ---------------------------------------------------------------------------
+
+async function test_batchAddInboundOutbound_atomic(SQL) {
+  // 20a: batchAddInbound — all or nothing on success
+  {
+    const db = new SQL.Database();
+    createTables(db);
+
+    // Seed product (needed for FK conceptually, but sql.js doesn't enforce)
+    db.run(`INSERT INTO products (name, spec, unit, shelf_life_months, shelf_life_days, opening_stock)
+      VALUES ('白菜', '散装', '斤', 0, 0, 0)`);
+    db.run(`INSERT INTO products (name, spec, unit, shelf_life_months, shelf_life_days, opening_stock)
+      VALUES ('萝卜', '', '斤', 0, 0, 0)`);
+
+    // Simulate: BEGIN → batch insert → COMMIT
+    db.run('BEGIN TRANSACTION');
+    db.run(`INSERT INTO inbound_records (product_id, product_name, spec, unit, quantity, inbound_date)
+      VALUES (1, '白菜', '散装', '斤', 10.0, '2026-07-01')`);
+    db.run(`INSERT INTO inbound_records (product_id, product_name, spec, unit, quantity, inbound_date)
+      VALUES (2, '萝卜', '', '斤', 5.0, '2026-07-01')`);
+    db.run(`INSERT INTO inbound_records (product_id, product_name, spec, unit, quantity, inbound_date)
+      VALUES (1, '白菜', '散装', '斤', 3.0, '2026-07-02')`);
+    db.run('COMMIT');
+
+    assert.strictEqual(countTable(db, 'inbound_records'), 3, 'batchAddInbound: 3 records committed');
+
+    db.close();
+    runPassed('batchAddInbound: all records committed in single transaction');
+  }
+
+  // 20b: batchAddInbound — ROLLBACK on failure, zero records persisted
+  {
+    const db = new SQL.Database();
+    createTables(db);
+
+    db.run(`INSERT INTO products (name, spec, unit) VALUES ('白菜', '散装', '斤')`);
+
+    let caught = false;
+    try {
+      db.run('BEGIN TRANSACTION');
+      db.run(`INSERT INTO inbound_records (product_id, product_name, quantity, inbound_date)
+        VALUES (1, '白菜', 10.0, '2026-07-01')`);
+      db.run(`INSERT INTO inbound_records (product_id, product_name, quantity, inbound_date)
+        VALUES (1, '白菜', 5.0, '2026-07-02')`);
+      // Simulate error mid-batch
+      throw new Error('模拟批量插入中途失败');
+    } catch (e) {
+      caught = true;
+      try { db.run('ROLLBACK'); } catch (_) {}
+    }
+
+    assert.strictEqual(caught, true, 'failure caught');
+    assert.strictEqual(countTable(db, 'inbound_records'), 0, 'batchAddInbound: ROLLBACK leaves 0 records');
+
+    db.close();
+    runPassed('batchAddInbound: ROLLBACK on failure leaves no partial data');
+  }
+
+  // 20c: batchAddOutbound — all or nothing
+  {
+    const db = new SQL.Database();
+    createTables(db);
+
+    db.run(`INSERT INTO products (name, spec, unit) VALUES ('白菜', '散装', '斤')`);
+
+    db.run('BEGIN TRANSACTION');
+    db.run(`INSERT INTO outbound_records (product_id, product_name, quantity, recipient, outbound_date)
+      VALUES (1, '白菜', 2.0, '厨房', '2026-07-01')`);
+    db.run(`INSERT INTO outbound_records (product_id, product_name, quantity, recipient, outbound_date)
+      VALUES (1, '白菜', 1.0, '面点房', '2026-07-02')`);
+    db.run('COMMIT');
+
+    assert.strictEqual(countTable(db, 'outbound_records'), 2, 'batchAddOutbound: 2 records committed');
+
+    db.close();
+    runPassed('batchAddOutbound: all records committed in single transaction');
+  }
+
+  // 20d: batchAddOutbound — ROLLBACK on failure
+  {
+    const db = new SQL.Database();
+    createTables(db);
+
+    db.run(`INSERT INTO products (name, spec, unit) VALUES ('白菜', '散装', '斤')`);
+    // Pre-existing data that should survive
+    db.run(`INSERT INTO outbound_records (product_id, product_name, quantity, recipient, outbound_date)
+      VALUES (1, '白菜', 3.0, '厨房', '2026-06-30')`);
+
+    let caught = false;
+    try {
+      db.run('BEGIN TRANSACTION');
+      db.run(`INSERT INTO outbound_records (product_id, product_name, quantity, recipient, outbound_date)
+        VALUES (1, '白菜', 2.0, '厨房', '2026-07-01')`);
+      throw new Error('模拟出库批量插入失败');
+    } catch (e) {
+      caught = true;
+      try { db.run('ROLLBACK'); } catch (_) {}
+    }
+
+    assert.strictEqual(caught, true, 'failure caught');
+    assert.strictEqual(countTable(db, 'outbound_records'), 1, 'batchAddOutbound: ROLLBACK preserves pre-existing data');
+    // Verify it's the old record
+    const rows = db.exec("SELECT quantity, outbound_date FROM outbound_records");
+    assert.strictEqual(rows[0].values[0][0], 3.0, 'old record intact');
+    assert.strictEqual(rows[0].values[0][1], '2026-06-30', 'old date preserved');
+
+    db.close();
+    runPassed('batchAddOutbound: ROLLBACK on failure preserves existing data');
+  }
+}
+
 async function main() {
   console.log('DB Tests\n');
 
@@ -1174,6 +1397,10 @@ async function main() {
   await test_historyEnrichOrder_silentFallback(SQL);
   await test_inquiryImport_refreshCache(SQL);
   await test_dateToMonthStr_edgeCases(SQL);
+  await test_clearPerType(SQL);
+  await test_importProducts_appendDedup(SQL);
+  await test_importProducts_overwrite(SQL);
+  await test_batchAddInboundOutbound_atomic(SQL);
 
   console.log('\nAll DB tests passed');
 }

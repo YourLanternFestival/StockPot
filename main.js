@@ -152,12 +152,14 @@ ipcMain.handle('products:restore', (e, id) => db.restoreProduct(id));
 // Inbound
 ipcMain.handle('inbound:get', (e, filters) => db.getInboundRecords(filters || {}));
 ipcMain.handle('inbound:add', (e, data) => db.addInbound(data));
+ipcMain.handle('inbound:batchAdd', (e, records) => db.batchAddInbound(records));
 ipcMain.handle('inbound:update', (e, id, data) => db.updateInbound(id, data));
 ipcMain.handle('inbound:delete', (e, id) => db.deleteInbound(id));
 
 // Outbound
 ipcMain.handle('outbound:get', (e, filters) => db.getOutboundRecords(filters || {}));
 ipcMain.handle('outbound:add', (e, data) => db.addOutbound(data));
+ipcMain.handle('outbound:batchAdd', (e, records) => db.batchAddOutbound(records));
 ipcMain.handle('outbound:update', (e, id, data) => db.updateOutbound(id, data));
 ipcMain.handle('outbound:delete', (e, id) => db.deleteOutbound(id));
 
@@ -184,6 +186,9 @@ ipcMain.handle('import:products', (e, products) => db.importProducts(products));
 ipcMain.handle('import:inbound', (e, records) => db.importInbound(records));
 ipcMain.handle('import:outbound', (e, records) => db.importOutbound(records));
 ipcMain.handle('import:openingStock', (e, map) => db.importOpeningStock(map));
+ipcMain.handle('import:clearProducts', () => db.clearProducts());
+ipcMain.handle('import:clearInbound', () => db.clearInbound());
+ipcMain.handle('import:clearOutbound', () => db.clearOutbound());
 ipcMain.handle('import:clearAll', () => db.clearAllData());
 
 // Purchase Orders

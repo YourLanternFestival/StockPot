@@ -201,40 +201,86 @@ async function submitInboundBatch() {
   const tbody = document.getElementById('inbound-tbody');
   const rows = tbody.querySelectorAll('tr');
   const records = [];
+  const skipped = [];
 
   await ensureProducts();
 
+  let rowIdx = 0;
   for (const tr of rows) {
-    const name = tr.querySelector('[data-field="product_name"]').value.trim();
-    const qty = parseFloat(tr.querySelector('[data-field="quantity"]').value);
-    const date = tr.querySelector('[data-field="date"]').value;
-    if (!name || !qty || !date) continue;
+    rowIdx++;
+    const nameInput = tr.querySelector('[data-field="product_name"]');
+    const qtyInput = tr.querySelector('[data-field="quantity"]');
+    const dateInput = tr.querySelector('[data-field="date"]');
+    const name = nameInput ? nameInput.value.trim() : '';
+    const qty = qtyInput ? parseFloat(qtyInput.value) : NaN;
+    const date = dateInput ? dateInput.value : '';
+
+    if (!name || isNaN(qty) || qty <= 0 || !date) {
+      if (name || !isNaN(qty) || date) {
+        // 部分填写但缺关键字段 → 记录跳过原因
+        const missing = [];
+        if (!name) missing.push('品名');
+        if (isNaN(qty) || qty <= 0) missing.push('数量');
+        if (!date) missing.push('日期');
+        skipped.push(`第${rowIdx}行：缺少${missing.join('、')}`);
+      }
+      continue;
+    }
 
     const product = PRODUCTS.find(p => p.name === name);
     if (!product) {
-      showToast(`产品 "${name}" 不存在`, 'error');
-      return;
+      skipped.push(`第${rowIdx}行："${name}" 不在产品库中，请先在产品管理中添加`);
+      continue;
     }
 
     records.push({
       product_id: product.id,
       date,
       quantity: qty,
-      remark: tr.querySelector('[data-field="remark"]').value.trim(),
-      production_date: tr.querySelector('[data-field="production_date"]').value || null,
-      expiry_date: tr.querySelector('[data-field="expiry_date"]').value || null,
+      remark: (tr.querySelector('[data-field="remark"]')?.value || '').trim(),
+      production_date: (tr.querySelector('[data-field="production_date"]')?.value) || null,
+      expiry_date: (tr.querySelector('[data-field="expiry_date"]')?.value) || null,
     });
   }
 
   if (records.length === 0) {
-    showToast('没有有效的入库记录', 'error');
+    const msg = skipped.length > 0
+      ? `没有可提交的记录。\n${skipped.join('\n')}`
+      : '没有有效的入库记录';
+    showToast(msg, 'error');
     return;
   }
 
+  // 有跳过的行时弹确认框，让用户看到哪些行被提交、哪些被跳过
+  if (skipped.length > 0) {
+    const rowsPreview = records.map(r =>
+      `<tr><td>${r.date}</td><td>${PRODUCTS.find(p=>p.id===r.product_id)?.name||r.product_id}</td><td>${r.quantity}</td></tr>`
+    ).join('');
+    openModal('确认提交', `
+      <p>共 <strong>${records.length}</strong> 条有效记录将提交：</p>
+      <table style="width:100%;font-size:13px;margin:8px 0;">
+        <tr><th>日期</th><th>品名</th><th>数量</th></tr>
+        ${rowsPreview}
+      </table>
+      ${skipped.length > 0 ? `<p style="color:var(--warning);margin-top:8px;">⚠ 跳过的行：<br>${skipped.map(s => `· ${s}`).join('<br>')}</p>` : ''}
+    `, `
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="confirm-inbound-submit">确认提交</button>
+    `);
+    document.getElementById('confirm-inbound-submit').addEventListener('click', async () => {
+      closeModal();
+      await doSubmitInbound(records);
+    });
+    return;
+  }
+
+  await doSubmitInbound(records);
+}
+
+async function doSubmitInbound(records) {
+  const tbody = document.getElementById('inbound-tbody');
   try {
-    for (const r of records) {
-      await window.api.addInbound(r);
-    }
+    await window.api.batchAddInbound(records);
   } catch (err) {
     showToast('入库保存失败: ' + err.message, 'error');
     return;

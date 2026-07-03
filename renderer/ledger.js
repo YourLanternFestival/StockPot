@@ -35,12 +35,17 @@ async function loadLedger() {
 
     tbody.innerHTML = active.map((p, idx) => {
       const dayCells = [];
+      let runningBalance = p.prevStock;
       for (let d = 1; d <= daysInMonth; d++) {
         const dayData = p.daily[d] || { in: 0, out: 0 };
+        runningBalance = runningBalance + dayData.in - dayData.out;
         const inHtml = dayData.in > 0 ? `<span class="in-val">${dayData.in}</span>` : '';
         const outHtml = dayData.out > 0 ? `<span class="out-val">${dayData.out}</span>` : '';
         const sep = dayData.in > 0 && dayData.out > 0 ? '<span class="sep">/</span>' : '';
-        dayCells.push(`<td class="ledger-day-cell">${inHtml}${sep}${outHtml}</td>`);
+        // ponytail: daily running balance for audit trail — find divergence point at a glance
+        const hasActivity = dayData.in > 0 || dayData.out > 0;
+        const balHtml = hasActivity ? `<div class="day-balance">${runningBalance}</div>` : '';
+        dayCells.push(`<td class="ledger-day-cell">${inHtml}${sep}${outHtml}${balHtml}</td>`);
       }
 
       return `

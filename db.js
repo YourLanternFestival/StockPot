@@ -307,7 +307,22 @@ function getInboundRecords(filters) {
 function addInbound({ product_id, date, quantity, remark, production_date, expiry_date }) {
   run('INSERT INTO inbound_records (product_id, date, quantity, remark, production_date, expiry_date) VALUES (?, ?, ?, ?, ?, ?)',
     [product_id, date, quantity, remark || '', production_date || null, expiry_date || null]);
-  save();
+  if (!inTransaction) save();
+}
+
+function batchAddInbound(records) {
+  beginTransaction();
+  try {
+    for (const r of records) {
+      run('INSERT INTO inbound_records (product_id, date, quantity, remark, production_date, expiry_date) VALUES (?, ?, ?, ?, ?, ?)',
+        [r.product_id, r.date, r.quantity, r.remark || '', r.production_date || null, r.expiry_date || null]);
+    }
+    commit();
+    return { success: true, count: records.length };
+  } catch (e) {
+    rollback();
+    throw e;
+  }
 }
 
 function updateInbound(id, { date, quantity, remark, production_date, expiry_date }) {
@@ -329,7 +344,22 @@ function getOutboundRecords(filters) {
 function addOutbound({ product_id, date, quantity, recipient }) {
   run('INSERT INTO outbound_records (product_id, date, quantity, recipient) VALUES (?, ?, ?, ?)',
     [product_id, date, quantity, recipient || '']);
-  save();
+  if (!inTransaction) save();
+}
+
+function batchAddOutbound(records) {
+  beginTransaction();
+  try {
+    for (const r of records) {
+      run('INSERT INTO outbound_records (product_id, date, quantity, recipient) VALUES (?, ?, ?, ?)',
+        [r.product_id, r.date, r.quantity, r.recipient || '']);
+    }
+    commit();
+    return { success: true, count: records.length };
+  } catch (e) {
+    rollback();
+    throw e;
+  }
 }
 
 function updateOutbound(id, { date, quantity, recipient }) {
@@ -616,6 +646,21 @@ function importOutbound(records) {
   ], records);
 }
 
+function clearProducts() {
+  run('DELETE FROM products');
+  save();
+}
+
+function clearInbound() {
+  run('DELETE FROM inbound_records');
+  save();
+}
+
+function clearOutbound() {
+  run('DELETE FROM outbound_records');
+  save();
+}
+
 function clearAllData() {
   run('BEGIN');
   try {
@@ -644,8 +689,8 @@ function clearAllData() {
 // ===== Stats =====
 function getDashboardStats() {
   const productCount = queryOne('SELECT COUNT(*) as c FROM products WHERE active = 1').c;
-  const totalIn = queryOne('SELECT COUNT(*) as c FROM inbound_records').c;
-  const totalOut = queryOne('SELECT COUNT(*) as c FROM outbound_records').c;
+  const totalIn = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM inbound_records').c;
+  const totalOut = queryOne('SELECT COALESCE(SUM(quantity), 0) as c FROM outbound_records').c;
 
   // 30-day trend: single query instead of 60
   const today = new Date();
@@ -983,12 +1028,12 @@ function clearLianhuaOrders(orderDate) {
 module.exports = {
   init, save, getDb: () => db, beginTransaction, commit, rollback,
   getProducts, getAllProducts, addProduct, updateProduct, deleteProduct, batchDeleteProducts, restoreProduct,
-  getInboundRecords, addInbound, updateInbound, deleteInbound,
-  getOutboundRecords, addOutbound, updateOutbound, deleteOutbound,
+  getInboundRecords, addInbound, batchAddInbound, updateInbound, deleteInbound,
+  getOutboundRecords, addOutbound, batchAddOutbound, updateOutbound, deleteOutbound,
   getRecipients, addRecipient, updateRecipient, deleteRecipient, updateRecipientOrder,
   getInventory, getProductStockDetail, getInventoryByMonth,
   getExpiryAlerts,
-  importProducts, importInbound, importOutbound, importOpeningStock, clearAllData,
+  importProducts, importInbound, importOutbound, importOpeningStock, clearProducts, clearInbound, clearOutbound, clearAllData,
   getDashboardStats,
   // Purchase Orders
   getPurchaseOrders, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, clearPurchaseOrders,

@@ -43,12 +43,14 @@ contextBridge.exposeInMainWorld('api', {
   // Inbound
   getInbound: (filters) => ipcRenderer.invoke('inbound:get', filters),
   addInbound: (data) => ipcRenderer.invoke('inbound:add', data),
+  batchAddInbound: (records) => ipcRenderer.invoke('inbound:batchAdd', records),
   updateInbound: (id, data) => ipcRenderer.invoke('inbound:update', id, data),
   deleteInbound: (id) => ipcRenderer.invoke('inbound:delete', id),
 
   // Outbound
   getOutbound: (filters) => ipcRenderer.invoke('outbound:get', filters),
   addOutbound: (data) => ipcRenderer.invoke('outbound:add', data),
+  batchAddOutbound: (records) => ipcRenderer.invoke('outbound:batchAdd', records),
   updateOutbound: (id, data) => ipcRenderer.invoke('outbound:update', id, data),
   deleteOutbound: (id) => ipcRenderer.invoke('outbound:delete', id),
 
@@ -75,6 +77,9 @@ contextBridge.exposeInMainWorld('api', {
   importInbound: (records) => ipcRenderer.invoke('import:inbound', records),
   importOutbound: (records) => ipcRenderer.invoke('import:outbound', records),
   importOpeningStock: (map) => ipcRenderer.invoke('import:openingStock', map),
+  clearProducts: () => ipcRenderer.invoke('import:clearProducts'),
+  clearInbound: () => ipcRenderer.invoke('import:clearInbound'),
+  clearOutbound: () => ipcRenderer.invoke('import:clearOutbound'),
   clearAllData: () => ipcRenderer.invoke('import:clearAll'),
 
   // Purchase Orders

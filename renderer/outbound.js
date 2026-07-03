@@ -176,27 +176,45 @@ async function submitOutboundBatch() {
   const tbody = document.getElementById('outbound-tbody');
   const rows = tbody.querySelectorAll('tr');
   const records = [];
+  const skipped = [];
   const inventory = await window.api.getInventory();
 
   await ensureProducts();
 
+  let rowIdx = 0;
   for (const tr of rows) {
-    const name = tr.querySelector('[data-field="product_name"]').value.trim();
-    const qty = parseFloat(tr.querySelector('[data-field="quantity"]').value);
-    const date = tr.querySelector('[data-field="date"]').value;
-    const recipient = tr.querySelector('[data-field="recipient"]').value;
-    if (!name || !qty || !date || !recipient) continue;
+    rowIdx++;
+    const nameInput = tr.querySelector('[data-field="product_name"]');
+    const qtyInput = tr.querySelector('[data-field="quantity"]');
+    const dateInput = tr.querySelector('[data-field="date"]');
+    const recipientSelect = tr.querySelector('[data-field="recipient"]');
+    const name = nameInput ? nameInput.value.trim() : '';
+    const qty = qtyInput ? parseFloat(qtyInput.value) : NaN;
+    const date = dateInput ? dateInput.value : '';
+    const recipient = recipientSelect ? recipientSelect.value : '';
+
+    if (!name || isNaN(qty) || qty <= 0 || !date || !recipient) {
+      if (name || !isNaN(qty) || date || recipient) {
+        const missing = [];
+        if (!name) missing.push('品名');
+        if (isNaN(qty) || qty <= 0) missing.push('数量');
+        if (!date) missing.push('日期');
+        if (!recipient) missing.push('领取人');
+        skipped.push(`第${rowIdx}行：缺少${missing.join('、')}`);
+      }
+      continue;
+    }
 
     const product = PRODUCTS.find(p => p.name === name);
     if (!product) {
-      showToast(`产品 "${name}" 不存在`, 'error');
-      return;
+      skipped.push(`第${rowIdx}行："${name}" 不在产品库中，请先在产品管理中添加`);
+      continue;
     }
 
     const inv = inventory.find(x => x.id === product.id);
     if (inv && qty > inv.stock) {
-      showToast(`${name} 库存不足！当前库存: ${inv.stock}`, 'error');
-      return;
+      skipped.push(`第${rowIdx}行：${name} 库存不足（当前: ${inv.stock}，需要: ${qty}）`);
+      continue;
     }
 
     records.push({
@@ -208,14 +226,42 @@ async function submitOutboundBatch() {
   }
 
   if (records.length === 0) {
-    showToast('没有有效的出库记录', 'error');
+    const msg = skipped.length > 0
+      ? `没有可提交的记录。\n${skipped.join('\n')}`
+      : '没有有效的出库记录';
+    showToast(msg, 'error');
     return;
   }
 
+  if (skipped.length > 0) {
+    const rowsPreview = records.map(r =>
+      `<tr><td>${r.date}</td><td>${PRODUCTS.find(p=>p.id===r.product_id)?.name||r.product_id}</td><td>${r.quantity}</td><td>${r.recipient}</td></tr>`
+    ).join('');
+    openModal('确认提交', `
+      <p>共 <strong>${records.length}</strong> 条有效记录将提交：</p>
+      <table style="width:100%;font-size:13px;margin:8px 0;">
+        <tr><th>日期</th><th>品名</th><th>数量</th><th>领取人</th></tr>
+        ${rowsPreview}
+      </table>
+      ${skipped.length > 0 ? `<p style="color:var(--warning);margin-top:8px;">⚠ 跳过的行：<br>${skipped.map(s => `· ${s}`).join('<br>')}</p>` : ''}
+    `, `
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="confirm-outbound-submit">确认提交</button>
+    `);
+    document.getElementById('confirm-outbound-submit').addEventListener('click', async () => {
+      closeModal();
+      await doSubmitOutbound(records);
+    });
+    return;
+  }
+
+  await doSubmitOutbound(records);
+}
+
+async function doSubmitOutbound(records) {
+  const tbody = document.getElementById('outbound-tbody');
   try {
-    for (const r of records) {
-      await window.api.addOutbound(r);
-    }
+    await window.api.batchAddOutbound(records);
   } catch (err) {
     showToast('出库保存失败: ' + err.message, 'error');
     return;
