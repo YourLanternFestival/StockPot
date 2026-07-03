@@ -874,9 +874,35 @@ function addDateGroupToPage(source, date, items) {
 
   groupContent.appendChild(dateGroup);
 
+  // ponytail: batch all rows as one innerHTML instead of per-row appendChild
   const tbody = dateGroup.querySelector('tbody');
-  items.forEach((item, idx) => {
-    const tr = appendPurchaseRowWithData(tbody, item, idx);
+  const isLianhua = source.includes('联华');
+  const dec = Math.max(0, APP_SETTINGS.price_decimals || 2);
+  const rowsHtml = items.map((item, idx) => {
+    const price = item.unit_price != null ? parseFloat(item.unit_price) || 0 : 0;
+    const qtyStr = String(item.quantity ?? '').trim();
+    const qtyNum = parseFloat(qtyStr) || 0;
+    const isPureNumber = qtyStr !== '' && !isNaN(Number(qtyStr));
+    const amount = isPureNumber ? price * qtyNum : (parseFloat(item.amount) || 0);
+    const amountText = amount > 0 ? '¥' + amount.toFixed(dec) : '';
+    return '<tr' + (item.id ? ' data-id="' + item.id + '"' : '') + '>' +
+      buildPurchaseRowHTML(idx, {
+        product_name: item.product_name || '',
+        spec: item.spec || '',
+        unit_price: price || '',
+        quantity: item.quantity || '',
+        unit: item.unit || '',
+        remark: item.remark || '',
+      }, amountText) + '</tr>';
+  }).join('');
+  tbody.innerHTML = rowsHtml;
+
+  tbody.querySelectorAll('tr').forEach(function(tr) {
+    if (isLianhua) {
+      attachLianhuaCellEvents(tr, tbody);
+    } else {
+      attachCellEvents(tr, tbody);
+    }
   });
 }
 

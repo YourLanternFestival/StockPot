@@ -767,12 +767,12 @@ function updatePurchaseOrder(id, data) {
   run(`UPDATE purchase_orders SET source=?, receive_date=?, product_name=?, spec=?, unit_price=?, quantity=?, unit=?, amount=?, remark=?
     WHERE id=?`,
     [data.source, data.receive_date, data.product_name, data.spec, data.unit_price, data.quantity, data.unit, data.amount, data.remark, id]);
-  save();
+  if (!inTransaction) save();
 }
 
 function deletePurchaseOrder(id) {
   run('DELETE FROM purchase_orders WHERE id = ?', [id]);
-  save();
+  if (!inTransaction) save();
 }
 
 function clearPurchaseOrders(source) {
