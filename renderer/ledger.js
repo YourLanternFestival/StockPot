@@ -14,8 +14,9 @@ function initLedgerYearSelector() {
 }
 
 async function loadLedger() {
-  try {
-    // 每次进入台账页时刷新选择器，防止跨月/跨年残留旧值
+  showLoading();
+  setTimeout(async () => {
+    try {
     initLedgerYearSelector();
     document.getElementById('ledger-month').value = new Date().getMonth() + 1;
     const year = parseInt(document.getElementById('ledger-year').value);
@@ -77,7 +78,10 @@ async function loadLedger() {
     }).join('');
   } catch (err) {
     console.error('Ledger load error:', err);
+  } finally {
+    hideLoading();
   }
+  }, 50);
 }
 
 function generateDailyDetail(daily, daysInMonth) {

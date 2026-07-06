@@ -167,6 +167,8 @@ function toggleDateGroup(header) {
 // ===== Data loading =====
 
 async function loadPurchaseGroupData(source) {
+  showLoading();
+  setTimeout(async () => {
   try {
     const groupContent = document.querySelector('.purchase-group[data-source="' + source + '"] .group-content');
     if (!groupContent) return;
@@ -188,7 +190,10 @@ async function loadPurchaseGroupData(source) {
     }
   } catch (err) {
     console.error('Load purchase group error:', err);
+  } finally {
+    hideLoading();
   }
+  }, 50);
 }
 
 function addDateGroupToPage(source, date, items) {

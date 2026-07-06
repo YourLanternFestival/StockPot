@@ -2065,3 +2065,33 @@ body {
   gap: 6px;
   margin-left: auto;
 }
+
+/* ===== Loading Mask ===== */
+#ld-msk {
+  position: fixed;
+  left: 220px; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.08);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: all;
+  cursor: wait;
+}
+.sidebar.collapsed ~ #ld-msk,
+.sidebar.collapsed ~ .main-content #ld-msk,
+.sidebar.collapsed ~ #ld-msk { left: 62px; }
+#ld-msk .ld-spin {
+  width: 40px; height: 40px;
+  border: 4px solid rgba(0,0,0,0.06);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: ld-rot 0.7s linear infinite;
+}
+@keyframes ld-rot { to { transform: rotate(360deg); } }
+#ld-msk .ld-text {
+  font-size: 14px;
+  color: var(--text-muted);
+}

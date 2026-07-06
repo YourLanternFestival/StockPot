@@ -195,6 +195,8 @@ function renderInvDetail(detail) {
 
 // ===== Alerts =====
 async function loadAlerts() {
+  showLoading();
+  setTimeout(async () => {
   try {
     const shortDays = APP_SETTINGS.alert_short_days || 30;
     const longDays = APP_SETTINGS.alert_long_days || 60;
@@ -241,7 +243,10 @@ async function loadAlerts() {
     }).join('');
   } catch (err) {
     console.error('Alerts load error:', err);
+  } finally {
+    hideLoading();
   }
+  }, 50);
 }
 
 document.getElementById('alert-filter').addEventListener('change', loadAlerts);

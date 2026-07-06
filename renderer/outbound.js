@@ -291,15 +291,20 @@ async function loadRecentOutbound() {
   }
   if (card) card.style.display = '';
   if (!container) return;
-  if (!outboundHistoryDirty) return;  // ponytail: skip rebuild if no changes
-  try {
-    const records = await window.api.getOutbound({});
-    const tree = groupRecordsByDate(records);
-    container.innerHTML = renderHistoryTree(tree, 'outbound');
-    outboundHistoryDirty = false;
-  } catch (err) {
-    console.error('Load recent outbound error:', err);
-  }
+  if (!outboundHistoryDirty) return;
+  showLoading();
+  setTimeout(async () => {
+    try {
+      const records = await window.api.getOutbound({});
+      const tree = groupRecordsByDate(records);
+      container.innerHTML = renderHistoryTree(tree, 'outbound');
+      outboundHistoryDirty = false;
+    } catch (err) {
+      console.error('Load recent outbound error:', err);
+    } finally {
+      hideLoading();
+    }
+  }, 50);
 }
 
 function markOutboundHistoryDirty() { outboundHistoryDirty = true; }

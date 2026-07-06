@@ -1,3 +1,25 @@
+// ===== Loading Mask =====
+// 重型 DOM 重建时主线程阻塞，遮罩告知用户"处理中"而非"卡死"。
+// setTimeout 让浏览器先绘制遮罩，再开始阻塞操作。
+// 引用计数：多个异步调用重叠时，最后一个完成才关闭遮罩。
+let _ldRef = 0;
+function showLoading() {
+  _ldRef++;
+  if (document.getElementById('ld-msk')) return;
+  const m = document.createElement('div');
+  m.id = 'ld-msk';
+  const collapsed = document.querySelector('.sidebar.collapsed');
+  m.style.left = collapsed ? '62px' : '220px';
+  m.innerHTML = '<div class="ld-spin"></div><div class="ld-text">请稍后...</div>';
+  document.body.appendChild(m);
+}
+function hideLoading() {
+  _ldRef = Math.max(0, _ldRef - 1);
+  if (_ldRef > 0) return;
+  const m = document.getElementById('ld-msk');
+  if (m) m.remove();
+}
+
 // ===== HTML Escape =====
 function escHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -306,15 +306,20 @@ async function loadRecentInbound() {
   }
   if (card) card.style.display = '';
   if (!container) return;
-  if (!inboundHistoryDirty) return;  // ponytail: skip rebuild if no changes
-  try {
-    const records = await window.api.getInbound({});
-    const tree = groupRecordsByDate(records);
-    container.innerHTML = renderHistoryTree(tree, 'inbound');
-    inboundHistoryDirty = false;
-  } catch (err) {
-    console.error('Load recent inbound error:', err);
-  }
+  if (!inboundHistoryDirty) return;
+  showLoading();
+  setTimeout(async () => {
+    try {
+      const records = await window.api.getInbound({});
+      const tree = groupRecordsByDate(records);
+      container.innerHTML = renderHistoryTree(tree, 'inbound');
+      inboundHistoryDirty = false;
+    } catch (err) {
+      console.error('Load recent inbound error:', err);
+    } finally {
+      hideLoading();
+    }
+  }, 50);
 }
 
 function markInboundHistoryDirty() { inboundHistoryDirty = true; }
