@@ -308,18 +308,17 @@ async function loadRecentInbound() {
   if (!container) return;
   if (!inboundHistoryDirty) return;
   showLoading();
-  setTimeout(async () => {
-    try {
-      const records = await window.api.getInbound({});
-      const tree = groupRecordsByDate(records);
-      container.innerHTML = renderHistoryTree(tree, 'inbound');
-      inboundHistoryDirty = false;
-    } catch (err) {
-      console.error('Load recent inbound error:', err);
-    } finally {
-      hideLoading();
-    }
-  }, 50);
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const records = await window.api.getInbound({});
+    const tree = groupRecordsByDate(records);
+    container.innerHTML = renderHistoryTree(tree, 'inbound');
+    inboundHistoryDirty = false;
+  } catch (err) {
+    console.error('Load recent inbound error:', err);
+  } finally {
+    hideLoading();
+  }
 }
 
 function markInboundHistoryDirty() { inboundHistoryDirty = true; }

@@ -196,7 +196,7 @@ function renderInvDetail(detail) {
 // ===== Alerts =====
 async function loadAlerts() {
   showLoading();
-  setTimeout(async () => {
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
     const shortDays = APP_SETTINGS.alert_short_days || 30;
     const longDays = APP_SETTINGS.alert_long_days || 60;
@@ -246,7 +246,6 @@ async function loadAlerts() {
   } finally {
     hideLoading();
   }
-  }, 50);
 }
 
 document.getElementById('alert-filter').addEventListener('change', loadAlerts);

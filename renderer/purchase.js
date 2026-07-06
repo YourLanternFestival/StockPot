@@ -103,7 +103,7 @@ function buildPurchaseRowHTML(idx, values, amountText, opts = {}) {
 
 async function applyCanteenMode() {
   showLoading();
-  setTimeout(async () => {
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
   const mode = APP_SETTINGS.xiaosuo_mode;
   const tabsEl = document.getElementById('multi-canteen-tabs');
@@ -150,7 +150,6 @@ async function applyCanteenMode() {
   } finally {
     hideLoading();
   }
-  }, 50);
 }
 
 async function switchCanteen(canteen) {
@@ -840,7 +839,7 @@ function copyKitchenData(fromCanteen, toCanteen) {
 
 async function loadPurchaseGroupData(source) {
   showLoading();
-  setTimeout(async () => {
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
   try {
     const groupContent = document.querySelector(`.purchase-group[data-source="${source}"] .group-content`);
     if (!groupContent) return;
@@ -865,7 +864,6 @@ async function loadPurchaseGroupData(source) {
   } finally {
     hideLoading();
   }
-  }, 50);
 }
 
 function addDateGroupToPage(source, date, items) {

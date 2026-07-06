@@ -15,8 +15,8 @@ function initLedgerYearSelector() {
 
 async function loadLedger() {
   showLoading();
-  setTimeout(async () => {
-    try {
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
     initLedgerYearSelector();
     document.getElementById('ledger-month').value = new Date().getMonth() + 1;
     const year = parseInt(document.getElementById('ledger-year').value);
@@ -81,7 +81,6 @@ async function loadLedger() {
   } finally {
     hideLoading();
   }
-  }, 50);
 }
 
 function generateDailyDetail(daily, daysInMonth) {

@@ -293,18 +293,17 @@ async function loadRecentOutbound() {
   if (!container) return;
   if (!outboundHistoryDirty) return;
   showLoading();
-  setTimeout(async () => {
-    try {
-      const records = await window.api.getOutbound({});
-      const tree = groupRecordsByDate(records);
-      container.innerHTML = renderHistoryTree(tree, 'outbound');
-      outboundHistoryDirty = false;
-    } catch (err) {
-      console.error('Load recent outbound error:', err);
-    } finally {
-      hideLoading();
-    }
-  }, 50);
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const records = await window.api.getOutbound({});
+    const tree = groupRecordsByDate(records);
+    container.innerHTML = renderHistoryTree(tree, 'outbound');
+    outboundHistoryDirty = false;
+  } catch (err) {
+    console.error('Load recent outbound error:', err);
+  } finally {
+    hideLoading();
+  }
 }
 
 function markOutboundHistoryDirty() { outboundHistoryDirty = true; }
